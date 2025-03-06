@@ -1,0 +1,160 @@
+
+body {
+    font-family: 'Segoe UI';
+    margin: 0;
+    padding: 0;
+}
+
+/* ------ Header Styles ------ */
+header {
+    background-color: #2C3927;
+    color: #fff;
+    display: flex;
+    z-index: 10;
+    position: sticky;
+}
+
+.header-logo-container {
+    display: flex;
+    padding: 15px;
+}
+
+.header-logo-text {
+    font-size: large;
+    margin-left: 10px;
+}
+
+.header-logo {
+    width: 30px;
+}
+
+.header-user {
+    margin-left: auto;
+}
+
+.header-user-icon {
+    font-size: 25px;
+    margin-right: 5px;
+}
+
+/* user menu style */
+.user-menu-button {
+    font-family: 'Segoe UI';
+    font-size: 16px;
+    margin-top: 10px;
+    background-color: #2C3927;
+    border: none;
+    color: white;
+}
+.user-menu-button:hover {
+    cursor: pointer;
+}
+
+/* back to main site button */
+.btn-back-site {
+    padding: 5px 15px;
+    font-family: 'Segoe UI';
+    margin-right: 20px;
+    border: none;
+    border-radius: 5px;
+    background-color: #18A50C;
+    color: white;
+}
+.btn-back-site:hover {
+    cursor: pointer;
+}
+
+/* ------ Nav Styles ------ */
+nav {
+    height: 100%;
+    width: 200px; /* Set the width of the sidebar */
+    position: fixed; /* Fixed Sidebar (stay in place on scroll) */
+    z-index: 5; /* Stay on top */
+    top: 0;
+    left: 0;
+    overflow-x: hidden; /* Disable horizontal scroll */
+    padding-top: 20px;
+    background-color: #d4ffd0;
+}
+
+.nav-btn-container {
+    margin-top: 40px;
+}
+
+/* sidenav links */
+nav a {
+    padding: 10px;
+    text-decoration: none;
+    color: #2C3927;
+    display: block;
+}
+nav a:hover {
+    background-color: #7cc475;
+    color: white;
+    cursor: pointer;
+}
+
+.nav-icon {
+    margin-right: 5px;
+}
+
+/* ------ Main Container ------ */
+main {
+    margin-left: 200px; /* Same as the width of the sidebar */
+}
+
+/* ------ Table Styles ------ */
+.tb-container {
+    border: 2px solid #aaa;
+    border-radius: 8px;
+    width: fit-content;
+    margin: 10px;
+}
+
+table {
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+table td {
+    padding: 0px 20px;
+    border: none;
+}
+
+.tb-header td {
+    font-weight: bold;
+    height: 30px;
+}
+.tb-header td:hover {
+    cursor: pointer;
+    background-color: #eee;
+}
+
+/* User account action container */
+.td-button-container {
+    padding: 5px 10px !important;
+}
+
+.tb-gray-row {
+    background-color: #eee;
+}
+
+.tb-button-action {
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 10px;
+    padding: 10px;
+    margin-right: 5px;
+}
+.tb-button-action:hover {
+    cursor: pointer;
+}
+
+.edit {
+    background-color: lightseagreen;
+}
+
+.delete {
+    background-color: red;
+}

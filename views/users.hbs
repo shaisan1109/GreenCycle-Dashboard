@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" type="text/css" href="/css/dashboard-style.css" />
+    <script src="https://kit.fontawesome.com/2fcb76e57d.js" crossorigin="anonymous"></script>
+</head>
+
+<body>
+    <!-- Header: Contains user menu -->
+    <header>
+        <div class="header-logo-container">
+            (LOGO)
+            <div class="header-logo-text">
+                GreenCycle DASHBOARD
+            </div>
+        </div>
+
+        <!-- User Menu -->
+        <div class="header-user">
+            <!-- Go back to main site -->
+            <button class="btn-back-site">
+                BACK TO MAIN SITE
+            </button>
+
+            <!-- User Menu Button -->
+            <button class="user-menu-button">
+                <i class="fa-regular fa-circle-user header-user-icon"></i> LASTNAME, First Name&nbsp;&nbsp;&nbsp;<i class="fa-solid fa-caret-down nav-icon"></i>
+            </button>
+            <!-- Display user menu (profile, settings, log out) -->
+        </div>
+    </header>
+
+    <!-- Navigation bar -->
+    <nav>
+        <div class="nav-btn-container">
+            <a><i class="fa-solid fa-chart-simple nav-icon"></i> Statistics</a>
+            <a><i class="fa-solid fa-users nav-icon"></i> Manage Users</a>
+            <a><i class="fa-solid fa-handshake nav-icon"></i> Manage Partners</a>
+        </div>
+    </nav>
+
+    <main>
+        <div class="tb-container">
+            <table>
+                <tr class="tb-header"> <!-- Column Headers -->
+                    <td class="td-button-container"><!-- Blank column for user actions --></td>
+                    <td>User ID</td>
+                    <td>Role</td>
+                    <td>Full Name</td>
+                    <td>Email</td>
+                    <td>Contact No.</td>
+                </tr>
+
+                <tr class="tb-gray-row">
+                    <td class="td-button-container">
+                        <button class="tb-button-action edit"><i class="fa-solid fa-pencil"></i></button>
+                        <button class="tb-button-action delete"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                    <td>1</td>
+                    <td>GreenCycle - Data Cleaner</td>
+                    <td>RAZON, Christine Joy</td>
+                    <td>ceidge.razon@greencycleconsultancy.com</td>
+                    <td>+63 (123) 456 7890</td>
+                </tr>
+
+                <tr>
+                    <td class="td-button-container">
+                        <button class="tb-button-action edit"><i class="fa-solid fa-pencil"></i></button>
+                        <button class="tb-button-action delete"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                    <td>2</td>
+                    <td>GreenCycle - Staff</td>
+                    <td>ALVAREZ, Maricon</td>
+                    <td>maricon.alvarez@greencycleconsultancy.com</td>
+                    <td>+63 (123) 456 7890</td>
+                </tr>
+            </table>
+        </div>
+    </main>
+</body>
+
+</html>

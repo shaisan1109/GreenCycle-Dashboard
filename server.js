@@ -16,8 +16,7 @@ app.use(express.static('public'))
     HANDLEBARS
 --------------------------------------- */
 app.engine('hbs', engine({
-  extname: ".hbs",
-  defaultLayout: 'main' // default layout used for all pages (main.hbs)
+  extname: ".hbs"
 }))
 app.set('view engine', 'hbs')
 app.set('views', 'views') // set 'views' folder as HBS view directory
@@ -45,9 +44,12 @@ app.get('/about', (req, res) => {
 
 // User routes
 // Get all users
-app.get('/users', async (req, res) => {
+app.get('/dashboard/users', async (req, res) => {
   const users = await getUsers()
-  res.send(users)
+  res.render('users', {
+    title: 'GC Dashboard | Users'
+  })
+  //res.send(users)
 })
 
 // Get one user from ID
