@@ -1,0 +1,303 @@
+/* General Styles */
+body {
+    font-family: "Font Awesome 5 Free", Arial, sans-serif;
+    background-color: white; 
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+section {
+    background-color: white; 
+    margin: 20px 0; 
+    padding: 20px; 
+    border-radius: 10px; 
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); 
+}
+
+/* Login Page Styles */
+.login-container {
+    background-color: #7fc96c;
+    padding: 20px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 300px;
+}
+
+.login-page {
+    background-color: #D3DABE; 
+}
+
+
+/* Register Page Styles */
+.register-container {
+    background-color: #7fc96c;
+    padding: 20px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 300px;
+}
+
+.register-page {
+    background-color: #D3DABE; /* Current color */
+}
+
+
+.header {
+    width: 100%;
+    background-color: #283619;
+    display: flex;
+    align-items: left;
+    justify-content: space-between;
+    padding: 5px 0; /* Adjust this for height */
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+}
+
+.header img {
+    height: 50px;
+    margin-left: 20px;
+}
+
+.navbar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #5DAE3D;
+    padding: 5px 0;
+    width: 100%;
+    position: fixed;
+    top: 60px; 
+    left: 0;
+    z-index: 999;
+}
+
+.navbar a {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    padding: 10px 20px;
+}
+
+.navbar a:hover {
+    background-color: #2f3816;
+    border-radius: 5px;
+}
+
+
+/* Content Layout */
+.content {
+    margin-top: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Home Page Styles */
+.home-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Banner */
+.banner {
+    margin-top: 80px; /* Adjust this value if needed */
+    top: 10px; 
+    width: 100%;
+    text-align: center;
+    background-color: #D1D6B8;
+    height: 100px; /* Adjust based on your preference */
+}
+
+.banner img {
+    width: 100%; 
+    max-width: 1200px; 
+    height: 100px; 
+    display: block;
+    margin: 0 auto; 
+    object-fit: contain; 
+}
+
+
+
+.banner button {
+    margin-top: 15px;
+    background-color: #7fc96c;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 5px;
+}
+
+.banner button:hover {
+    background-color: #1e2511;
+}
+
+/* Intro Section */
+.intro-section {
+    background-color: #D1D6B8;
+    padding: 30px;
+    margin: 20px;
+    width: 80%;
+    max-width: 900px;
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.intro-section h2 {
+    color: #2e3719;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.intro-section img {
+    width: 250px;
+    display: block;
+    margin: 20px auto;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.intro-section p {
+    font-size: 16px;
+    color: #333;
+}
+
+/* Footer */
+.footer {
+    margin-top: 30px; /* Adjust this value as needed */
+    width: 100%;
+    background-color: #283619;
+    color: white;
+    padding: 20px;
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    text-align: center;
+}
+
+.footer div {
+    max-width: 300px;
+}
+
+.footer h3 {
+    font-size: 18px;
+    border-bottom: 2px solid #74b566;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+.footer p {
+    font-size: 14px;
+}
+
+.footer img {
+    height: 20px;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+
+/* Forms and Inputs */
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    background-color: #2f3816;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #243015;
+}
+
+.links p {
+    margin: 10px 0 0;
+    font-size: 14px;
+}
+
+.links a {
+    text-decoration: none;
+    color: #003366;
+    font-weight: bold;
+}
+
+.roles p {
+    margin-top: 20px;
+}
+
+.contact-banner {
+    width: 100%;
+    background-color: #688E2E; 
+    color: white;
+    text-align: center;
+    padding: 20px;
+    margin-top: 80px; /* Adjust this value based on navbar height */
+    font-size: 12px;
+    font-weight: bold;
+}
+
+
+.content {
+    padding-top: 120px; /* Adjust to match navbar and banner height */
+}
+
+
+/* Contact Form Container */
+.contact-form-container {
+    width: 50%;
+    max-width: 1000px;
+    background-color: #D1D6B8;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    margin: 20px auto;
+}
+
+/* Form Inputs */
+.contact-form-container input, 
+.contact-form-container textarea {
+    width: 80%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+/* Submit Button */
+.contact-form-container button {
+    width: 100%;
+    padding: 10px;
+    background-color: #2f3816;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.contact-form-container button:hover {
+    background-color: #243015;
+}
