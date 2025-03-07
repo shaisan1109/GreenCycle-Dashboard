@@ -24,7 +24,7 @@ app.set('views', 'views') // set 'views' folder as HBS view directory
 /* ---------------------------------------
     ROUTES
 --------------------------------------- */
-app.get('/', (req, res) => {
+app.get('/home', (req, res) => {
   res.render('home', {
     title: 'Home | GreenCycle'
   })
@@ -33,6 +33,18 @@ app.get('/', (req, res) => {
 app.get('/login', (req, res) => {
   res.render('login', {
     title: 'Login | GreenCycle'
+  })
+})
+
+app.get('/contact', (req, res) => {
+  res.render('contact', {
+    title: 'Contact | GreenCycle'
+  })
+})
+
+app.get('/register', (req, res) => {
+  res.render('register', {
+    title: 'Register | GreenCycle'
   })
 })
 
