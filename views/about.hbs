@@ -1,102 +1,26 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{title}}</title>
-    <link rel="stylesheet" type="text/css" href="/css/test.css" />
-    <script src="https://kit.fontawesome.com/2fcb76e57d.js" crossorigin="anonymous"></script>
-</head>
-<body>
-    {{!-- Header --}}
-    <div class="header">
-        <div class="logo">
-            <ul>
-                <img src="/gren.jpg" alt="Company Logo">
-                <a>{{companyName}}</a>
-            </ul>
-        </div>
+
+{{!-- Main Content --}}
+<div class="container">
+    <h1>Who Are We?</h1>
+    <p>{{companyName}} is a Waste Management Company established in 2014 with the mission 
+        of helping out Local Government Units to be compliant with RA 9003, also known as the 
+        Ecological Solid Waste Management Act of 2000. We help LGUs achieve 26% waste diversion 
+        from the landfill through collection efforts by processing and converting waste into a viable energy 
+        source or material.</p>
+    <p>{{companyName}} has also been closely working and collaborating 
+        with companies since 2018 in their Plastic Neutrality Programs in response to RA 11898, 
+        better known as the Extended Producer Responsibility (EPR) Law. Companies that carry various brands 
+        are now required to reduce their plastic footprint by recovering a percentage of their plastic packaging 
+        waste every year from the environment.</p>
+</div>
+
+<div class="container">
+    <h1 style="font-size: 30px;">We have a Wide Network of Collection Points for Post-Consumer Plastics</h1>
+    <p>{{companyName}} helps Local Government Units comply with waste management laws 
+        and works with companies to achieve sustainability goals.</p>
+    <div class="pics">
+        {{#each images}}
+            <img src="{{this}}" alt="Company Logo">
+        {{/each}}
     </div>
-
-    {{!-- Taskbar Navigation --}}
-    <div class="taskbar">
-        <ul>
-            <a href="/homepage">Home</a>
-            <a href="/dashboard">Dashboard</a>
-            <a href="/about">About</a>
-            <a href="/partners">Partners</a>
-            <a href="/contacts">Contact</a>
-        </ul>
-    </div>
-
-    {{!-- Main Content --}}
-    <div class="container">
-        <h1>Who Are We?</h1>
-        <p>{{companyName}} is a Waste Management Company established in 2014 with the mission 
-            of helping out Local Government Units to be compliant with RA 9003, also known as the 
-            Ecological Solid Waste Management Act of 2000. We help LGUs achieve 26% waste diversion 
-            from the landfill through collection efforts by processing and converting waste into a viable energy 
-            source or material.</p>
-        <p>{{companyName}} has also been closely working and collaborating 
-            with companies since 2018 in their Plastic Neutrality Programs in response to RA 11898, 
-            better known as the Extended Producer Responsibility (EPR) Law. Companies that carry various brands 
-            are now required to reduce their plastic footprint by recovering a percentage of their plastic packaging 
-            waste every year from the environment.</p>
-    </div>
-
-    <div class="container">
-        <h1 style="font-size: 30px;">We have a Wide Network of Collection Points for Post-Consumer Plastics</h1>
-        <p>{{companyName}} helps Local Government Units comply with waste management laws 
-            and works with companies to achieve sustainability goals.</p>
-        <div class="pics">
-            {{#each images}}
-                <img src="{{this}}" alt="Company Logo">
-            {{/each}}
-        </div>
-    </div>
-
-    {{!-- Footer --}}
-
-
-        <div class="footer">
-        <div class="footer-content">
-            <div class="footer-section">
-                <h3>Location:</h3>
-                <p>3 Fulgencio Road, Grand Asia Compound,<br>
-                   Bgy Nagkaisang Nayon, Sitio Gitna<br>
-                   1125 Quezon City, Philippines</p>
-            </div>
-    
-            <div class="footer-section">
-                <h3>Contact Us:</h3>
-                <div class="social-buttons">
-                    <a href="https://facebook.com" target="_blank">
-                        <img src="pictures/facebook.png" class="icon">
-                    </a>
-                    <a href="https://accounts.google.com.ph/"target="_blank">
-                        <img src="pictures/gmail.png" class="icon">
-                    </a>
-                    <a href="https://linkedin.com" target="_blank">
-                        <img src="pictures/linkedin.png" class="icon">
-                    </a>
-                </div>
-                <p>
-                    <img src="pictures/phone.png" class="icon"> 0906 880 6858
-                </p>
-            </div>
-    
-            <div class="footer-section">
-                <h3>Other:</h3>
-                <a href="about.html" class="footer-link">About Us</a><br>
-                <a href="partners.html" class="footer-link">Our Partners</a>
-            </div>
-        </div>
-    
-    <div class="footer">
-        <div class="footer-bottom">
-            <p>© {{year}} {{companyName}}. All rights reserved.</p>
-            <a>By Team</a>
-        </div>
-    </div>
-</body>
-</html>
+</div>

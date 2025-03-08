@@ -24,8 +24,9 @@ app.set('views', 'views') // set 'views' folder as HBS view directory
 /* ---------------------------------------
     ROUTES
 --------------------------------------- */
-app.get('/home', (req, res) => {
+app.get('/', (req, res) => {
   res.render('home', {
+    layout: 'public',
     title: 'Home | GreenCycle'
   })
 })
@@ -36,8 +37,16 @@ app.get('/login', (req, res) => {
   })
 })
 
+// TESTING
+app.get('/login-old', (req, res) => {
+  res.render('login-OLD', {
+    title: 'Login | GreenCycle'
+  })
+})
+
 app.get('/contact', (req, res) => {
   res.render('contact', {
+    layout: 'public',
     title: 'Contact | GreenCycle'
   })
 })
@@ -51,11 +60,13 @@ app.get('/register', (req, res) => {
 // Define route to render Handlebars template
 app.get('/about', (req, res) => {
   res.render('about', {
-      title: 'GreenCycle - About',
-      companyName: 'GreenCycle Consultancy Agency',
-      year: new Date().getFullYear()
+    layout: 'public',
+    title: 'About | GreenCycle',
+    companyName: 'GreenCycle Consultancy Agency',
+    year: new Date().getFullYear()
   });
 });
+
 // User routes
 // Get all users
 app.get('/dashboard/users', async (req, res) => {

@@ -1,10 +1,10 @@
 /* General Styles */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
+
 body {
-    font-family: "Font Awesome 5 Free", Arial, sans-serif;
+    font-family: "Open Sans", Arial, sans-serif;
     background-color: white; 
     margin: 0;
-    display: flex;
-    flex-direction: column;
     align-items: center;
 }
 
@@ -16,7 +16,19 @@ section {
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); 
 }
 
+main {
+    margin-top: 110px;
+    width: 100%;
+}
+
 /* Login Page Styles */
+.login-content {
+    margin-top: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
 .login-container {
     background-color: #7fc96c;
     padding: 20px;
@@ -85,11 +97,13 @@ section {
     padding: 0;
     margin: 0;
 }
+
 .taskbar a {
     color: white;
     text-decoration: none;
     font-weight: bold;
     padding: 10px 20px;
+    margin: 0px 25px;
 }
 
 .taskbar a:hover {
@@ -99,12 +113,6 @@ section {
 
 
 /* Content Layout */
-.content {
-    margin-top: 100px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
 
 /* Home Page Styles */
 .home-container {
@@ -266,9 +274,9 @@ button:hover {
 }
 
 
-.content {
+/* .content {
     padding-top: 120px; 
-}
+} */
 
 
 /* Contact Form Container */
@@ -348,3 +356,29 @@ button:hover {
         .show {
             display: block;
         }
+
+.container {
+    min-height: 60vh; /* Keep it at least as tall as wide */
+    padding: 20px;
+    left: 175px;
+    border: 1px solid #ddd;
+    background-color: #68972D;
+    color: white;
+    position: relative;
+    bottom: -30px;
+    width: 75%;
+    margin-bottom: 80px;
+}
+
+.container h1 {
+    color:white;
+    text-align: center;
+    font-size: 60px;
+    font-weight: bolder;
+}
+
+.container p {
+    text-align: left;
+    font-size: 25px;
+    padding: 30px;
+}
