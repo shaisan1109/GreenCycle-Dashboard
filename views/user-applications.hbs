@@ -1,0 +1,362 @@
+<div class="admin-container">
+    <h2>User Applications</h2>
+    
+    <div class="filter-bar">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search by name or email...">
+            <button id="searchButton"><i class="fa-solid fa-search"></i></button>
+        </div>
+        <div class="filter-container">
+            <select id="statusFilter">
+                <option value="all">All Applications</option>
+                <option value="pending">Pending Review</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="tb-container">
+        <table id="applicationsTable">
+            <tr class="tb-header">
+                <td>Application ID</td>
+                <td>Full Name</td>
+                <td>Email</td>
+                <td>Submission Date</td>
+                <td>Status</td>
+                <td class="td-button-container">Actions</td>
+            </tr>
+            <!-- Sample application entries -->
+            <tr class="tb-gray-row">
+                <td>APP001</td>
+                <td>SANTOS, Juan</td>
+                <td>juan.santos@example.com</td>
+                <td>Mar 1, 2025</td>
+                <td><span class="status-badge pending">Pending Review</span></td>
+                <td class="td-button-container">
+                    <button class="tb-button-action view" onclick="viewApplication('APP001')"><i class="fa-solid fa-eye"></i></button>
+                </td>
+            </tr>
+            <tr>
+                <td>APP002</td>
+                <td>MENDOZA, Maria</td>
+                <td>maria.mendoza@example.com</td>
+                <td>Mar 2, 2025</td>
+                <td><span class="status-badge pending">Pending Review</span></td>
+                <td class="td-button-container">
+                    <button class="tb-button-action view" onclick="viewApplication('APP002')"><i class="fa-solid fa-eye"></i></button>
+                </td>
+            </tr>
+            <tr class="tb-gray-row">
+                <td>APP003</td>
+                <td>CRUZ, Roberto</td>
+                <td>roberto.cruz@example.com</td>
+                <td>Feb 28, 2025</td>
+                <td><span class="status-badge approved">Approved</span></td>
+                <td class="td-button-container">
+                    <button class="tb-button-action view" onclick="viewApplication('APP003')"><i class="fa-solid fa-eye"></i></button>
+                </td>
+            </tr>
+            <tr>
+                <td>APP004</td>
+                <td>REYES, Ana</td>
+                <td>ana.reyes@example.com</td>
+                <td>Feb 27, 2025</td>
+                <td><span class="status-badge rejected">Rejected</span></td>
+                <td class="td-button-container">
+                    <button class="tb-button-action view" onclick="viewApplication('APP004')"><i class="fa-solid fa-eye"></i></button>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<!-- Application Details Modal -->
+<div id="applicationModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Application Details</h2>
+        
+        <div class="app-details">
+            <div class="applicant-info">
+                <h3>Applicant Information</h3>
+                <div class="info-row">
+                    <div class="info-label">Full Name:</div>
+                    <div id="appName" class="info-value">SANTOS, Juan</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Email:</div>
+                    <div id="appEmail" class="info-value">juan.santos@example.com</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Contact Number:</div>
+                    <div id="appContact" class="info-value">+63 (123) 456 7890</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Submission Date:</div>
+                    <div id="appDate" class="info-value">Mar 1, 2025</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Status:</div>
+                    <div id="appStatus" class="info-value"><span class="status-badge pending">Pending Review</span></div>
+                </div>
+            </div>
+            
+            <div class="documents-section">
+                <h3>Submitted Documents</h3>
+                <div class="document-preview">
+                    <h4>Verification Document</h4>
+                    <div class="document-image">
+                        <img id="verificationDoc" src="/images/sample-id.jpg" alt="Verification Document">
+                    </div>
+                    <button class="btn-preview">View Full Size</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="application-notes">
+            <h3>Admin Notes</h3>
+            <textarea id="adminNotes" placeholder="Add notes about this application..."></textarea>
+        </div>
+        
+        <div class="application-actions" id="pendingActions">
+            <button id="approveButton" class="btn-approve">Approve Application</button>
+            <button id="rejectButton" class="btn-reject">Reject Application</button>
+        </div>
+        
+        <div class="application-actions hidden" id="approvedActions">
+            <p class="action-note">This application has been approved.</p>
+            <button id="revokeButton" class="btn-revoke">Revoke Approval</button>
+        </div>
+        
+        <div class="application-actions hidden" id="rejectedActions">
+            <p class="action-note">This application has been rejected.</p>
+            <button id="reconsiderButton" class="btn-reconsider">Reconsider Application</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Modal functionality
+    const modal = document.getElementById('applicationModal');
+    const closeBtn = document.getElementsByClassName('close')[0];
+    
+    closeBtn.onclick = function() {
+        modal.style.display = "none";
+    }
+    
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+    
+    // Handle filter changes
+    const statusFilter = document.getElementById('statusFilter');
+    statusFilter.addEventListener('change', function() {
+        filterApplications();
+    });
+    
+    // Handle search
+    const searchButton = document.getElementById('searchButton');
+    searchButton.addEventListener('click', function() {
+        filterApplications();
+    });
+    
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            filterApplications();
+        }
+    });
+    
+    // Handle application actions
+    const approveButton = document.getElementById('approveButton');
+    approveButton.addEventListener('click', function() {
+        approveApplication(currentApplicationId);
+    });
+    
+    const rejectButton = document.getElementById('rejectButton');
+    rejectButton.addEventListener('click', function() {
+        rejectApplication(currentApplicationId);
+    });
+    
+    const revokeButton = document.getElementById('revokeButton');
+    revokeButton.addEventListener('click', function() {
+        revokeApproval(currentApplicationId);
+    });
+    
+    const reconsiderButton = document.getElementById('reconsiderButton');
+    reconsiderButton.addEventListener('click', function() {
+        reconsiderApplication(currentApplicationId);
+    });
+});
+
+// Global variable to track current application
+let currentApplicationId = '';
+
+// View application details
+function viewApplication(appId) {
+    currentApplicationId = appId;
+    
+    // This would typically fetch application details from server
+    // For demo, we'll hardcode some values
+    const appData = {
+        'APP001': {
+            name: 'SANTOS, Juan',
+            email: 'juan.santos@example.com',
+            contact: '+63 (123) 456 7890',
+            date: 'Mar 1, 2025',
+            status: 'pending'
+        },
+        'APP002': {
+            name: 'MENDOZA, Maria',
+            email: 'maria.mendoza@example.com',
+            contact: '+63 (234) 567 8901',
+            date: 'Mar 2, 2025',
+            status: 'pending'
+        },
+        'APP003': {
+            name: 'CRUZ, Roberto',
+            email: 'roberto.cruz@example.com',
+            contact: '+63 (345) 678 9012',
+            date: 'Feb 28, 2025',
+            status: 'approved'
+        },
+        'APP004': {
+            name: 'REYES, Ana',
+            email: 'ana.reyes@example.com',
+            contact: '+63 (456) 789 0123',
+            date: 'Feb 27, 2025',
+            status: 'rejected'
+        }
+    };
+    
+    // Populate modal with application data
+    const app = appData[appId];
+    document.getElementById('appName').textContent = app.name;
+    document.getElementById('appEmail').textContent = app.email;
+    document.getElementById('appContact').textContent = app.contact;
+    document.getElementById('appDate').textContent = app.date;
+    
+    const statusBadge = `<span class="status-badge ${app.status}">${app.status === 'pending' ? 'Pending Review' : app.status === 'approved' ? 'Approved' : 'Rejected'}</span>`;
+    document.getElementById('appStatus').innerHTML = statusBadge;
+    
+    // Show/hide appropriate action buttons based on status
+    document.getElementById('pendingActions').classList.add('hidden');
+    document.getElementById('approvedActions').classList.add('hidden');
+    document.getElementById('rejectedActions').classList.add('hidden');
+    
+    if (app.status === 'pending') {
+        document.getElementById('pendingActions').classList.remove('hidden');
+    } else if (app.status === 'approved') {
+        document.getElementById('approvedActions').classList.remove('hidden');
+    } else if (app.status === 'rejected') {
+        document.getElementById('rejectedActions').classList.remove('hidden');
+    }
+    
+    // Display the modal
+    document.getElementById('applicationModal').style.display = 'block';
+}
+
+// Filter applications based on search and status filter
+function filterApplications() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    
+    const rows = document.querySelectorAll('#applicationsTable tr:not(.tb-header)');
+    
+    rows.forEach(row => {
+        const name = row.cells[1].textContent.toLowerCase();
+        const email = row.cells[2].textContent.toLowerCase();
+        const statusCell = row.cells[4].querySelector('.status-badge');
+        const status = statusCell ? statusCell.classList[1] : '';
+        
+        const matchesSearch = name.includes(searchTerm) || email.includes(searchTerm) || searchTerm === '';
+        const matchesStatus = statusFilter === 'all' || status === statusFilter;
+        
+        if (matchesSearch && matchesStatus) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Application action functions
+function approveApplication(appId) {
+    if (confirm('Are you sure you want to approve this application?')) {
+        // Send approval request to server
+        // For demo, we'll just update the UI
+        document.getElementById('appStatus').innerHTML = '<span class="status-badge approved">Approved</span>';
+        document.getElementById('pendingActions').classList.add('hidden');
+        document.getElementById('approvedActions').classList.remove('hidden');
+        
+        // Update table row status
+        updateTableStatus(appId, 'approved');
+        
+        alert('Application has been approved. A confirmation email will be sent to the user.');
+    }
+}
+
+function rejectApplication(appId) {
+    const reason = prompt('Please provide a reason for rejection:');
+    if (reason) {
+        // Send rejection request to server
+        // For demo, we'll just update the UI
+        document.getElementById('appStatus').innerHTML = '<span class="status-badge rejected">Rejected</span>';
+        document.getElementById('pendingActions').classList.add('hidden');
+        document.getElementById('rejectedActions').classList.remove('hidden');
+        
+        // Update table row status
+        updateTableStatus(appId, 'rejected');
+        
+        alert('Application has been rejected. The user will be notified.');
+    }
+}
+
+function revokeApproval(appId) {
+    if (confirm('Are you sure you want to revoke this approval?')) {
+        // Send revoke request to server
+        // For demo, we'll just update the UI
+        document.getElementById('appStatus').innerHTML = '<span class="status-badge pending">Pending Review</span>';
+        document.getElementById('approvedActions').classList.add('hidden');
+        document.getElementById('pendingActions').classList.remove('hidden');
+        
+        // Update table row status
+        updateTableStatus(appId, 'pending');
+        
+        alert('Approval has been revoked. The application is now back in pending status.');
+    }
+}
+
+function reconsiderApplication(appId) {
+    if (confirm('Are you sure you want to reconsider this application?')) {
+        // Send reconsider request to server
+        // For demo, we'll just update the UI
+        document.getElementById('appStatus').innerHTML = '<span class="status-badge pending">Pending Review</span>';
+        document.getElementById('rejectedActions').classList.add('hidden');
+        document.getElementById('pendingActions').classList.remove('hidden');
+        
+        // Update table row status
+        updateTableStatus(appId, 'pending');
+        
+        alert('Application has been moved back to pending status for reconsideration.');
+    }
+}
+
+// Update status in the applications table
+function updateTableStatus(appId, newStatus) {
+    const rows = document.querySelectorAll('#applicationsTable tr:not(.tb-header)');
+    
+    rows.forEach(row => {
+        if (row.cells[0].textContent === appId) {
+            const statusCell = row.cells[4];
+            const statusText = newStatus === 'pending' ? 'Pending Review' : 
+                             newStatus === 'approved' ? 'Approved' : 'Rejected';
+            
+            statusCell.innerHTML = `<span class="status-badge ${newStatus}">${statusText}</span>`;
+        }
+    });
+}
