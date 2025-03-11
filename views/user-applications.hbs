@@ -1,3 +1,4 @@
+<!-- user-applications.hbs -->
 <div class="admin-container">
     <h2>User Applications</h2>
     
@@ -82,23 +83,23 @@
                 <h3>Applicant Information</h3>
                 <div class="info-row">
                     <div class="info-label">Full Name:</div>
-                    <div id="appName" class="info-value">SANTOS, Juan</div>
+                    <div id="appName" class="info-value"></div>
                 </div>
                 <div class="info-row">
                     <div class="info-label">Email:</div>
-                    <div id="appEmail" class="info-value">juan.santos@example.com</div>
+                    <div id="appEmail" class="info-value"></div>
                 </div>
                 <div class="info-row">
                     <div class="info-label">Contact Number:</div>
-                    <div id="appContact" class="info-value">+63 (123) 456 7890</div>
+                    <div id="appContact" class="info-value"></div>
                 </div>
                 <div class="info-row">
                     <div class="info-label">Submission Date:</div>
-                    <div id="appDate" class="info-value">Mar 1, 2025</div>
+                    <div id="appDate" class="info-value"></div>
                 </div>
                 <div class="info-row">
                     <div class="info-label">Status:</div>
-                    <div id="appStatus" class="info-value"><span class="status-badge pending">Pending Review</span></div>
+                    <div id="appStatus" class="info-value"></div>
                 </div>
             </div>
             
@@ -107,9 +108,9 @@
                 <div class="document-preview">
                     <h4>Verification Document</h4>
                     <div class="document-image">
-                        <img id="verificationDoc" src="/images/sample-id.jpg" alt="Verification Document">
+                        <img id="verificationDoc" src="/pictures/verification-doc.png" alt="Verification Document">
                     </div>
-                    <button class="btn-preview">View Full Size</button>
+                    <button class="btn-preview" onclick="viewFullSizeDocument()">View Full Size</button>
                 </div>
             </div>
         </div>
@@ -119,31 +120,22 @@
             <textarea id="adminNotes" placeholder="Add notes about this application..."></textarea>
         </div>
         
-        <div class="application-actions" id="pendingActions">
-            <button id="approveButton" class="btn-approve">Approve Application</button>
-            <button id="rejectButton" class="btn-reject">Reject Application</button>
-        </div>
-        
-        <div class="application-actions hidden" id="approvedActions">
-            <p class="action-note">This application has been approved.</p>
-            <button id="revokeButton" class="btn-revoke">Revoke Approval</button>
-        </div>
-        
-        <div class="application-actions hidden" id="rejectedActions">
-            <p class="action-note">This application has been rejected.</p>
-            <button id="reconsiderButton" class="btn-reconsider">Reconsider Application</button>
-        </div>
+        <!-- Action buttons will be dynamically inserted here -->
+        <div id="actionButtonsContainer"></div>
     </div>
 </div>
 
 <script>
+// Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Modal functionality
     const modal = document.getElementById('applicationModal');
     const closeBtn = document.getElementsByClassName('close')[0];
     
-    closeBtn.onclick = function() {
-        modal.style.display = "none";
+    if (closeBtn) {
+        closeBtn.onclick = function() {
+            modal.style.display = "none";
+        }
     }
     
     window.onclick = function(event) {
@@ -154,47 +146,33 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handle filter changes
     const statusFilter = document.getElementById('statusFilter');
-    statusFilter.addEventListener('change', function() {
-        filterApplications();
-    });
+    if (statusFilter) {
+        statusFilter.addEventListener('change', function() {
+            filterApplications();
+        });
+    }
     
     // Handle search
     const searchButton = document.getElementById('searchButton');
-    searchButton.addEventListener('click', function() {
-        filterApplications();
-    });
+    if (searchButton) {
+        searchButton.addEventListener('click', function() {
+            filterApplications();
+        });
+    }
     
     const searchInput = document.getElementById('searchInput');
-    searchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            filterApplications();
-        }
-    });
-    
-    // Handle application actions
-    const approveButton = document.getElementById('approveButton');
-    approveButton.addEventListener('click', function() {
-        approveApplication(currentApplicationId);
-    });
-    
-    const rejectButton = document.getElementById('rejectButton');
-    rejectButton.addEventListener('click', function() {
-        rejectApplication(currentApplicationId);
-    });
-    
-    const revokeButton = document.getElementById('revokeButton');
-    revokeButton.addEventListener('click', function() {
-        revokeApproval(currentApplicationId);
-    });
-    
-    const reconsiderButton = document.getElementById('reconsiderButton');
-    reconsiderButton.addEventListener('click', function() {
-        reconsiderApplication(currentApplicationId);
-    });
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                filterApplications();
+            }
+        });
+    }
 });
 
 // Global variable to track current application
 let currentApplicationId = '';
+let currentApplicationStatus = '';
 
 // View application details
 function viewApplication(appId) {
@@ -208,52 +186,80 @@ function viewApplication(appId) {
             email: 'juan.santos@example.com',
             contact: '+63 (123) 456 7890',
             date: 'Mar 1, 2025',
-            status: 'pending'
+            status: 'pending',
+            notes: ''
         },
         'APP002': {
             name: 'MENDOZA, Maria',
             email: 'maria.mendoza@example.com',
             contact: '+63 (234) 567 8901',
             date: 'Mar 2, 2025',
-            status: 'pending'
+            status: 'pending',
+            notes: ''
         },
         'APP003': {
             name: 'CRUZ, Roberto',
             email: 'roberto.cruz@example.com',
             contact: '+63 (345) 678 9012',
             date: 'Feb 28, 2025',
-            status: 'approved'
+            status: 'approved',
+            notes: 'Valid ID provided. All information verified.'
         },
         'APP004': {
             name: 'REYES, Ana',
             email: 'ana.reyes@example.com',
             contact: '+63 (456) 789 0123',
             date: 'Feb 27, 2025',
-            status: 'rejected'
+            status: 'rejected',
+            notes: 'Incomplete documentation.'
         }
     };
     
     // Populate modal with application data
     const app = appData[appId];
+    
+    if (!app) {
+        return;
+    }
+    
+    currentApplicationStatus = app.status;
+    
+    // Update the application details in the modal
     document.getElementById('appName').textContent = app.name;
     document.getElementById('appEmail').textContent = app.email;
     document.getElementById('appContact').textContent = app.contact;
     document.getElementById('appDate').textContent = app.date;
+    document.getElementById('adminNotes').value = app.notes;
     
     const statusBadge = `<span class="status-badge ${app.status}">${app.status === 'pending' ? 'Pending Review' : app.status === 'approved' ? 'Approved' : 'Rejected'}</span>`;
     document.getElementById('appStatus').innerHTML = statusBadge;
     
-    // Show/hide appropriate action buttons based on status
-    document.getElementById('pendingActions').classList.add('hidden');
-    document.getElementById('approvedActions').classList.add('hidden');
-    document.getElementById('rejectedActions').classList.add('hidden');
+    // Clear and rebuild the action buttons section
+    const actionsContainer = document.getElementById('actionButtonsContainer');
+    actionsContainer.innerHTML = '';
     
+    // Create the appropriate action buttons based on the status
     if (app.status === 'pending') {
-        document.getElementById('pendingActions').classList.remove('hidden');
+        actionsContainer.innerHTML = `
+            <div class="application-actions">
+                <button onclick="approveApplication('${appId}')" class="btn-approve">Approve Application</button>
+                <button onclick="rejectApplication('${appId}')" class="btn-reject">Reject Application</button>
+            </div>
+        `;
     } else if (app.status === 'approved') {
-        document.getElementById('approvedActions').classList.remove('hidden');
+        actionsContainer.innerHTML = `
+            <div class="application-actions">
+                <p class="action-note">This application has been approved.</p>
+                <button onclick="revokeApproval('${appId}')" class="btn-revoke">Revoke Approval</button>
+            </div>
+        `;
     } else if (app.status === 'rejected') {
-        document.getElementById('rejectedActions').classList.remove('hidden');
+        actionsContainer.innerHTML = `
+            <div class="application-actions">
+                <p class="action-note">This application has been rejected.</p>
+                <button onclick="reconsiderApplication('${appId}')" class="btn-reconsider">Reconsider Application</button>
+            </div>
+        `;
     }
     
     // Display the modal
@@ -263,7 +269,7 @@ function viewApplication(appId) {
 // Filter applications based on search and status filter
 function filterApplications() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const statusFilter = document.getElementById('statusFilter').value;
+    const statusValue = document.getElementById('statusFilter').value;
     
     const rows = document.querySelectorAll('#applicationsTable tr:not(.tb-header)');
     
@@ -271,10 +277,17 @@ function filterApplications() {
         const name = row.cells[1].textContent.toLowerCase();
         const email = row.cells[2].textContent.toLowerCase();
         const statusCell = row.cells[4].querySelector('.status-badge');
-        const status = statusCell ? statusCell.classList[1] : '';
+        
+        if (!statusCell) {
+            return;
+        }
+        
+        const status = statusCell.classList.contains('pending') ? 'pending' : 
+                      statusCell.classList.contains('approved') ? 'approved' : 
+                      statusCell.classList.contains('rejected') ? 'rejected' : '';
         
         const matchesSearch = name.includes(searchTerm) || email.includes(searchTerm) || searchTerm === '';
-        const matchesStatus = statusFilter === 'all' || status === statusFilter;
+        const matchesStatus = statusValue === 'all' || status === statusValue;
         
         if (matchesSearch && matchesStatus) {
             row.style.display = '';
@@ -284,17 +297,30 @@ function filterApplications() {
     });
 }
 
+// View document in full size
+function viewFullSizeDocument() {
+    window.open('/pictures/verification-doc.png', '_blank');
+}
+
 // Application action functions
 function approveApplication(appId) {
     if (confirm('Are you sure you want to approve this application?')) {
-        // Send approval request to server
-        // For demo, we'll just update the UI
+        // Update the application status in the UI
         document.getElementById('appStatus').innerHTML = '<span class="status-badge approved">Approved</span>';
-        document.getElementById('pendingActions').classList.add('hidden');
-        document.getElementById('approvedActions').classList.remove('hidden');
+        
+        // Update the actions section
+        document.getElementById('actionButtonsContainer').innerHTML = `
+            <div class="application-actions">
+                <p class="action-note">This application has been approved.</p>
+                <button onclick="revokeApproval('${appId}')" class="btn-revoke">Revoke Approval</button>
+            </div>
+        `;
         
         // Update table row status
         updateTableStatus(appId, 'approved');
+        
+        // Update status in our client-side state
+        currentApplicationStatus = 'approved';
         
         alert('Application has been approved. A confirmation email will be sent to the user.');
     }
@@ -303,14 +329,26 @@ function approveApplication(appId) {
 function rejectApplication(appId) {
     const reason = prompt('Please provide a reason for rejection:');
     if (reason) {
-        // Send rejection request to server
-        // For demo, we'll just update the UI
+        // Update the application status in the UI
         document.getElementById('appStatus').innerHTML = '<span class="status-badge rejected">Rejected</span>';
-        document.getElementById('pendingActions').classList.add('hidden');
-        document.getElementById('rejectedActions').classList.remove('hidden');
+        
+        // Update the actions section
+        document.getElementById('actionButtonsContainer').innerHTML = `
+            <div class="application-actions">
+                <p class="action-note">This application has been rejected.</p>
+                <button onclick="reconsiderApplication('${appId}')" class="btn-reconsider">Reconsider Application</button>
+            </div>
+        `;
         
         // Update table row status
         updateTableStatus(appId, 'rejected');
+        
+        // Update status in our client-side state
+        currentApplicationStatus = 'rejected';
+        
+        // Update admin notes with the rejection reason
+        const adminNotes = document.getElementById('adminNotes');
+        adminNotes.value = 'Rejection reason: ' + reason + '\n\n' + adminNotes.value;
         
         alert('Application has been rejected. The user will be notified.');
     }
@@ -318,14 +356,22 @@ function rejectApplication(appId) {
 
 function revokeApproval(appId) {
     if (confirm('Are you sure you want to revoke this approval?')) {
-        // Send revoke request to server
-        // For demo, we'll just update the UI
+        // Update the application status in the UI
         document.getElementById('appStatus').innerHTML = '<span class="status-badge pending">Pending Review</span>';
-        document.getElementById('approvedActions').classList.add('hidden');
-        document.getElementById('pendingActions').classList.remove('hidden');
+        
+        // Update the actions section
+        document.getElementById('actionButtonsContainer').innerHTML = `
+            <div class="application-actions">
+                <button onclick="approveApplication('${appId}')" class="btn-approve">Approve Application</button>
+                <button onclick="rejectApplication('${appId}')" class="btn-reject">Reject Application</button>
+            </div>
+        `;
         
         // Update table row status
         updateTableStatus(appId, 'pending');
+        
+        // Update status in our client-side state
+        currentApplicationStatus = 'pending';
         
         alert('Approval has been revoked. The application is now back in pending status.');
     }
@@ -333,14 +379,22 @@ function revokeApproval(appId) {
 
 function reconsiderApplication(appId) {
     if (confirm('Are you sure you want to reconsider this application?')) {
-        // Send reconsider request to server
-        // For demo, we'll just update the UI
+        // Update the application status in the UI
         document.getElementById('appStatus').innerHTML = '<span class="status-badge pending">Pending Review</span>';
-        document.getElementById('rejectedActions').classList.add('hidden');
-        document.getElementById('pendingActions').classList.remove('hidden');
+        
+        // Update the actions section
+        document.getElementById('actionButtonsContainer').innerHTML = `
+            <div class="application-actions">
+                <button onclick="approveApplication('${appId}')" class="btn-approve">Approve Application</button>
+                <button onclick="rejectApplication('${appId}')" class="btn-reject">Reject Application</button>
+            </div>
+        `;
         
         // Update table row status
         updateTableStatus(appId, 'pending');
+        
+        // Update status in our client-side state
+        currentApplicationStatus = 'pending';
         
         alert('Application has been moved back to pending status for reconsideration.');
     }
@@ -353,6 +407,10 @@ function updateTableStatus(appId, newStatus) {
     rows.forEach(row => {
         if (row.cells[0].textContent === appId) {
             const statusCell = row.cells[4];
+            if (!statusCell) {
+                return;
+            }
+            
             const statusText = newStatus === 'pending' ? 'Pending Review' : 
                              newStatus === 'approved' ? 'Approved' : 'Rejected';
             
@@ -360,3 +418,14 @@ function updateTableStatus(appId, newStatus) {
         }
     });
 }
+
+// Make all functions globally available
+window.viewApplication = viewApplication;
+window.filterApplications = filterApplications;
+window.viewFullSizeDocument = viewFullSizeDocument;
+window.approveApplication = approveApplication;
+window.rejectApplication = rejectApplication;
+window.revokeApproval = revokeApproval;
+window.reconsiderApplication = reconsiderApplication;
+window.updateTableStatus = updateTableStatus;
+</script>

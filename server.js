@@ -7,6 +7,7 @@ const app = express()
 app.use(express.json())
 // Use the public folder for assets
 app.use(express.static('public'))
+app.use('/pictures', express.static('pictures'));
 /* ---------------------------------------
     HANDLEBARS
 --------------------------------------- */
