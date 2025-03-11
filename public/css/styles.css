@@ -73,9 +73,13 @@ main {
     z-index: 1000;
 }
 
-.header img {
-    height: 50px;
-    margin-left: 20px;
+.header-logo {
+    background-color: white;
+    border-radius: 25%;
+    height: 40px;
+    background-color: white;
+    padding: 5px;
+    margin-left: 10px;
 }
 
 .taskbar {

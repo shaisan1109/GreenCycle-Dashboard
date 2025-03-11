@@ -38,20 +38,22 @@ header {
     display: flex;
     z-index: 10;
     position: sticky;
-}
-
-.header-logo-container {
-    display: flex;
-    padding: 15px;
+    padding: 10px 0;
 }
 
 .header-logo-text {
     font-size: large;
     margin-left: 10px;
+    margin-top: 6px;
 }
 
 .header-logo {
-    width: 30px;
+    background-color: white;
+    border-radius: 25%;
+    height: 25px;
+    background-color: white;
+    padding: 5px;
+    margin-left: 10px;
 }
 
 .header-user {
@@ -67,7 +69,6 @@ header {
 .user-menu-button {
     font-family: 'Segoe UI';
     font-size: 16px;
-    margin-top: 10px;
     background-color: #2C3927;
     border: none;
     color: white;
