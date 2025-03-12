@@ -1,0 +1,20 @@
+.pie-chart {
+    max-width: 700px;
+    height: fit-content;
+}
+
+.bar-chart {
+    max-width: 550px;
+}
+
+.bar-chart-container {
+    padding: 15px;
+    border: 2px solid lightgray;
+    border-radius: 5px;
+    width: 550px; /* same as bar chart max-width */
+    margin-right: 15px;
+}
+
+.bar-label {
+    margin-top: 0 !important;
+}

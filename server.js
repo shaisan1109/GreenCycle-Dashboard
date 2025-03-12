@@ -39,6 +39,14 @@ app.get('/', (req, res) => {
   })
 })
 
+/* Testing chart.js */
+app.get('/test-chart', (req, res) => {
+  res.render('dashboard/test-chart', {
+    layout: 'dashboard',
+    title: 'Test Dashboard'
+  })
+})
+
 app.get('/login', (req, res) => {
   res.render('login', {
     title: 'Login | GreenCycle'

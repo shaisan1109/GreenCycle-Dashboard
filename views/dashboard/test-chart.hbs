@@ -1,0 +1,29 @@
+<div style="margin: 20px">
+    <!-- Render chart w/ canvas tag -->
+    <h2>Composition of Disposed Waste</h2>
+    <div class="pie-chart">
+    <canvas id="summary-pie"></canvas>
+    </div>
+
+    <div style="display: flex">
+        <div class="bar-chart-container">
+            <h2 class="bar-label">Paper</h2>
+            <div class="bar-chart">
+                <canvas id="bar-paper"></canvas>
+            </div>
+        </div>
+
+        <div class="bar-chart-container">
+            <h2 class="bar-label">Metal</h2>
+            <div class="bar-chart">
+                <canvas id="bar-metal"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Access to chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Chart script -->
+<script src="../js/chart.js"></script>
