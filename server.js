@@ -81,12 +81,35 @@ app.get('/about', (req, res) => {
     year: new Date().getFullYear()
   });
 });
+
 app.get('/partners', (req, res) => {
   res.render('partners', {
-    layout: 'public',
-    title: 'Partners | GreenCycle'
-  })
-})
+      layout:'public',
+      title: "GreenCycle - Partners",
+      partners: [
+          {
+              name: "Unilever Philippines",
+              logo: "/pictures/Unilever.png",
+              description: "Unilever Philippines announced its partnership with Greencycle Innovations Inc. with the ambition to deliver above the 20% plastic waste diversion target for the EPR law’s first-year implementation.",
+              website: "https://www.unilever.com.ph/"
+          },
+          {
+              name: "Universal Robina Corp.",
+              logo: "/pictures/URC.png",
+              description: "Food manufacturer Universal Robina Corp. (URC) teamed up with Greencycle Innovative Solutions, Inc. for its waste management program. Through the joint venture, the parties aim to formulate an integrated operation or ecosystem that incorporates the reduction of plastic waste through collection, treatment and processing of waste materials and convert it into reusable or recyclable products.",
+              website: "https://www.urc.com.ph/"
+          },
+          {
+              name: "CEMEX Philippines",
+              logo: "/pictures/cemex.png",
+              description: "CEMEX Philippines signed a tripartite agreement with Plastic Credit Exchange (PCX) and Greencycle to further strengthen its commitment to reduce its carbon footprint and contribute to a circular economy. The agreement supports end-to-end plastic waste reduction processes, starting from plastic waste collection, consolidation, aggregation, treatment, and concluding in co-processing, preventing them from ending up in landfills, bodies of water, or the environment.",
+              website: "https://www.cemexholdingsphilippines.com/"
+          }
+      ]
+  });
+});
+
+
 // Dashboard home page
 app.get('/dashboard', (req, res) => {
   // This would typically check for authentication

@@ -1,0 +1,15 @@
+<main class="partners-container">
+    <h1>Our Partners</h1>
+    <p>We collaborate with industry leaders and organizations committed to sustainable waste management.</p>
+
+    <div class="partners-grid">
+        {{#each partners}}
+        <div class="partner-card">
+            <img src="{{this.logo}}" alt="{{this.name}} Logo" class="partner-logo">
+            <h2>{{this.name}}</h2>
+            <p>{{this.description}}</p>
+            <a href="{{this.website}}" target="_blank" class="partner-link">Visit Website</a>
+        </div>
+        {{/each}}
+    </div>
+</main>
