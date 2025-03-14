@@ -63,14 +63,14 @@ main {
 .header {
     width: 100%;
     background-color: #283619;
+    color:white;
     display: flex;
-    align-items: left;
-    justify-content: space-between;
     padding: 5px 0; /* Adjust this for height */
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 1000;
+    
+    
 }
 
 .header-logo {
@@ -82,6 +82,11 @@ main {
     margin-left: 10px;
 }
 
+.header-logo-text {
+    font-size: x-large;
+    margin-left: 16px;
+    margin-top: 8px;
+}
 .taskbar {
     display: flex;
     justify-content: center;
@@ -400,4 +405,50 @@ button:hover {
     text-align: left;
     font-size: 25px;
     padding: 30px;
+}
+
+.partners-container {
+    text-align: center;
+    padding: 40px;
+}
+
+.partners-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
+
+.partner-card {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.partner-card:hover {
+    transform: scale(1.05);
+}
+
+.partner-logo {
+    max-width: 350px;
+    height: auto;
+    margin-bottom: 15px;
+}
+
+.partner-link {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 8px 15px;
+    background: #2d6a4f;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.partner-link:hover {
+    background: #1b4332;
 }
