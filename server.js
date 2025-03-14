@@ -123,7 +123,7 @@ app.get('/dashboard', (req, res) => {
 // User routes
 // Get all users
 app.get('/dashboard/users', async (req, res) => {
-  const users = await getUsers()
+   const users = await getUsers()
   res.render('users', {
     layout: 'dashboard',
     title: 'GC Dashboard | Users'
