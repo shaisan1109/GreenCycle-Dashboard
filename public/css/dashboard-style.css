@@ -247,3 +247,8 @@ table td {
     cursor: pointer;
     background-color: #209915;
 }
+
+.btn-create-user {
+    padding: 8px 15px !important;
+    margin-right: auto !important;
+}

@@ -5,6 +5,9 @@
         <input type="text" id="searchInput" placeholder="Search by name or email...">
         <button id="searchButton"><i class="fa-solid fa-search"></i></button>
     </div>
+    <button class="btn-green btn-create-user">
+        <i class="fa-solid fa-plus"></i>&nbsp; Create New Staff User
+    </button>
     <div class="filter-container">
         Filter by: 
         <select id="userType">
@@ -52,7 +55,7 @@
                 <td>{{contact_no}} </td>
                 <td>{{last_login}} </td>
                 <td>{{successful_logins}} </td>
-                <td></td>
+                <td>{{failed_logins}}</td>
             </tr>
         {{/each}}
     </table>

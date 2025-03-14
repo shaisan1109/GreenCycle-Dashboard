@@ -42,3 +42,14 @@ export async function createUser(roleId, lastName, firstName, email, password) {
     const id = result[0].insertId
     return getUser(id)
 }
+
+/* ---------------------------------------
+    PARTNERS
+--------------------------------------- */
+// Get all users
+export async function getPartners() {
+    // Square brackets around variable = first item of that array
+    // In this case, first item of result is the table values
+    const [result] = await sql.query(`SELECT * FROM partner_org`)
+    return result
+}

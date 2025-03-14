@@ -15,39 +15,23 @@
             <td>Logo</td>
             <td>Name</td>
             <td>Description</td>
+            <td>Website</td>
         </tr>
 
-        <tr class="tb-gray-row">
-            <td class="td-button-container">
-                <button class="tb-button-action edit"><i class="fa-solid fa-pencil"></i></button>
-                <button class="tb-button-action delete"><i class="fa-solid fa-trash"></i></button>
-            </td>
-            <td>1</td>
-            <td></td>
-            <td>Unilever Philippines</td>
-            <td>Unilever Philippines announced its partnership with Greencycle Innovations Inc. with the ambition to deliver above the 20% plastic waste diversion target for the EPR law’s first-year implementation.</td>
-        </tr>
-
-        <tr>
-            <td class="td-button-container">
-                <button class="tb-button-action edit"><i class="fa-solid fa-pencil"></i></button>
-                <button class="tb-button-action delete"><i class="fa-solid fa-trash"></i></button>
-            </td>
-            <td>2</td>
-            <td></td>
-            <td>Universal Robina Corporation</td>
-            <td>Food manufacturer Universal Robina Corp. (URC) teamed up with Greencycle Innovative Solutions, Inc. for its waste management program. Through the joint venture, the parties aim to formulate an integrated operation or ecosystem that incorporates the reduction of plastic waste through collection, treatment and processing of waste materials and convert it into reusable or recyclable products.</td>
-        </tr>
-
-        <tr class="tb-gray-row">
-            <td class="td-button-container">
-                <button class="tb-button-action edit"><i class="fa-solid fa-pencil"></i></button>
-                <button class="tb-button-action delete"><i class="fa-solid fa-trash"></i></button>
-            </td>
-            <td>3</td>
-            <td></td>
-            <td>Cemex Philippines</td>
-            <td>CEMEX Philippines signed a tripartite agreement with Plastic Credit Exchange (PCX) and Greencycle to further strengthen its commitment to reduce its carbon footprint and contribute to a circular economy.<br>The agreement supports end-to-end plastic waste reduction processes, starting from plastic waste collection, consolidation, aggregation, treatment, and concluding in co-processing, preventing them from ending up in landfills, bodies of water, or the environment.</td>
-        </tr>
+        {{#each partners}}
+            <tr>
+                <td class="td-button-container">
+                    <button class="tb-button-action edit"><i class="fa-solid fa-pencil"></i></button>
+                    <button class="tb-button-action delete"><i class="fa-solid fa-trash"></i></button>
+                </td>
+                <td>{{org_id}}</td>
+                <td><img src="{{logo}}" height="50"></td>
+                <td>{{name}}</td>
+                <td>{{description}}</td>
+                <td>
+                    <a href="{{website}}">{{website}}</a>
+                </td>
+            </tr>
+        {{/each}}
     </table>
 </div>
