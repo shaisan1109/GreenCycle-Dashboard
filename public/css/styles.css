@@ -69,8 +69,7 @@ main {
     position: fixed;
     top: 0;
     left: 0;
-    
-    
+    z-index: 10;
 }
 
 .header-logo {
@@ -293,15 +292,8 @@ button:hover {
     text-align: center;
     padding: 20px;
     margin-top: 80px; 
-    font-size: 12px;
-    font-weight: bold;
+    font-size: 16px;
 }
-
-
-/* .content {
-    padding-top: 120px; 
-} */
-
 
 /* Contact Form Container */
 .contact-form-container {
@@ -327,13 +319,14 @@ button:hover {
 
 /* Submit Button */
 .contact-form-container button {
-    width: 100%;
+    width: 75%;
     padding: 10px;
     background-color: #2f3816;
     color: white;
     border: none;
     border-radius: 10px;
     cursor: pointer;
+    font-size: 16px;
 }
 
 .contact-form-container button:hover {
