@@ -11,17 +11,23 @@ const sql = mysql.createPool({
     database: process.env.MYSQL_DB
 }).promise()
 
+/* ---------------------------------------
+    USERS
+--------------------------------------- */
 // Get all users
 export async function getUsers() {
     // Square brackets around variable = first item of that array
     // In this case, first item of result is the table values
-    const [result] = await sql.query(`SELECT * FROM user`)
+    const [result] = await sql.query(`
+        SELECT u.*, r.role_name
+        FROM user u
+        INNER JOIN user_roles r ON u.role_id = r.role_id`)
     return result
 }
 
-// Get a user from id
-export async function getUser(id) {
-    const [result] = await sql.query(`SELECT * FROM user WHERE user_id=?`, [id])
+// Get one user by email
+export async function getUserByEmail(email) {
+    const [result] = await sql.query(`SELECT * FROM user WHERE email=?`, [id])
     return result[0] // important, to not return an array
 }
 
@@ -35,4 +41,15 @@ export async function createUser(roleId, lastName, firstName, email, password) {
     // Return new object if successful
     const id = result[0].insertId
     return getUser(id)
+}
+
+/* ---------------------------------------
+    PARTNERS
+--------------------------------------- */
+// Get all users
+export async function getPartners() {
+    // Square brackets around variable = first item of that array
+    // In this case, first item of result is the table values
+    const [result] = await sql.query(`SELECT * FROM partner_org`)
+    return result
 }

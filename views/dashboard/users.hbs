@@ -5,6 +5,9 @@
         <input type="text" id="searchInput" placeholder="Search by name or email...">
         <button id="searchButton"><i class="fa-solid fa-search"></i></button>
     </div>
+    <button class="btn-green btn-create-user">
+        <i class="fa-solid fa-plus"></i>&nbsp; Create New Staff User
+    </button>
     <div class="filter-container">
         Filter by: 
         <select id="userType">
@@ -39,34 +42,21 @@
             <td>Failed Logins</td>
         </tr>
 
-        <tr class="tb-gray-row">
-            <td class="td-button-container">
-                <button class="tb-button-action edit"><i class="fa-solid fa-pencil"></i></button>
-                <button class="tb-button-action delete"><i class="fa-solid fa-trash"></i></button>
-            </td>
-            <td>1</td>
-            <td>GreenCycle - Data Cleaner</td>
-            <td>RAZON, Christine Joy</td>
-            <td>ceidge.razon@greencycleconsultancy.com</td>
-            <td>+63 (123) 456 7890</td>
-            <td></td>
-            <td></td>
-            <td></td>
-        </tr>
-
-        <tr>
-            <td class="td-button-container">
-                <button class="tb-button-action edit"><i class="fa-solid fa-pencil"></i></button>
-                <button class="tb-button-action delete"><i class="fa-solid fa-trash"></i></button>
-            </td>
-            <td>2</td>
-            <td>GreenCycle - Staff</td>
-            <td>ALVAREZ, Maricon</td>
-            <td>maricon.alvarez@greencycleconsultancy.com</td>
-            <td>+63 (123) 456 7890</td>
-            <td></td>
-            <td></td>
-            <td></td>
-        </tr>
+        {{#each users}}
+            <tr>
+                <td class="td-button-container">
+                    <button class="tb-button-action edit"><i class="fa-solid fa-pencil"></i></button>
+                    <button class="tb-button-action delete"><i class="fa-solid fa-trash"></i></button>
+                </td>
+                <td>{{user_id}}</td>
+                <td>{{role_name}}</td>
+                <td>{{uppercase lastname}}, {{firstname}}</td>
+                <td>{{email}}</td>
+                <td>{{contact_no}} </td>
+                <td>{{last_login}} </td>
+                <td>{{successful_logins}} </td>
+                <td>{{failed_logins}}</td>
+            </tr>
+        {{/each}}
     </table>
 </div>

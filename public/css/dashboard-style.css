@@ -170,6 +170,10 @@ table {
     width: 100%;
 }
 
+table tr:nth-child(even) {
+    background-color: #eee;
+}
+
 table td {
     padding: 10px 20px;
     border: none;
@@ -188,10 +192,6 @@ table td {
 /* User account action container */
 .td-button-container {
     padding: 5px 10px !important;
-}
-
-.tb-gray-row {
-    background-color: #eee;
 }
 
 .tb-button-action {
@@ -246,4 +246,9 @@ table td {
 .btn-form:hover {
     cursor: pointer;
     background-color: #209915;
+}
+
+.btn-create-user {
+    padding: 8px 15px !important;
+    margin-right: auto !important;
 }
