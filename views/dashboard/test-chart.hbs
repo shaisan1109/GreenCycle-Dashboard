@@ -1,29 +1,53 @@
-<div style="margin: 20px">
-    <!-- Render chart w/ canvas tag -->
-    <h2>Composition of Disposed Waste</h2>
-    <div class="pie-chart">
-    <canvas id="summary-pie"></canvas>
+
+
+    <h1>Waste Management Dashboard</h1>
+    {{!-- Heatmap Section --}}
+    <div id="filter-box">
+        <label for="color-filter">Filter by Value Range:</label>
+        <select id="color-filter">
+            <option value="all">All</option>
+            <option value="red">Low Level</option>
+            <option value="yellow">Medium Level</option>
+            <option value="green">High Level</option>
+        </select>
+
+        <label for="category-filter">Select Category:</label>
+        <select id="category-filter">
+            <option value="recycled">Plastic</option>
+            <option value="biodegradable">Glass</option>
+            <option value="nonbiodegradable">Metal</option>
+        </select>
     </div>
 
-    <div style="display: flex">
-        <div class="bar-chart-container">
-            <h2 class="bar-label">Paper</h2>
-            <div class="bar-chart">
-                <canvas id="bar-paper"></canvas>
-            </div>
+    <div id="map"></div>
+    
+    <div class="container">
+        <h2>Composition of Disposed Waste</h2>
+        <div class="pie-chart">
+            <canvas id="summary-pie"></canvas>
         </div>
 
-        <div class="bar-chart-container">
-            <h2 class="bar-label">Metal</h2>
-            <div class="bar-chart">
-                <canvas id="bar-metal"></canvas>
+        <div style="display: flex; justify-content: center;">
+            <div class="bar-chart-container">
+                <h2 class="bar-label">Paper</h2>
+                <div class="bar-chart">
+                    <canvas id="bar-paper"></canvas>
+                </div>
+            </div>
+
+            <div class="bar-chart-container">
+                <h2 class="bar-label">Metal</h2>
+                <div class="bar-chart">
+                    <canvas id="bar-metal"></canvas>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
 <!-- Access to chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <!-- Chart script -->
 <script src="../js/chart.js"></script>
+<script src="/js/heatmap.js"></script>
+

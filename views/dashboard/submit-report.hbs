@@ -1,12 +1,14 @@
 <h2>Form Submission</h2>
 
 <form method="POST">
-    
+    <fieldset>
+        <legend>Personal Information</legend>
     <label for="name">Name:</label>
     <input type="text" id="name" name="name" required><br><br>
     
     <label for="client">Client:</label>
     <input type="text" id="client" name="client" required><br><br>
+    </fieldset><br>
     
      <fieldset>
         <legend>Select Location</legend>
@@ -35,6 +37,8 @@
     </fieldset><br>
     </select>
     
+    <fieldset>
+        <legend>Additional Information</legend>
     <label for="barangay">Barangay (if applicable):</label>
     <input type="text" id="barangay" name="barangay"><br><br>
     
@@ -49,43 +53,13 @@
     
     <label for="year_collected">Year of Data Collected:</label>
     <input type="number" id="year_collected" name="year_collected" required><br><br>
+    </fieldset><br>
     
     <fieldset>
         <legend>Waste Composition</legend>
-        <div id="waste-composition">
-            <script>
-                const categories = ["paper", "plastic", "metal", "kitchen_waste", "organic", "inorganic", "hazardous", "wood", "textiles", "rubber"];
-                document.addEventListener("DOMContentLoaded", function() {
-                    const container = document.getElementById("waste-composition");
-                    categories.forEach(category => {
-                        let categoryDiv = document.createElement("div");
-                        categoryDiv.className = "waste-category";
-                        categoryDiv.dataset.category = category;
-                        categoryDiv.innerHTML = `
-                            <label>${category.replace("_", " ").toUpperCase()}:</label>
-                            <div class="entries"></div>
-                            <button type="button" onclick="addEntry('${category}')">Add Entry</button>
-                        `;
-                        container.appendChild(categoryDiv);
-                    });
-                });
-
-                function addEntry(category) {
-                    let container = document.querySelector(`[data-category="${category}"] .entries`);
-                    let entryDiv = document.createElement('div');
-                    entryDiv.innerHTML = `
-                        <input type="text" name="${category}[][name]" placeholder="Waste Name" required>
-                        <input type="number" name="${category}[][weight]" placeholder="Weight (kg)" required>
-                        <button type="button" onclick="removeEntry(this)">Remove</button>
-                    `;
-                    container.appendChild(entryDiv);
-                }
-                
-                function removeEntry(button) {
-                    button.parentElement.remove();
-                }
-            </script>
-        </div>
+            <div id="waste-composition">
+                <script src="/js/waste-composition.js"></script>
+            </div>
     </fieldset>
     
     <button type="submit">Submit</button>
