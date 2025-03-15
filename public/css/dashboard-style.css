@@ -48,6 +48,12 @@ legend {
     font-weight: bold;
 }
 
+/* style to remove text effects from button links */
+.btn-link {
+    text-decoration: none;
+    color: white;
+}
+
 /* ------ Header Styles ------ */
 header {
     background-color: #2C3927;

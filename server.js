@@ -1,8 +1,12 @@
 import express from 'express'
 import { engine } from 'express-handlebars'
 import Handlebars from 'handlebars'
+
 // Import database functions
-import { getUsers, createUser } from './database.js'
+import {
+  getUsers, getUserByEmail, createUser,
+  getPartners
+} from './database.js'
 
 // Philippine Standard Geographic Code
 import { PSGCResource } from 'psgc-areas'
@@ -44,20 +48,12 @@ Handlebars.registerHelper('uppercase', function(str) {
 });
 
 /* ---------------------------------------
-    ROUTES
+    ROUTES (PUBLIC)
 --------------------------------------- */
 app.get('/', (req, res) => {
   res.render('home', {
     layout: 'public',
     title: 'Home | GreenCycle'
-  })
-})
-
-/* Testing chart.js */
-app.get('/test-chart', (req, res) => {
-  res.render('dashboard/test-chart', {
-    layout: 'dashboard',
-    title: 'Test Dashboard'
   })
 })
 
@@ -80,7 +76,6 @@ app.get('/contact', (req, res) => {
   })
 })
 
-// Define route to render Handlebars template
 app.get('/about', (req, res) => {
   res.render('about', {
     layout: 'public',
@@ -90,33 +85,27 @@ app.get('/about', (req, res) => {
   });
 });
 
-app.get('/partners', (req, res) => {
+app.get('/partners', async (req, res) => {
+  const partners = await getPartners()
+
   res.render('partners', {
       layout:'public',
       title: "GreenCycle - Partners",
-      partners: [
-          {
-              name: "Unilever Philippines",
-              logo: "/pictures/Unilever.png",
-              description: "Unilever Philippines announced its partnership with Greencycle Innovations Inc. with the ambition to deliver above the 20% plastic waste diversion target for the EPR law’s first-year implementation.",
-              website: "https://www.unilever.com.ph/"
-          },
-          {
-              name: "Universal Robina Corp.",
-              logo: "/pictures/URC.png",
-              description: "Food manufacturer Universal Robina Corp. (URC) teamed up with Greencycle Innovative Solutions, Inc. for its waste management program. Through the joint venture, the parties aim to formulate an integrated operation or ecosystem that incorporates the reduction of plastic waste through collection, treatment and processing of waste materials and convert it into reusable or recyclable products.",
-              website: "https://www.urc.com.ph/"
-          },
-          {
-              name: "CEMEX Philippines",
-              logo: "/pictures/cemex.png",
-              description: "CEMEX Philippines signed a tripartite agreement with Plastic Credit Exchange (PCX) and Greencycle to further strengthen its commitment to reduce its carbon footprint and contribute to a circular economy. The agreement supports end-to-end plastic waste reduction processes, starting from plastic waste collection, consolidation, aggregation, treatment, and concluding in co-processing, preventing them from ending up in landfills, bodies of water, or the environment.",
-              website: "https://www.cemexholdingsphilippines.com/"
-          }
-      ]
+      partners
   });
 });
 
+/* ---------------------------------------
+    ROUTES (DASHBOARD)
+--------------------------------------- */
+
+/* Testing chart.js */
+app.get('/test-chart', (req, res) => {
+  res.render('dashboard/test-chart', {
+    layout: 'dashboard',
+    title: 'Test Dashboard'
+  })
+})
 
 // Dashboard home page
 app.get('/dashboard', (req, res) => {
@@ -127,7 +116,6 @@ app.get('/dashboard', (req, res) => {
   })
 })
 
-
 // User routes
 // Get all users
 app.get('/dashboard/users', async (req, res) => {
@@ -137,50 +125,45 @@ app.get('/dashboard/users', async (req, res) => {
     title: 'GC Dashboard | Users',
     users
   })
-  //res.send(users)
 })
 
 // Create user form page
 app.get('/dashboard/users/create', (req, res) => {
-  res.render('create-user', {
+  res.render('dashboard/create-user', {
     layout: 'dashboard',
     title: 'GC Dashboard | Create User'
   });
 });
 
 app.get('/dashboard/roles', async (req, res) => {
-  //const users = await getUsers()
   res.render('dashboard/roles', {
     layout: 'dashboard',
     title: 'GC Dashboard | Roles'
   })
-  //res.send(users)
 })
 
 // User applications page
 app.get('/dashboard/user-applications', (req, res) => {
-  res.render('user-applications', { 
+  res.render('dashboard/user-applications', { 
     layout: 'dashboard',
     title: 'GC Dashboard | User Applications'
   })
 })
 
 app.get('/dashboard/partners', async (req, res) => {
-  //const users = await getUsers()
+  const partners = await getPartners()
   res.render('dashboard/partners', {
     layout: 'dashboard',
-    title: 'GC Dashboard | Partner Organizations'
+    title: 'GC Dashboard | Partner Organizations',
+    partners
   })
-  //res.send(users)
 })
 
 app.get('/dashboard/submit-report', async (req, res) => {
-  //const users = await getUsers()
   res.render('dashboard/submit-report', {
     layout: 'dashboard',
     title: 'GC Dashboard | Submit Your Report'
   })
-
 })
 
 // API: Get locations from json
@@ -198,22 +181,22 @@ app.get('/user/:id', async (req, res) => {
 })
 
 // Create user
-app.post('/users', async (req, res) => {
-  const { roleId, lastName, firstName, email, password } = req.body
-  const user = await createUser(roleId, lastName, firstName, email, password)
-  res.send(user)
-})
+// app.post('/users', async (req, res) => {
+//   const { roleId, lastName, firstName, email, password } = req.body
+//   const user = await createUser(roleId, lastName, firstName, email, password)
+//   res.send(user)
+// })
 
 // Get one user from ID for editing
-app.get('/users/:id', async (req, res) => {
-  const id = req.params.id;
-  try {
-    const user = await getUser(id);
-    res.json(user);
-  } catch (error) {
-    res.status(404).json({ message: "User not found" });
-  }
-});
+// app.get('/users/:id', async (req, res) => {
+//   const id = req.params.id;
+//   try {
+//     const user = await getUser(id);
+//     res.json(user);
+//   } catch (error) {
+//     res.status(404).json({ message: "User not found" });
+//   }
+// });
 
 // Update user
 app.put('/users/:id', async (req, res) => {
