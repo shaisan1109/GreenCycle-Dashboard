@@ -38,23 +38,26 @@
     </select>
     
     <fieldset>
-        <legend>Additional Information</legend>
+        <legend>Location Information</legend>
     <label for="barangay">Barangay (if applicable):</label>
     <input type="text" id="barangay" name="barangay"><br><br>
     
-    <label for="population">Population:</label>
-    <input type="number" id="population" name="population" required><br><br>
+    <label for="population">Population based on Census:</label>
+    <input type="number" id="population" name="population" required min="0"><br><br>
     
-    <label for="waste_generation">Waste Generation:</label>
-    <input type="text" id="waste_generation" name="waste_generation" required><br><br>
-    
+    <label for="waste_generation">Waste Generation per Capita (Kg/cap-day):</label>
+    <input type="number" id="waste_generation" name="waste_generation" min="0" step="0.01" required><br><br>
+
+    <label for="waste_generation">Annual Waste Generation (kg/year):</label>
+    <input type="number" id="waste_generation" name="waste_generation" min="0" step="0.01" required><br><br>
+
     <label for="date_submitted">Date Submitted:</label>
     <input type="date" id="date_submitted" name="date_submitted" required><br><br>
     
     <label for="year_collected">Year of Data Collected:</label>
     <input type="number" id="year_collected" name="year_collected" required><br><br>
     </fieldset><br>
-    
+
     <fieldset>
         <legend>Waste Composition</legend>
             <div id="waste-composition">
@@ -62,7 +65,7 @@
             </div>
     </fieldset>
     
-    <button type="submit">Submit</button>
+    <br><button class="btn-approve" type="submit">Submit</button>
 </form>
 
 <script src="../js/locations.js"></script>

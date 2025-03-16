@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }).addTo(map);
 
     const regionData = {
-        recycled: [
+                    recycled: [
             { coords: [14.5387, 121.1595], value: 0.3, name: "Rizal" },
             { coords: [14.6603, 120.9567], value: 0.4, name: "Malabon" },
             { coords: [11.9674, 121.9250], value: 0.8, name: "Boracay" },
@@ -94,9 +94,19 @@ document.addEventListener("DOMContentLoaded", function () {
                     color: color,
                     fillColor: color,
                     fillOpacity: 0.5
-                }).addTo(map).bindTooltip(`${name}: ${value.toFixed(2)}`, { permanent: false });
-
-                markers.push(marker);
+                }).addTo(map)
+                .bindTooltip(
+                    `<strong>${name}</strong><br>Value: ${value.toFixed(2)}<br>Color: ${category.toUpperCase()}`, 
+                    { permanent: false, direction: "top", className: "tooltip-box" }
+                )
+                .on('mouseover', function(e) {
+                    this.setStyle({ fillOpacity: 0.8 });
+                })
+                .on('mouseout', function(e) {
+                    this.setStyle({ fillOpacity: 0.5 });
+                });
+    
+                markers.push(marker)
             }
         });
     }
