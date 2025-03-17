@@ -44,7 +44,7 @@ function addEntry(category) {
             <option value="Livestock">Livestock</option>
         </select>
 
-        <input type="number" name="${category}[][weight]" class="weight-input" placeholder="Weight % (wt)" required oninput="validateTotalPercentage()">
+        <input type="number" name="${category}[][weight]" class="weight-input" min="0" step="0.001" placeholder="Weight % (wt)" required oninput="validateTotalPercentage()">
 
         <button class="btn-reject" type="button" onclick="removeEntry(this)">
             Remove <i class="fa-solid fa-trash-can"></i>

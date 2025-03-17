@@ -11,26 +11,23 @@
             <option value="green">High Level</option>
         </select>
 
-        <label for="category-filter">Select Category:</label>
-        <select id="category-filter">
-            <option value="nonbiodegradable">Paper</option>
-            <option value="recycled">Plastic</option>
-            <option value="biodegradable">Glass</option>
-            <option value="nonbiodegradable">Kitchen Waste</option>
-            <option value="nonbiodegradable">Organic</option>
-            <option value="nonbiodegradable">Non-Organic</option>
-            <option value="nonbiodegradable">Hazardous Waste</option>
-            <option value="nonbiodegradable">Electrical Waste</option>
-            <option value="nonbiodegradable">Wood</option>
-            <option value="nonbiodegradable">Textiles</option>
-            <option value="nonbiodegradable">Rubber</option>
-            <option value="nonbiodegradable">Others</option>
+        <label for="broad-category-filter">Select Category:</label>
+        <select id="broad-category-filter">
+            <option value="none">-none-</option>
+            <option value="generation">Waste Generation</option>
+            <option value="composition">Waste Composition</option>
         </select>
+
+        <label for="metric-filter">Waste Metric:</label>
+        <select id="metric-filter"></select>
+
+        <label for="category-filter">Select Category:</label>
+        <select id="category-filter"></select>
     </div>
 
     <div id="map"></div>
     <div id="info-box"></div>
-    
+
     {{!-- Waste Composition Section --}}
     <div class="container">
         <h2>Composition of Disposed Waste</h2>
