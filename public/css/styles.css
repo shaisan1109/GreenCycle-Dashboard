@@ -514,3 +514,22 @@ button:hover {
 .partner-link:hover {
     background: #1b4332;
 }
+
+/* generic error message */
+.error-message {
+    color: #e53935;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+/* error msg specifically for login */
+.login-error-message {
+    color: #e53935;
+    font-size: 12px;
+    margin-top: 5px;
+    text-align: center;
+}
+
+.hidden {
+    display: none;
+}

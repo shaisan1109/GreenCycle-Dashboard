@@ -1,6 +1,11 @@
 import express from 'express'
 import { engine } from 'express-handlebars'
 import Handlebars from 'handlebars'
+import cors from 'cors'
+
+// Session
+import session from 'express-session'
+const store = new session.MemoryStore();
 
 // Import database functions
 import {
@@ -22,6 +27,9 @@ import favicon from 'serve-favicon'
 --------------------------------------- */
 const app = express()
 
+// To allow CORS
+app.use(cors())
+
 // Use JSON for data format
 app.use(express.json())
 
@@ -31,6 +39,24 @@ app.use(favicon('./favicon.ico'))
 // Use the public folder for assets
 app.use(express.static('public'))
 app.use('/pictures', express.static('pictures'));
+
+/* ---------------------------------------
+    SESSION
+--------------------------------------- */
+// Set session
+app.use(session({
+  secret: 'sussus amogus',
+  resave: true,
+  saveUninitialized: false, // bc what if the user isn't logged in yet
+  store
+}))
+
+app.use((req, res, next) => {
+  if (req.session.authenticated) {
+    req.user = req.session.user;
+  }
+  next();
+});
 
 /* ---------------------------------------
     HANDLEBARS
@@ -89,10 +115,39 @@ app.get('/', (req, res) => {
   })
 })
 
+// Render login page
 app.get('/login', (req, res) => {
   res.render('login', {
     title: 'Login | GreenCycle'
   })
+})
+
+// Login success (called when user is ALREADY validated)
+app.post('/login', async (req, res) => {
+  const email = req.body.email;
+  const user = await getUserByEmail(email)
+
+  // Mark user as authenticated
+  req.session.authenticated = true;
+
+  // Set session variables
+  req.session.user = {
+    id: user.id,
+    roleId: user.role_id,
+    lastname: user.lastname,
+    firstname: user.firstname,
+    email: user.email,
+    contactNo: user.contact_no,
+    orgId: user.partner_org_id
+  };
+
+  res.json({ success: true, message: "Login successful" })
+});
+
+app.post('/api/user', async (req, res) => {
+  const email = req.body.email;
+  const user = await getUserByEmail(email)
+  res.send(user)
 })
 
 app.get('/register', (req, res) => {

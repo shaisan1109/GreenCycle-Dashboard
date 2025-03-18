@@ -16,17 +16,103 @@
     <div class="login-content">
         <div class="login-container">
             <h2>LOGIN</h2>
-            <input type="text" placeholder="Username">
-            <input type="password" placeholder="Password">
-            <button class="login-btn">LOGIN</button>
+
+            <!-- Login form -->
+            <form id="login-form">
+                <input type="text" placeholder="Email" name="email" id="email" required>
+                <input type="password" placeholder="Password" name="password" id="password" required>
+
+                <div id="login-error" class="login-error-message hidden">
+                    Wrong email or password
+                </div>
+
+                <button type="submit" class="login-btn">LOGIN</button>
+            </form>
+
             <div class="links">
                 <p><a href="/register">No Account? Register Here</a></p>
                 <p><a href="#">Forgot Password?</a></p>
             </div>
         </div>
-        {{!-- <div class="roles">
-            <p><a href="#">staff</a> <a href="#">admin</a></p>
-        </div> --}}
     </div>
+
+<!-- Login Script -->
+<script>
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('login-form');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const loginError = document.getElementById('login-error');
+
+    // Handle form submission
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Form data to send to server
+        const formData = {
+            email: emailInput.value,
+            password: passwordInput.value,
+        };
+
+        // Check if email exists
+        fetch('/api/user', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email: formData.email })
+        })
+        .then(response => response.json())
+        .then((data) => {
+            // First, check if returned data has contents
+            if(data.length > 0) {
+
+                // Email exists; now compare passwords
+                // Supposed to be encrypted, but for now, compare passwords in the database
+                if(formData.password === data[0].password) {
+
+                    // Passwords match; send request to API to set user session
+                    fetch('/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        }
+                        throw new Error('Network response was not ok');
+                    })
+                    .then(data => {
+                        // Reset form
+                        form.reset();
+
+                        window.location.href = '/dashboard';
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error logging in. Please try again.');
+                    });
+
+                } else { // Passwords do not match
+                    // Reveal error on form and return
+                    loginError.style.display = 'block';
+                    return;
+                }
+
+            } else { // Email does not exist
+                // Reveal error on form and return
+                loginError.style.display = 'block';
+                return;
+            }
+        })
+    })
+})
+
+</script>
+
 </body>
 </html>

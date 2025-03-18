@@ -28,8 +28,8 @@ export async function getUsers() {
 
 // Get one user by email
 export async function getUserByEmail(email) {
-    const [result] = await sql.query(`SELECT * FROM user WHERE email=?`, [id])
-    return result[0] // important, to not return an array
+    const [result] = await sql.query(`SELECT * FROM user WHERE email=?`, [email])
+    return result
 }
 
 // Get user by ID
@@ -40,7 +40,7 @@ export async function getUserById(id) {
         JOIN user_roles r ON u.role_id = r.role_id
         WHERE u.user_id=?
     `, [id])
-    return result // important, to not return an array
+    return result
 }
 
 // Get users with role
