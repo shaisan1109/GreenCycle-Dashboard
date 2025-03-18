@@ -28,7 +28,11 @@ export async function getUsers() {
 
 // Get one user by email
 export async function getUserByEmail(email) {
-    const [result] = await sql.query(`SELECT * FROM user WHERE email=?`, [email])
+    const [result] = await sql.query(`
+        SELECT u.*, r.role_name, r.supertype
+        FROM user u
+        INNER JOIN user_roles r ON u.role_id = r.role_id
+        WHERE email=?`, [email])
     return result
 }
 

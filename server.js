@@ -113,6 +113,11 @@ Handlebars.registerHelper('ifEquals', function(arg1, arg2, options) {
   return (arg1 == arg2) ? options.fn(this) : options.inverse(this);
 });
 
+// Check if value is NOT equal to something
+Handlebars.registerHelper('ifNotEquals', function(arg1, arg2, options) {
+  return (arg1 != arg2) ? options.fn(this) : options.inverse(this);
+});
+
 // Show date in text form
 // Ex: 25 Mar 2015
 Handlebars.registerHelper('textDate', function(date) {
@@ -158,14 +163,18 @@ app.post('/login', async (req, res) => {
 
   // Set session variables
   req.session.user = {
-    id: user.id,
-    roleId: user.role_id,
+    id: user.user_id,
+    role_id: user.role_id,
     lastname: user.lastname,
     firstname: user.firstname,
     email: user.email,
-    contactNo: user.contact_no,
-    orgId: user.partner_org_id
+    contact_no: user.contact_no,
+    org_id: user.partner_org_id,
+    role_name: user.role_name,
+    supertype: user.supertype
   }
+
+  console.log(req.session.user)
 
   req.session.save(err => {
     if (err) {
@@ -252,13 +261,12 @@ app.get('/dashboard/users', async (req, res) => {
 })
 
 // Get one user from ID (user profile)
-app.get('/dashboard/user/:id', async (req, res) => {
-  const id = req.params.id
-  const user = await getUserById(id)
+app.get('/dashboard/profile', async (req, res) => {
+  //const id = req.params.id
+  //const user = await getUserById(id)
 
   res.render('dashboard/user-profile', {
     layout: 'dashboard',
-    user,
     title: `GC Dashboard | Profile`
   })
 })

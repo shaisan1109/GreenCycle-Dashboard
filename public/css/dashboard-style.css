@@ -181,6 +181,14 @@ nav a:hover {
     cursor: pointer;
 }
 
+.nav-divider {
+    color: white;
+    background-color: #709860;
+    font-size: smaller;
+    padding: 5px;
+    margin-top: 10px;
+}
+
 /* indicates that user is currently in that tab */
 .current {
     background-color: #65b55d;

@@ -35,7 +35,7 @@
                 </button>
 
                 <div class="user-menu-content">
-                    <a href="/dashboard/user/{{user.id}}">
+                    <a href="/dashboard/profile">
                         <i class="fa-solid fa-user"></i> Profile
                     </a>
                     <a href="#">
@@ -65,25 +65,35 @@
                 <i class="fa-solid fa-chart-simple nav-icon"></i> (Test Dashboard)
             </a>
 
-            <a href="/dashboard/users" class="{{#if current_users}}current{{/if}}">
-                <i class="fa-solid fa-users nav-icon"></i> Users
-            </a>
-            
-            <a href="/dashboard/user-applications" class="{{#if current_userapp}}current{{/if}}">
-                <i class="fa-solid fa-clipboard-list nav-icon"></i> User Applications
-            </a>
-
-            <a href="/dashboard/roles" class="{{#if current_roles}}current{{/if}}">
-                <i class="fa-solid fa-helmet-safety nav-icon"></i> Roles
-            </a>
-
-            <a href="/dashboard/partners" class="{{#if current_partners}}current{{/if}}">
-                <i class="fa-solid fa-handshake nav-icon"></i> Partners
-            </a>
-
             <a href="/dashboard/submit-report" class="{{#if current_report}}current{{/if}}">
                 <i class="fa-solid fa-file-medical"></i>&nbsp; Submit Report
             </a>
+            
+            <!-- Only show functions if current user is NOT a client -->
+            {{#ifNotEquals user.supertype 2}}
+                <div class="nav-divider">STAFF FUNCTIONS</div>
+
+                <a href="/dashboard/user-applications" class="{{#if current_userapp}}current{{/if}}">
+                    <i class="fa-solid fa-clipboard-list nav-icon"></i> User Applications
+                </a>
+
+                <a href="/dashboard/partners" class="{{#if current_partners}}current{{/if}}">
+                    <i class="fa-solid fa-handshake nav-icon"></i> Partners
+                </a>
+            {{/ifNotEquals}}
+
+            <!-- Only show functions if current user is admin -->
+            {{#ifEquals user.supertype 0}}
+                <div class="nav-divider">ADMIN FUNCTIONS</div>
+
+                <a href="/dashboard/users" class="{{#if current_users}}current{{/if}}">
+                    <i class="fa-solid fa-users nav-icon"></i> Users
+                </a>
+
+                <a href="/dashboard/roles" class="{{#if current_roles}}current{{/if}}">
+                    <i class="fa-solid fa-helmet-safety nav-icon"></i> Roles
+                </a>
+            {{/ifEquals}}
         </div>
     </nav>
     
