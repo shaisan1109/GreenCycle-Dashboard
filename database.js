@@ -113,6 +113,11 @@ export async function getApplications() {
     return result
 }
 
+export async function getApplicationById(id) {
+    const [result] = await sql.query(`SELECT * FROM user_applications WHERE application_id=?`, [id])
+    return result
+}
+
 // NOTE: Also serves as the function that *creates* a user
 export async function approveApplication(appId) {
     // UPDATE user_applications SET status='Approved' WHERE application_id='${appId}'

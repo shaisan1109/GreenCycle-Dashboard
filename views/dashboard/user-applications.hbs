@@ -28,46 +28,22 @@
                 <td class="td-button-container">Actions</td>
             </tr>
             <!-- Sample application entries -->
-            <tr class="tb-gray-row">
-                <td>APP001</td>
-                <td>SANTOS, Juan</td>
-                <td>juan.santos@example.com</td>
-                <td>Mar 1, 2025</td>
-                <td><span class="status-badge pending">Pending Review</span></td>
-                <td class="td-button-container">
-                    <button class="tb-button-action view" onclick="viewApplication('APP001')"><i class="fa-solid fa-eye"></i></button>
-                </td>
-            </tr>
-            <tr>
-                <td>APP002</td>
-                <td>MENDOZA, Maria</td>
-                <td>maria.mendoza@example.com</td>
-                <td>Mar 2, 2025</td>
-                <td><span class="status-badge pending">Pending Review</span></td>
-                <td class="td-button-container">
-                    <button class="tb-button-action view" onclick="viewApplication('APP002')"><i class="fa-solid fa-eye"></i></button>
-                </td>
-            </tr>
-            <tr class="tb-gray-row">
-                <td>APP003</td>
-                <td>CRUZ, Roberto</td>
-                <td>roberto.cruz@example.com</td>
-                <td>Feb 28, 2025</td>
-                <td><span class="status-badge approved">Approved</span></td>
-                <td class="td-button-container">
-                    <button class="tb-button-action view" onclick="viewApplication('APP003')"><i class="fa-solid fa-eye"></i></button>
-                </td>
-            </tr>
-            <tr>
-                <td>APP004</td>
-                <td>REYES, Ana</td>
-                <td>ana.reyes@example.com</td>
-                <td>Feb 27, 2025</td>
-                <td><span class="status-badge rejected">Rejected</span></td>
-                <td class="td-button-container">
-                    <button class="tb-button-action view" onclick="viewApplication('APP004')"><i class="fa-solid fa-eye"></i></button>
-                </td>
-            </tr>
+            {{#each applications}}
+                <tr class="tb-gray-row">
+                    <td>{{application_id}}</td>
+                    <td>{{uppercase lastname}}, {{firstname}}</td>
+                    <td>{{email}}</td>
+                    <td>{{textDate submission_date}}</td>
+                    <td>
+                        <span class="status-badge {{#ifEquals status 'Pending Review'}}pending{{/ifEquals}} {{#ifEquals status 'Approved'}}approved{{/ifEquals}} {{#ifEquals status 'Rejected'}}rejected{{/ifEquals}}">
+                            {{status}}
+                        </span>
+                    </td>
+                    <td class="td-button-container">
+                        <button class="tb-button-action view" onclick="viewApplication('{{application_id}}')"><i class="fa-solid fa-eye"></i></button>
+                    </td>
+                </tr>
+            {{/each}}
         </table>
     </div>
 </div>
@@ -176,6 +152,9 @@ let currentApplicationStatus = '';
 
 // View application details
 function viewApplication(appId) {
+    console.log(appId)
+
+    /*
     currentApplicationId = appId;
     
     // This would typically fetch application details from server
@@ -220,47 +199,56 @@ function viewApplication(appId) {
     
     if (!app) {
         return;
-    }
+    }  */
     
-    currentApplicationStatus = app.status;
+    // Fetch application from server
+    let app
+
+    fetch(`/api/applications/${appId}`)
+        .then(response => response.json())
+        .then((data) => {
+            app = data[0]
+
+            currentApplicationStatus = app.status;
     
-    // Update the application details in the modal
-    document.getElementById('appName').textContent = app.name;
-    document.getElementById('appEmail').textContent = app.email;
-    document.getElementById('appContact').textContent = app.contact;
-    document.getElementById('appDate').textContent = app.date;
-    document.getElementById('adminNotes').value = app.notes;
-    
-    const statusBadge = `<span class="status-badge ${app.status}">${app.status === 'pending' ? 'Pending Review' : app.status === 'approved' ? 'Approved' : 'Rejected'}</span>`;
-    document.getElementById('appStatus').innerHTML = statusBadge;
-    
-    // Clear and rebuild the action buttons section
-    const actionsContainer = document.getElementById('actionButtonsContainer');
-    actionsContainer.innerHTML = '';
-    
-    // Create the appropriate action buttons based on the status
-    if (app.status === 'pending') {
-        actionsContainer.innerHTML = `
-            <div class="application-actions">
-                <button onclick="approveApplication('${appId}')" class="btn-approve">Approve Application</button>
-                <button onclick="rejectApplication('${appId}')" class="btn-reject">Reject Application</button>
-            </div>
-        `;
-    } else if (app.status === 'approved') {
-        actionsContainer.innerHTML = `
-            <div class="application-actions">
-                <p class="action-note">This application has been approved.</p>
-                <button onclick="revokeApproval('${appId}')" class="btn-revoke">Revoke Approval</button>
-            </div>
-        `;
-    } else if (app.status === 'rejected') {
-        actionsContainer.innerHTML = `
-            <div class="application-actions">
-                <p class="action-note">This application has been rejected.</p>
-                <button onclick="reconsiderApplication('${appId}')" class="btn-reconsider">Reconsider Application</button>
-            </div>
-        `;
-    }
+            // Update the application details in the modal
+            document.getElementById('appName').textContent = `${app.lastname.toUpperCase()}, ${app.firstname}`;
+            document.getElementById('appEmail').textContent = app.email;
+            document.getElementById('appContact').textContent = app.contact_no;
+            document.getElementById('appDate').textContent = app.submission_date;
+            document.getElementById('adminNotes').value = app.admin_notes;
+            
+            const statusBadge = `<span class="status-badge ${app.status === 'Pending Review' ? 'pending' : app.status === 'Approved' ? 'approved' : 'rejected'}">${app.status}</span>`;
+            document.getElementById('appStatus').innerHTML = statusBadge;
+            
+            // Clear and rebuild the action buttons section
+            const actionsContainer = document.getElementById('actionButtonsContainer');
+            actionsContainer.innerHTML = '';
+            
+            // Create the appropriate action buttons based on the status
+            if (app.status === 'Pending Review') {
+                actionsContainer.innerHTML = `
+                    <div class="application-actions">
+                        <button onclick="approveApplication('${appId}')" class="btn-approve">Approve Application</button>
+                        <button onclick="rejectApplication('${appId}')" class="btn-reject">Reject Application</button>
+                    </div>
+                `;
+            } else if (app.status === 'Approved') {
+                actionsContainer.innerHTML = `
+                    <div class="application-actions">
+                        <p class="action-note">This application has been approved.</p>
+                        <button onclick="revokeApproval('${appId}')" class="btn-revoke">Revoke Approval</button>
+                    </div>
+                `;
+            } else if (app.status === 'Rejected') {
+                actionsContainer.innerHTML = `
+                    <div class="application-actions">
+                        <p class="action-note">This application has been rejected.</p>
+                        <button onclick="reconsiderApplication('${appId}')" class="btn-reconsider">Reconsider Application</button>
+                    </div>
+                `;
+            }
+        })
     
     // Display the modal
     document.getElementById('applicationModal').style.display = 'block';

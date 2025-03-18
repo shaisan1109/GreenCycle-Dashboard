@@ -4,10 +4,11 @@ import Handlebars from 'handlebars'
 
 // Import database functions
 import {
-  getUsers, getUserByEmail, createUser, getUserById,
+  getUsers, getUserByEmail, createUser, getUserById, getUsersOfRole,
   getPartners,
   getRolesOfSupertype, createClientRole,
-  getUsersOfRole
+  getApplications,
+  getApplicationById
 } from './database.js'
 
 // Philippine Standard Geographic Code
@@ -42,7 +43,7 @@ app.set('view engine', 'hbs')
 app.set('views', 'views') // set 'views' folder as HBS view directory
 
 /* ---------------------------------------
-    HANDLEBARS
+    HANDLEBARS HELPERS
 --------------------------------------- */
 
 // Render text to uppercase
@@ -59,6 +60,23 @@ Handlebars.registerHelper('uppercase', function(str) {
 Handlebars.registerHelper('check', function(value, comparator) {
   return (value === comparator) ? '-' : value;
 });
+
+// Check if value is equal to something
+Handlebars.registerHelper('ifEquals', function(arg1, arg2, options) {
+  return (arg1 == arg2) ? options.fn(this) : options.inverse(this);
+});
+
+// Show date in text form
+// Ex: 25 Mar 2015
+Handlebars.registerHelper('textDate', function(date) {
+  const options = {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  };
+  
+  return date.toLocaleDateString(undefined, options) 
+})
 
 /* ---------------------------------------
     ROUTES (PUBLIC)
@@ -203,13 +221,19 @@ app.get('/dashboard/roles', async (req, res) => {
 })
 
 // User applications page
-app.get('/dashboard/user-applications', (req, res) => {
+app.get('/dashboard/user-applications', async (req, res) => {
+  const applications = await getApplications()
+
   res.render('dashboard/user-applications', { 
     layout: 'dashboard',
     title: 'GC Dashboard | User Applications',
-    current_userapp: true
+    current_userapp: true,
+    applications
   })
 })
+
+// API: Fetch application from server
+
 
 app.get('/dashboard/partners', async (req, res) => {
   const partners = await getPartners()
@@ -327,54 +351,10 @@ app.get('/api/applications', (req, res) => {
 });
 
 // Get single application
-app.get('/api/applications/:id', (req, res) => {
+app.get('/api/applications/:id', async (req, res) => {
   const id = req.params.id;
-  // This would fetch from database
-  // For now, return sample data
-  const applications = {
-    "APP001": {
-      id: "APP001",
-      name: "SANTOS, Juan",
-      email: "juan.santos@example.com",
-      contact: "+63 (123) 456 7890",
-      date: "Mar 1, 2025",
-      status: "pending",
-      notes: ""
-    },
-    "APP002": {
-      id: "APP002",
-      name: "MENDOZA, Maria",
-      email: "maria.mendoza@example.com",
-      contact: "+63 (234) 567 8901",
-      date: "Mar 2, 2025",
-      status: "pending",
-      notes: ""
-    },
-    "APP003": {
-      id: "APP003", 
-      name: "CRUZ, Roberto",
-      email: "roberto.cruz@example.com",
-      contact: "+63 (345) 678 9012",
-      date: "Feb 28, 2025",
-      status: "approved",
-      notes: "Valid ID provided. All information verified."
-    },
-    "APP004": {
-      id: "APP004",
-      name: "REYES, Ana",
-      email: "ana.reyes@example.com",
-      contact: "+63 (456) 789 0123",
-      date: "Feb 27, 2025",
-      status: "rejected",
-      notes: "Incomplete documentation."
-    }
-  };
-  
-  if (applications[id]) {
-    res.json(applications[id]);
-  } else {
-    res.status(404).json({ message: "Application not found" });
-  }
+  const userApp = await getApplicationById(id)
+  res.json(userApp)
 });
 
 // Update application status
