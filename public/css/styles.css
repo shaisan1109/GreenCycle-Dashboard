@@ -31,12 +31,12 @@ main {
 
 .login-container {
     background-color: #7fc96c;
-    padding: 20px;
+    padding: 30px;
     border-radius: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 300px;
+    width: 350px;
 }
 
 .login-page {
@@ -47,12 +47,12 @@ main {
 /* Register Page Styles */
 .register-container {
     background-color: #7fc96c;
-    padding: 20px;
+    padding: 30px;
     border-radius: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 300px;
+    width: 350px;
 }
 
 .register-page {
@@ -387,45 +387,60 @@ button:hover {
 }
 
 
-        /* User icon styling */
-        .user-menu {
-            position: absolute;
-            top: 10px;
-            right: 20px;
-        }
+/* User icon styling */
+.user-menu {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+}
 
-        .user-icon {
-            font-size: 40px;
-            cursor: pointer;
-        }
+.user-icon {
+    font-size: 40px;
+    cursor: pointer;
+}
 
-        /* Dropdown menu */
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            right: 0;
-            background-color: white;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
-            min-width: 120px;
-            border-radius: 5px;
-            overflow: hidden;
-            z-index: 10;
-        }
+/* Dropdown menu */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: white;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+    min-width: 120px;
+    border-radius: 5px;
+    overflow: hidden;
+    z-index: 10;
+}
 
-        .dropdown-content a {
-            display: block;
-            padding: 10px;
-            text-decoration: none;
-            color: black;
-        }
+.dropdown-content a {
+    display: block;
+    padding: 10px;
+    text-decoration: none;
+    color: black;
+}
 
-        .dropdown-content a:hover {
-            background-color: #f1f1f1;
-        }
+.dropdown-content a:hover {
+    background-color: #f1f1f1;
+}
 
-        .show {
-            display: block;
-        }
+.show {
+    display: block;
+}
+
+.login-menu {
+    color: white;
+    font-size: 18px;
+    margin-left: auto;
+    margin-top: 10px;
+    margin-right: 10px;
+}
+
+.login-menu a {
+    text-decoration: none;
+    color: #64b052;
+    margin-left: 5px;
+    margin-right: 5px;
+}
 
 .container {
     min-height: 60vh; /* Keep it at least as tall as wide */

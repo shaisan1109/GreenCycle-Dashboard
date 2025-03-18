@@ -120,6 +120,10 @@
     cursor: pointer;
 }
 
+#user-search {
+    width: 97% !important;
+}
+
 .filter-container select {
     padding: 8px 10px;
     border: 1px solid #ddd;
