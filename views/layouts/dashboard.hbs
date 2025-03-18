@@ -44,7 +44,7 @@
                     <a href="/">
                         <i class="fa-solid fa-house"></i> Return to Main Site
                     </a>
-                    <a href="#">
+                    <a href="#" id="logout">
                         <i class="fa-solid fa-right-from-bracket"></i> Log Out
                     </a>
                 </div>
@@ -100,5 +100,33 @@
     <main>
         {{{ body }}}
     </main>
+
+<script>
+    
+/*
+document.addEventListener("DOMContentLoaded", function () {
+    
+    const logoutLink = document.getElementById('logout')
+
+    logoutLink.addEventListener('click', function () {
+        // Submit the form to the server
+        fetch('/logout', { method: 'DELETE' })
+    })
+
+}) */
+
+document.getElementById('logout').addEventListener('click', function (event) {
+    event.preventDefault(); // Prevent default navigation
+
+    fetch('/logout', { method: 'DELETE', credentials: 'include' })
+      .then(response => {
+        if (response.ok) {
+          window.location.href = "/"; // Redirect to login after logout
+        }
+      })
+      .catch(err => console.error("Logout failed", err));
+  })
+
+</script>
 </body>
 </html>

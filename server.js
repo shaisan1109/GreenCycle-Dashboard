@@ -28,7 +28,7 @@ import favicon from 'serve-favicon'
 const app = express()
 
 // To allow CORS
-app.use(cors())
+app.use(cors({ credentials: true }))
 
 // Use JSON for data format
 app.use(express.json())
@@ -71,7 +71,7 @@ app.use((req, res, next) => {
 // Check if session user exists (i.e., user is logged in)
 const requireAuth = (req, res, next) => {
   if (!req.session || !req.session.user) {
-      return res.redirect('/login'); // Redirect to login if not authenticated
+    return res.redirect('/login'); // Redirect to login if not authenticated
   }
   next(); // Proceed if authenticated
 }
@@ -174,14 +174,23 @@ app.post('/login', async (req, res) => {
     supertype: user.supertype
   }
 
-  console.log(req.session.user)
-
   req.session.save(err => {
     if (err) {
       console.error("Session save error:", err)
     }
     res.json({ success: true, message: "Login successful" });
   })
+});
+
+// Log out current user
+app.delete('/logout', (req, res) => {
+  req.session.destroy(err => {
+      if (err) {
+          return res.status(500).json({ message: "Logout failed" });
+      }
+      res.clearCookie('connect.sid'); // Clear session cookie
+      res.status(200).json({ message: "Logged out successfully" });
+  });
 });
 
 app.post('/api/user', async (req, res) => {
