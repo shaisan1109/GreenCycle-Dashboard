@@ -6,7 +6,8 @@ import Handlebars from 'handlebars'
 import {
   getUsers, getUserByEmail, createUser, getUserById,
   getPartners,
-  getRolesOfSupertype
+  getRolesOfSupertype, createClientRole,
+  getUsersOfRole
 } from './database.js'
 
 // Philippine Standard Geographic Code
@@ -158,14 +159,33 @@ app.get('/dashboard/user/:id', async (req, res) => {
   })
 })
 
+// Get users of a certain role
+app.get('/users/role/:roleId', async (req, res) => {
+  const roleId = req.params.roleId
+  const users = await getUsersOfRole(roleId)
+  res.send(users)
+})
+
 // Create user form page
-app.get('/dashboard/users/create', (req, res) => {
+app.get('/dashboard/users/create', async (req, res) => {
+  const gcRoles = await getRolesOfSupertype(1)
+
+  console.log(gcRoles)
+
   res.render('dashboard/create-user', {
     layout: 'dashboard',
-    title: 'GC Dashboard | Create User',
-    current_users: true
+    title: 'GC Dashboard | Create New Staff Account',
+    current_users: true,
+    gcRoles
   });
 });
+
+// API: Add client role
+app.post('/roles/client', async (req, res) => {
+  const { roleName } = req.body
+  const role = await createClientRole(roleName)
+  res.send(role)
+})
 
 app.get('/dashboard/roles', async (req, res) => {
   const adminRoles = await getRolesOfSupertype(0)
@@ -216,12 +236,12 @@ app.get('/locations', async (req, res) => {
   res.send(locations)
 })
 
-// Create user
-// app.post('/users', async (req, res) => {
-//   const { roleId, lastName, firstName, email, password } = req.body
-//   const user = await createUser(roleId, lastName, firstName, email, password)
-//   res.send(user)
-// })
+// API: Create user
+app.post('/users', async (req, res) => {
+  const { roleId, lastName, firstName, email, password, contactNo } = req.body
+  const user = await createUser(roleId, lastName, firstName, email, password, contactNo)
+  res.send(user)
+})
 
 // Get one user from ID for editing
 // app.get('/users/:id', async (req, res) => {
@@ -235,7 +255,7 @@ app.get('/locations', async (req, res) => {
 // });
 
 // Update user
-app.put('/users/:id', async (req, res) => {
+app.patch('/users/:id', async (req, res) => {
   const id = req.params.id;
   const { roleId, lastName, firstName, email, password, contactNo, status } = req.body;
   

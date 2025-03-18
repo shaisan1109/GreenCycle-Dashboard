@@ -27,15 +27,29 @@
         
         <!-- User Menu -->
         <div class="header-user">
-            <!-- Go back to main site -->
-            <button class="btn-back-site">
-                <a href="/">BACK TO MAIN SITE</a>
-            </button>
-            
-            <!-- User Menu Button -->
-            <button class="user-menu-button">
-                <i class="fa-regular fa-circle-user header-user-icon"></i> LASTNAME, First Name&nbsp;&nbsp;&nbsp;<i class="fa-solid fa-caret-down nav-icon"></i>
-            </button>
+            <!-- Go back to main site -->            
+            <div class="user-menu">
+                <!-- User Menu Button -->
+                <button class="user-menu-button">
+                    <i class="fa-regular fa-circle-user header-user-icon"></i> LASTNAME, First Name&nbsp;&nbsp;&nbsp;<i class="fa-solid fa-caret-down nav-icon"></i>
+                </button>
+
+                <div class="user-menu-content">
+                    <a href="#">
+                        <i class="fa-solid fa-user"></i> Profile
+                    </a>
+                    <a href="#">
+                        <i class="fa-solid fa-gear"></i> Settings
+                    </a>
+                    <a href="/">
+                        <i class="fa-solid fa-house"></i> Return to Main Site
+                    </a>
+                    <a href="#">
+                        <i class="fa-solid fa-right-from-bracket"></i> Log Out
+                    </a>
+                </div>
+            </div>
+
             <!-- Display user menu (profile, settings, log out) -->
         </div>
     </header>
@@ -68,7 +82,7 @@
             </a>
 
             <a href="/dashboard/submit-report" class="{{#if current_report}}current{{/if}}">
-                <i class="fa-solid fa-file-medical"></i>  Submit Report
+                <i class="fa-solid fa-file-medical"></i>&nbsp; Submit Report
             </a>
         </div>
     </nav>

@@ -12,6 +12,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const cancelButtons = document.querySelectorAll('.cancel-btn');
     const closeModalButtons = document.querySelectorAll('.close-modal-btn');
     
+    // Stores users of a certain role (Manage Users)
+    let usersOfRole
+
+    // Get users of role table
+    const tblUsersOfRole = document.getElementById('users-table-body');
+
     // Add click event to all manage user buttons
     manageUserButtons.forEach(button => {
         button.addEventListener('click', function() {
@@ -22,8 +28,16 @@ document.addEventListener('DOMContentLoaded', function() {
             // Set role name in modal title
             document.getElementById('modal-role-name').textContent = roleName;
             
-            // Here you would typically fetch users for this role from server
-            // For now, we're just showing the modal
+            // Fetch users with role ID from server
+            fetch(`/users/role/${roleId}`)
+                .then(response => response.json())
+                .then((data) => {
+                    usersOfRole = data
+                    //console.log(usersOfRole)
+                    showUsersOfRole(usersOfRole)
+                })
+
+            // Show modal
             userManagementModal.style.display = 'flex';
         });
     });
@@ -79,8 +93,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Here you would typically submit the form to the server
-            // For now, we're just closing the modal
+            // Submit the form to the server
+            fetch('/roles/client', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ roleName })
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Network response was not ok');
+            })
+            .then(data => {
+                alert('Client role created successfully!');
+
+                // Reset form
+                createRoleForm.reset();
+
+                window.location.href = '/dashboard/roles';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error creating user. Please try again.');
+            });
+
+            // Close modal
             createRoleModal.style.display = 'none';
             
             // Reset form
@@ -107,5 +147,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
+    }
+
+    // Display users of a certain role
+    function showUsersOfRole(usersOfRole) {
+        console.log(usersOfRole)
+
+        // Initialize HTML
+        let output = ""
+
+        // Check if usersOfRole has contents
+        if(usersOfRole.length > 0) {
+            // For each row of data, display HTML table row
+            usersOfRole.forEach((user) => {
+                output += `
+                    <tr class="user-row">
+                        <td>${user.user_id}</td>
+                        <td class="user-name">${user.lastname.toUpperCase()}, ${user.firstname}</td>
+                        <td class="user-email">${user.email}</td>
+                        <td>
+                            <button class="remove-btn">Remove from Role</button>
+                        </td>
+                    </tr>
+            `})
+        } else {
+            output += `<td colspan='4'><i>No users assigned to this role.</i></td>`
+        }
+
+        // Paste HTML output on users of role table
+        tblUsersOfRole.innerHTML = output
     }
 });

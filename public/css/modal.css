@@ -49,7 +49,7 @@
     color: #333;
 }
 
-.modal-content {
+.modal-content-2 {
     padding: 20px;
     overflow-y: auto;
     flex-grow: 1;
@@ -143,7 +143,7 @@
 }
 
 .form-group input {
-    width: 100%;
+    width: 97%;
     padding: 8px 12px;
     border: 1px solid #ccc;
     border-radius: 4px;

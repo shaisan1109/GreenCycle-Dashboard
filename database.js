@@ -43,16 +43,22 @@ export async function getUserById(id) {
     return result // important, to not return an array
 }
 
+// Get users with role
+export async function getUsersOfRole(roleId) {
+    const [result] = await sql.query(`SELECT * FROM user WHERE role_id=?`, [roleId])
+    return result // important, to not return an array
+}
+
 // Create a new user entry
-export async function createUser(roleId, lastName, firstName, email, password) {
+export async function createUser(roleId, lastName, firstName, email, password, contactNo) {
     const result = await sql.query(`
-        INSERT INTO user (user_id, role_id, lastname, firstname, email, password)
-        VALUES (?, ?, ?, ?, ?, ?)
-    `, [0, roleId, lastName, firstName, email, password])
+        INSERT INTO user (user_id, role_id, lastname, firstname, email, password, contact_no)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [0, roleId, lastName, firstName, email, password, contactNo])
     
     // Return new object if successful
     const id = result[0].insertId
-    return getUser(id)
+    return getUserById(id)
 }
 
 /* ---------------------------------------
@@ -78,6 +84,24 @@ export async function getRolesOfSupertype(supertype) {
         LEFT JOIN user u ON ur.role_id = u.role_id
         WHERE ur.supertype = ${supertype}
         GROUP BY ur.role_id`)
+    return result
+}
+
+// Create new client role
+export async function createClientRole(roleName) {
+    const result = await sql.query(`
+        INSERT INTO user_roles (role_id, supertype, role_name)
+        VALUES (?, ?, ?)
+    `, [0, 2, roleName])
+    
+    // Return new object if successful
+    const id = result[0].insertId
+    return getRoleById(id)
+}
+
+// Get role by ID
+export async function getRoleById(id) {
+    const [result] = await sql.query(`SELECT * FROM user_roles WHERE role_id=?`, [id])
     return result
 }
 

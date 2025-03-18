@@ -61,23 +61,23 @@ header {
     display: flex;
     z-index: 10;
     position: sticky;
-    padding: 10px 0;
     top: 0;
+    height: 60px;
 }
 
 .header-logo-text {
     font-size: large;
     margin-left: 10px;
-    margin-top: 6px;
+    margin-top: 16px;
 }
 
 .header-logo {
     background-color: white;
     border-radius: 25%;
     height: 25px;
-    background-color: white;
     padding: 5px;
     margin-left: 10px;
+    margin-top: 10px;
 }
 
 .header-user {
@@ -96,16 +96,47 @@ header {
     background-color: #2C3927;
     border: none;
     color: white;
+    height: 100%;
+    padding-bottom: 5px;
+    padding-left: 20px;
 }
 .user-menu-button:hover {
     cursor: pointer;
 }
 
+.user-menu {
+    position: relative;
+    display: inline-block;
+    height: 100%;
+}
+  
+.user-menu-content {
+    display: none;
+    position: absolute;
+    background-color: #f1f1f1;
+    width: 100%;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+.user-menu-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+.user-menu-content a:hover {background-color: #ddd;}
+
+.user-menu:hover .user-menu-content {display: block;}
+
+.user-menu:hover .user-menu-button {background-color: #3e8e41;}
+
 /* back to main site button */
 .btn-back-site {
     padding: 5px 15px;
     font-family: 'Open Sans';
-    margin-right: 20px;
+    margin-right: 5px;
     border: none;
     border-radius: 5px;
     background-color: #18A50C;

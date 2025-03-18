@@ -15,7 +15,6 @@
             <td></td>
             <td>Organization</td>
             <td>Description</td>
-            <td>Website</td>
         </tr>
 
         {{#each partners}}
@@ -27,9 +26,8 @@
                 <td>{{org_id}}</td>
                 <td><img src="{{logo}}" height="50"></td>
                 <td>{{name}}</td>
-                <td>{{description}}</td>
                 <td>
-                    <a href="{{website}}">{{website}}</a>
+                    {{description}}<br><a href="{{website}}">{{website}}</a>
                 </td>
             </tr>
         {{/each}}

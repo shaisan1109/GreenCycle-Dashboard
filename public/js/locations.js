@@ -11,7 +11,6 @@ fetch('/locations')
     .then(response => response.json())
     .then((data) => {
         jsonData = data
-        console.log(jsonData)
         getRegions(jsonData)
     })
 
