@@ -99,6 +99,8 @@ header {
     height: 100%;
     padding-bottom: 5px;
     padding-left: 20px;
+    text-align: right;
+    min-width: 250px;
 }
 .user-menu-button:hover {
     cursor: pointer;

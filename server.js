@@ -13,7 +13,8 @@ import {
   getPartners,
   getRolesOfSupertype, createClientRole,
   getApplications,
-  getApplicationById
+  getApplicationById,
+  lastLogin
 } from './database.js'
 
 // Philippine Standard Geographic Code
@@ -95,8 +96,8 @@ app.set('views', 'views') // set 'views' folder as HBS view directory
 
 // Render text to uppercase
 Handlebars.registerHelper('uppercase', function(str) {
-  return str.toUpperCase();
-});
+  return str.toUpperCase()
+})
 
 // Check if value is null
 /* Ex: 
@@ -105,18 +106,18 @@ Handlebars.registerHelper('uppercase', function(str) {
     {{/check}}
 */
 Handlebars.registerHelper('check', function(value, comparator) {
-  return (value === comparator) ? '-' : value;
-});
+  return (value === comparator) ? '-' : value
+})
 
 // Check if value is equal to something
 Handlebars.registerHelper('ifEquals', function(arg1, arg2, options) {
-  return (arg1 == arg2) ? options.fn(this) : options.inverse(this);
-});
+  return (arg1 == arg2) ? options.fn(this) : options.inverse(this)
+})
 
 // Check if value is NOT equal to something
 Handlebars.registerHelper('ifNotEquals', function(arg1, arg2, options) {
-  return (arg1 != arg2) ? options.fn(this) : options.inverse(this);
-});
+  return (arg1 != arg2) ? options.fn(this) : options.inverse(this)
+})
 
 // Show date in text form
 // Ex: 25 Mar 2015
@@ -125,21 +126,31 @@ Handlebars.registerHelper('textDate', function(date) {
     year: "numeric",
     month: "short",
     day: "numeric",
-  };
+  }
   
   return date.toLocaleDateString(undefined, options) 
+})
+
+// Show datetime in text form
+Handlebars.registerHelper('textDateTime', function(date) {
+  // Set date string
+  const dateOptions = {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }
+  const dateString = date.toLocaleDateString(undefined, dateOptions)
+
+  // Set time string
+  const timeString = date.toLocaleTimeString("en-US")
+  
+  return `${dateString} ${timeString}` 
 })
 
 /* ---------------------------------------
     ROUTES (PUBLIC)
 --------------------------------------- */
 app.get('/', (req, res) => {
-  // testing
-  if(req.session.authenticated) {
-    console.log("User in res.locals:", res.locals.user)
-    console.log(req.user)
-  }
-
   res.render('home', {
     layout: 'public',
     title: 'Home | GreenCycle',
@@ -174,6 +185,10 @@ app.post('/login', async (req, res) => {
     supertype: user.supertype
   }
 
+  // Update user's last login date
+  lastLogin(user.user_id)
+
+  // Save session
   req.session.save(err => {
     if (err) {
       console.error("Session save error:", err)
@@ -473,6 +488,15 @@ app.put('/api/applications/:id', (req, res) => {
     message: `Application ${id} status updated to ${status}` 
   });
 });
+
+// 404 page: for routes that do not match any of the above
+// NOTE: HAS TO ALWAYS BE THE LAST ROUTE
+app.get('*', function(req, res){
+  res.render('not-found', {
+    layout: 'public',
+    title: '404: Page Not Found'
+  })
+})
 
 /* ---------------------------------------
     APP LISTENER

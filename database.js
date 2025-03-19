@@ -65,6 +65,13 @@ export async function createUser(roleId, lastName, firstName, email, password, c
     return getUserById(id)
 }
 
+export async function lastLogin(userId) {
+    await sql.query(`UPDATE user SET last_login = now() WHERE user_id=?`, [userId], function (err, result) {
+        if (err) throw err;
+        console.log(result.affectedRows + " record(s) updated");
+    })
+}
+
 /* ---------------------------------------
     PARTNERS
 --------------------------------------- */

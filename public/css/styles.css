@@ -534,3 +534,20 @@ button:hover {
 .hidden {
     display: none;
 }
+
+/* 404 page style */
+.not-found {
+    text-align: center;
+    height: 500px;
+}
+
+.not-found button {
+    width: 50%;
+    padding: 20px;
+    background-color: #2f3816;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 18px;
+  }
