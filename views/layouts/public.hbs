@@ -42,7 +42,7 @@
             {{else}}
                 <!-- Else, show login and register links for unlogged user -->
                 <div class="login-menu">
-                    <a href="/login">Login</a> | <a href="/register">Register</a>
+                    <a href="/login">Login</a> | <a href="/register">Register</a> | <a href="/apply">Apply</a>
                 </div>
             {{/if}}
     </header>
@@ -50,6 +50,7 @@
     <div class="taskbar">
         <ul>
             <a href="/" class="{{#if current_home}}current{{/if}}">HOME</a>
+            <a href="/apply" class="{{#if current_apply}}current{{/if}}">APPLY</a>
             <a href="/dashboard">DASHBOARD</a>
             <a href="/about" class="{{#if current_about}}current{{/if}}">ABOUT</a>
             <a href="/partners" class="{{#if current_partners}}current{{/if}}">PARTNERS</a>
@@ -85,6 +86,7 @@
             <h3>Other:</h3> 
             <button onclick="location.href='/about'">About Us</button>
             <button onclick="location.href='/partners'">Our Partners</button>
+            <button onclick="location.href='/apply'">Apply for Access</button>
         </div>
     </footer>
 

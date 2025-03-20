@@ -72,6 +72,17 @@ export async function lastLogin(userId) {
     })
 }
 
+// Deactivate user by email
+export async function deactivateUserByEmail(email) {
+    const [result] = await sql.query(`
+        UPDATE user 
+        SET active = 0
+        WHERE email = ?
+    `, [email])
+    
+    return result.affectedRows > 0
+}
+
 /* ---------------------------------------
     FORM SUBMISSION
 --------------------------------------- */
@@ -114,56 +125,56 @@ export async function submitForm(name, company_name, region, province, municipal
             [location_id, date_start, date_end]
         );
 
-// Insert into waste_composition table (only if wasteComposition is provided)
-if (formattedWasteComposition && formattedWasteComposition.length > 0) {
-    try {
-        await sql.beginTransaction(); // Start transaction
+        // Insert into waste_composition table (only if wasteComposition is provided)
+        if (formattedWasteComposition && formattedWasteComposition.length > 0) {
+            try {
+                await sql.beginTransaction(); // Start transaction
 
-        // Construct bulk insert values
-        let insertValues = [];
-        let insertPlaceholders = [];
-        
-        for (const entry of formattedWasteComposition) {
-            let { material_name, origin_id, waste_amount, subtype_remarks } = entry;
+                // Construct bulk insert values
+                let insertValues = [];
+                let insertPlaceholders = [];
+                
+                for (const entry of formattedWasteComposition) {
+                    let { material_name, origin_id, waste_amount, subtype_remarks } = entry;
 
-            const [materialResult] = await sql.query(
-                `SELECT id FROM materials WHERE name = ?`, [material_name]
-            );
-            
-            if (materialResult.length === 0) {
-                throw new Error(`Invalid material category: ${material_name}`);
+                    const [materialResult] = await sql.query(
+                        `SELECT id FROM materials WHERE name = ?`, [material_name]
+                    );
+                    
+                    if (materialResult.length === 0) {
+                        throw new Error(`Invalid material category: ${material_name}`);
+                    }
+                    
+                    const material_id = parseInt(materialResult[0].id, 10); // Ensure it's an integer
+                    
+                    // Fetch origin_id from database (if necessary)
+                    const [originResult] = await sql.query(
+                        `SELECT id FROM origins WHERE id = ?`, [origin_id]
+                    );
+
+                    if (originResult.length === 0) {
+                        throw new Error(`Invalid origin ID: ${origin_id}`);
+                    }
+
+                    // Prepare values for bulk insert
+                    insertValues.push(collection_id, material_id, origin_id, waste_amount, subtype_remarks || null);
+                    insertPlaceholders.push("(?, ?, ?, ?, ?)");
+                }
+
+                // Perform bulk insertion
+                const query = `
+                    INSERT INTO waste_composition (collection_id, material_id, origin_id, waste_amount, subtype_remarks) 
+                    VALUES ${insertPlaceholders.join(", ")}
+                `;
+                await sql.query(query, insertValues);
+
+                await sql.commit(); // Commit transaction if successful
+            } catch (error) {
+                await sql.rollback(); // Rollback on error
+                console.error("Error inserting waste composition:", error);
+                throw new Error("Failed to insert waste composition data.");
             }
-            
-            const material_id = parseInt(materialResult[0].id, 10); // Ensure it's an integer
-            
-            // Fetch origin_id from database (if necessary)
-            const [originResult] = await sql.query(
-                `SELECT id FROM origins WHERE id = ?`, [origin_id]
-            );
-
-            if (originResult.length === 0) {
-                throw new Error(`Invalid origin ID: ${origin_id}`);
-            }
-
-            // Prepare values for bulk insert
-            insertValues.push(collection_id, material_id, origin_id, waste_amount, subtype_remarks || null);
-            insertPlaceholders.push("(?, ?, ?, ?, ?)");
         }
-
-        // Perform bulk insertion
-        const query = `
-            INSERT INTO waste_composition (collection_id, material_id, origin_id, waste_amount, subtype_remarks) 
-            VALUES ${insertPlaceholders.join(", ")}
-        `;
-        await sql.query(query, insertValues);
-
-        await sql.commit(); // Commit transaction if successful
-    } catch (error) {
-        await sql.rollback(); // Rollback on error
-        console.error("Error inserting waste composition:", error);
-        throw new Error("Failed to insert waste composition data.");
-    }
-}
 
         return { success: true, message: "Form submitted successfully!" };
 
@@ -172,8 +183,6 @@ if (formattedWasteComposition && formattedWasteComposition.length > 0) {
         throw new Error("Error inserting data into the database.");
     }
 }
-
-
 
 /* ---------------------------------------
     PARTNERS
@@ -222,21 +231,153 @@ export async function getRoleById(id) {
 /* ---------------------------------------
     USER APPLICATIONS
 --------------------------------------- */
+// Get all applications
 export async function getApplications() {
-    const [result] = await sql.query(`SELECT * FROM user_applications`)
+    const [result] = await sql.query(`SELECT * FROM user_applications ORDER BY submission_date DESC`)
     return result
 }
 
+// Get application by ID
 export async function getApplicationById(id) {
-    const [result] = await sql.query(`SELECT * FROM user_applications WHERE application_id=?`, [id])
+    const [result] = await sql.query(`SELECT * FROM user_applications WHERE application_id = ?`, [id])
     return result
 }
 
-// NOTE: Also serves as the function that *creates* a user
-export async function approveApplication(appId) {
-    // UPDATE user_applications SET status='Approved' WHERE application_id='${appId}'
+// Get applications by email
+export async function getApplicationsByEmail(email) {
+    const [result] = await sql.query(`
+        SELECT * FROM user_applications 
+        WHERE email = ?
+        ORDER BY submission_date DESC
+    `, [email])
+    return result
 }
 
-export async function rejectApplication(appId) {
-    // UPDATE user_applications SET status='Rejected' WHERE application_id='${appId}'
+// Functions for application approval/rejection workflow
+export async function reconsiderApplication(appId, adminNotes) {
+    return updateApplicationStatus(appId, 'Pending Review', adminNotes)
+}
+
+export async function revokeApproval(appId, adminNotes) {
+    // First, update application status to Pending Review
+    const result = await updateApplicationStatus(appId, 'Pending Review', adminNotes)
+    
+    return result
+}
+
+// Create new application (no application_id needed as trigger handles it)
+export async function createApplication(firstName, lastName, email, contactNo, verificationDoc) {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    // Insert new application with pending status
+    // application_id is auto-generated via trigger
+    const result = await sql.query(`
+        INSERT INTO user_applications (
+            lastname, firstname, email, contact_no, 
+            verification_doc, status, submission_date
+        )
+        VALUES (?, ?, ?, ?, ?, 'Pending Review', ?)
+    `, [lastName, firstName, email, contactNo, verificationDoc, today])
+    
+    // Get the last inserted ID (using the auto-increment trigger logic)
+    const [idResult] = await sql.query(`
+        SELECT application_id FROM user_applications 
+        ORDER BY CAST(SUBSTRING(application_id, 4) AS UNSIGNED) DESC 
+        LIMIT 1
+    `);
+    
+    if (idResult && idResult.length > 0) {
+        return getApplicationById(idResult[0].application_id);
+    }
+    
+    return null;
+}
+
+// Update application status
+export async function updateApplicationStatus(appId, status, adminNotes) {
+    // If status is null, only update admin_notes
+    if (status === null) {
+        await sql.query(`
+            UPDATE user_applications 
+            SET admin_notes = ?
+            WHERE application_id = ?
+        `, [adminNotes, appId])
+    } else {
+        await sql.query(`
+            UPDATE user_applications 
+            SET status = ?, 
+                admin_notes = ?
+            WHERE application_id = ?
+        `, [status, adminNotes, appId])
+    }
+    
+    return getApplicationById(appId)
+}
+
+// Approve application and create user
+export async function approveApplication(appId, adminNotes) {
+    // Start a transaction
+    const connection = await sql.getConnection()
+    try {
+        await connection.beginTransaction()
+        
+        // 1. Update application status to 'Approved'
+        await connection.query(`
+            UPDATE user_applications 
+            SET status = 'Approved', 
+                admin_notes = ?
+            WHERE application_id = ?
+        `, [adminNotes, appId])
+        
+        // 2. Get application data
+        const [applicationData] = await connection.query(
+            `SELECT * FROM user_applications WHERE application_id = ?`, 
+            [appId]
+        )
+        
+        if (applicationData.length === 0) {
+            throw new Error('Application not found')
+        }
+        
+        const application = applicationData[0]
+        
+        // 3. Create user in users table
+        // Using role_id 4 (Government) as default for client applications
+        await connection.query(`
+            INSERT INTO user (
+                role_id, lastname, firstname, email, 
+                password, contact_no, verified
+            )
+            VALUES (?, ?, ?, ?, ?, ?, 1)
+        `, [
+            4, // Default role for client applications (Government)
+            application.lastname,
+            application.firstname,
+            application.email,
+            'ChangeMe123', // Default password that needs to be changed on first login
+            application.contact_no,
+            1 // Set as verified since application is approved
+        ])
+        
+        // Commit the transaction
+        await connection.commit()
+        
+        return getApplicationById(appId)
+    } catch (error) {
+        // Rollback in case of error
+        await connection.rollback()
+        throw error
+    } finally {
+        connection.release()
+    }
+}
+
+// Reject application 
+export async function rejectApplication(appId, adminNotes) {
+    return updateApplicationStatus(appId, 'Rejected', adminNotes)
+}
+
+// Move application back to pending
+export async function resetApplicationStatus(appId, adminNotes) {
+    return updateApplicationStatus(appId, 'Pending Review', adminNotes)
 }

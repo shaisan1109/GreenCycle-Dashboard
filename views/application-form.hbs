@@ -1,0 +1,312 @@
+<div class="public-container">
+    <h2>Apply for Client Account</h2>
+    <p class="intro-text">
+        Complete this form to apply for an account with GreenCycle. Your application will be reviewed by our staff, and 
+        you will be notified once a decision has been made.
+    </p>
+    
+    <div class="form-container">
+        <form id="applicationForm" enctype="multipart/form-data">
+            <div class="form-section">
+                <h3>Personal Information</h3>
+                
+                <div class="form-group">
+                    <label for="firstName">First Name:</label>
+                    <input type="text" id="firstName" name="firstName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="lastName">Last Name:</label>
+                    <input type="text" id="lastName" name="lastName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email Address:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contactNo">Contact Number:</label>
+                    <input type="text" id="contactNo" name="contactNo" placeholder="+63 (XXX) XXX XXXX" required>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3>Verification</h3>
+                
+                <div class="form-group">
+                    <label for="verificationDoc">Upload Verification Document:</label>
+                    <input type="file" id="verificationDoc" name="verificationDoc" accept=".pdf,.jpg,.jpeg,.png" required>
+                    <div class="file-requirements">
+                        Please upload a scanned copy of your company ID or authorization letter in PDF, JPG, or PNG format.
+                        Maximum file size: 5MB.
+                    </div>
+                </div>
+                
+                <div class="form-group terms-checkbox">
+                    <input type="checkbox" id="termsAgreement" name="termsAgreement" required>
+                    <label for="termsAgreement">
+                        I agree to the <a href="/terms" target="_blank">Terms of Service</a> and 
+                        <a href="/privacy" target="_blank">Privacy Policy</a>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="form-buttons">
+                <button type="button" id="cancelButton" class="btn-cancel">Cancel</button>
+                <button type="submit" id="submitButton" class="btn-submit">Submit Application</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="confirmationModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Application Submitted</h2>
+        <p>
+            Thank you for applying for a GreenCycle account. Your application has been submitted successfully.
+        </p>
+        <p>
+            Our team will review your application and contact you at the email address you provided.
+            This process typically takes 1-2 business days.
+        </p>
+        <div class="modal-buttons">
+            <button id="confirmationOkButton" class="btn-primary">Return to Home</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('applicationForm');
+    const cancelButton = document.getElementById('cancelButton');
+    const modal = document.getElementById('confirmationModal');
+    const closeBtn = modal.querySelector('.close');
+    const okButton = document.getElementById('confirmationOkButton');
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Validate terms agreement
+        if (!document.getElementById('termsAgreement').checked) {
+            alert('Please agree to the Terms of Service and Privacy Policy.');
+            return;
+        }
+        
+        // Create FormData object to handle file upload
+        const formData = new FormData();
+        formData.append('firstName', document.getElementById('firstName').value);
+        formData.append('lastName', document.getElementById('lastName').value);
+        formData.append('email', document.getElementById('email').value);
+        formData.append('contactNo', document.getElementById('contactNo').value);
+        
+        // Add file if selected
+        const fileInput = document.getElementById('verificationDoc');
+        if (fileInput.files[0]) {
+            formData.append('verificationDoc', fileInput.files[0]);
+        }
+        
+        // Submit application
+        fetch('/api/applications', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show confirmation modal
+                modal.style.display = 'block';
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while submitting your application. Please try again.');
+        });
+    });
+    
+    // Cancel button
+    cancelButton.addEventListener('click', function() {
+        window.location.href = '/';
+    });
+    
+    // Modal close button
+    closeBtn.onclick = function() {
+        modal.style.display = 'none';
+        window.location.href = '/';
+    }
+    
+    // Modal OK button
+    okButton.onclick = function() {
+        modal.style.display = 'none';
+        window.location.href = '/';
+    }
+    
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+            window.location.href = '/';
+        }
+    }
+});
+</script>
+
+<style>
+.public-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.intro-text {
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.form-container {
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-section {
+    margin-bottom: 30px;
+}
+
+.form-section h3 {
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
+
+.file-requirements, 
+.password-requirements {
+    font-size: 0.85em;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+.terms-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.terms-checkbox input {
+    margin: 0;
+}
+
+.terms-checkbox label {
+    margin: 0;
+    font-weight: normal;
+}
+
+.form-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.btn-cancel, .btn-submit {
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-cancel {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-submit {
+    background-color: #28a745;
+    color: white;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 50%;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+}
+
+.modal-buttons {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 0.85em;
+    margin-top: 5px;
+}
+
+.hidden {
+    display: none;
+}
+</style>

@@ -9,14 +9,21 @@ const store = new session.MemoryStore();
 
 // Import database functions
 import {
-  submitForm,
   getUsers, getUserByEmail, createUser, getUserById, getUsersOfRole,
   getPartners,
   getRolesOfSupertype, createClientRole,
-  getApplications,
-  getApplicationById,
-  lastLogin
+  getApplications, getApplicationById, getApplicationsByEmail,
+  approveApplication, rejectApplication, reconsiderApplication, revokeApproval,
+  updateApplicationStatus, createApplication,
+  deactivateUserByEmail,
+  lastLogin,
+  resetApplicationStatus
 } from './database.js'
+
+// File Upload
+import multer from 'multer'
+import path from 'path'
+import fs from 'fs'
 
 // Philippine Standard Geographic Code
 import { PSGCResource } from 'psgc-areas'
@@ -41,6 +48,43 @@ app.use(favicon('./favicon.ico'))
 // Use the public folder for assets
 app.use(express.static('public'))
 app.use('/pictures', express.static('pictures'));
+
+// Setup file uploads directory
+const uploadDir = './uploads';
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, 'verification-' + uniqueSuffix + ext);
+    }
+});
+
+const fileFilter = (req, file, cb) => {
+    const allowedTypes = ['.pdf', '.jpg', '.jpeg', '.png'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    
+    if (allowedTypes.includes(ext)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Invalid file type. Only PDF, JPG, and PNG files are allowed.'), false);
+    }
+};
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    fileFilter: fileFilter
+});
+
+// Serve files from uploads directory
+app.use('/uploads', express.static('uploads'));
 
 /* ---------------------------------------
     SESSION
@@ -221,6 +265,28 @@ app.get('/register', (req, res) => {
   })
 })
 
+// Client application form route
+app.get('/apply', async (req, res) => {
+  try {
+    const clientRoles = await getRolesOfSupertype(2)
+    const partners = await getPartners()
+    
+    res.render('application-form', {
+      layout: 'public',
+      title: 'Apply for Access | GreenCycle',
+      current_apply: true,
+      clientRoles,
+      partners
+    });
+  } catch (error) {
+    console.error('Error loading application form:', error)
+    res.status(500).render('error', { 
+      layout: 'public',
+      message: 'Error loading application form' 
+    })
+  }
+})
+
 app.get('/contact', (req, res) => {
   res.render('contact', {
     layout: 'public',
@@ -351,73 +417,6 @@ app.get('/dashboard/user-applications', async (req, res) => {
   })
 })
 
-app.get('/dashboard/submit-report', async (req, res) => {
-  res.render('dashboard/submit-report', {
-    layout: 'dashboard',
-    title: 'GC Dashboard | Submit Your Report',
-    current_report: true
-  })
-})
-
-const wasteMaterialMap = {
-  "paper": 1,
-  "glass": 2,
-  "metal": 3,
-  "plastic": 4,
-  "kitchen_waste": 5,
-  "hazardous_waste": 6,
-  "electrical_waste": 7,
-  "organic": 8,
-  "inorganic": 9
-};
-
-const wasteOriginMap = {
-  "Residential": 1,
-  "Commercial": 2,
-  "Institutional": 3,
-  "Industrial": 4,
-  "Health": 5,
-  "Livestock": 6 // Corrected to match "Agricultural and Livestock"
-};
-
-app.post("/submit-report", async (req, res) => {
-  try {
-    console.log("Received payload:", req.body); // Debugging line
-      const { name, company_name, region, province, municipality, barangay, 
-          population, per_capita, annual, date_submitted, year_collected, 
-          date_start, date_end, location_id ,wasteComposition } = req.body;
-          
-
-      const formattedWasteComposition = wasteComposition.map(entry => {
-          if (!entry.name || !entry.origin) {
-              console.error("Missing name or origin in:", entry);
-              return null;  // Skip this entry
-          }
-
-          return {
-              material_id: wasteMaterialMap[entry.name.toLowerCase()] || null,
-              origin_id: wasteOriginMap[entry.origin] || null,
-              waste_amount: entry.weight || 0,  // Ensure weight is always a number
-              subtype_remarks: entry.subtype_remarks || null
-          };
-      }).filter(entry => entry !== null); // Remove any invalid entries
-
-      const result = await submitForm(
-          name, company_name, region, province, municipality, barangay, 
-          population, per_capita, annual, date_submitted, 
-          year_collected, date_start, date_end, formattedWasteComposition
-      );
-
-      res.status(200).json(result);
-  } catch (error) {
-      console.error("Error processing report:", error);
-      res.status(500).json({ error: "Failed to submit report" });
-  }
-});
-
-
-  
-
 app.get('/dashboard/partners', async (req, res) => {
   const partners = await getPartners()
   res.render('dashboard/partners', {
@@ -427,6 +426,15 @@ app.get('/dashboard/partners', async (req, res) => {
     current_partners: true
   })
 })
+
+app.get('/dashboard/submit-report', async (req, res) => {
+  res.render('dashboard/submit-report', {
+    layout: 'dashboard',
+    title: 'GC Dashboard | Submit Your Report',
+    current_report: true
+  })
+})
+
 
 // API: Get locations from json
 app.get('/locations', async (req, res) => {
@@ -441,17 +449,6 @@ app.post('/users', async (req, res) => {
   const user = await createUser(roleId, lastName, firstName, email, password, contactNo)
   res.send(user)
 })
-
-// Get one user from ID for editing
-// app.get('/users/:id', async (req, res) => {
-//   const id = req.params.id;
-//   try {
-//     const user = await getUser(id);
-//     res.json(user);
-//   } catch (error) {
-//     res.status(404).json({ message: "User not found" });
-//   }
-// });
 
 // Update user
 app.patch('/users/:id', async (req, res) => {
@@ -482,69 +479,160 @@ app.delete('/users/:id', async (req, res) => {
   }
 });
 
-// User Application API endpoints
-// Get all applications
-app.get('/api/applications', (req, res) => {
-  // This would fetch from database
-  // For now, return sample data
-  const applications = [
-    {
-      id: "APP001",
-      name: "SANTOS, Juan",
-      email: "juan.santos@example.com",
-      contact: "+63 (123) 456 7890",
-      date: "Mar 1, 2025",
-      status: "pending"
-    },
-    {
-      id: "APP002",
-      name: "MENDOZA, Maria",
-      email: "maria.mendoza@example.com",
-      contact: "+63 (234) 567 8901",
-      date: "Mar 2, 2025",
-      status: "pending"
-    },
-    {
-      id: "APP003",
-      name: "CRUZ, Roberto",
-      email: "roberto.cruz@example.com",
-      contact: "+63 (345) 678 9012",
-      date: "Feb 28, 2025",
-      status: "approved"
-    },
-    {
-      id: "APP004",
-      name: "REYES, Ana",
-      email: "ana.reyes@example.com",
-      contact: "+63 (456) 789 0123",
-      date: "Feb 27, 2025",
-      status: "rejected"
+/* ---------------------------------------
+    USER APPLICATION API ENDPOINTS
+--------------------------------------- */
+
+// API: Submit new application
+app.post('/api/applications', upload.single('verificationDoc'), async (req, res) => {
+  try {
+    const { firstName, lastName, email, contactNo } = req.body
+    
+    // Basic validation
+    if (!firstName || !lastName || !email) {
+      return res.status(400).json({ success: false, message: 'Missing required fields' })
     }
-  ];
-  
-  res.json(applications);
-});
 
-// Get single application
+    // Check if email already exists in users
+    const existingUser = await getUserByEmail(email);
+    if (existingUser && existingUser.length > 0) {
+      return res.status(400).json({ success: false, message: 'A user with this email already exists' });
+    }
+    
+    // Check for existing applications with the same email
+    const existingApplications = await getApplicationsByEmail(email);
+    if (existingApplications && existingApplications.length > 0) {
+      const pendingApp = existingApplications.find(app => app.status === 'Pending Review');
+      if (pendingApp) {
+        return res.status(400).json({ success: false, message: 'You already have a pending application' });
+      }
+    }
+    
+    // Get uploaded file path (if any)
+    const verificationDoc = req.file ? req.file.filename : null
+    
+    // Create the application
+    const result = await createApplication(
+      firstName, lastName, email, contactNo, verificationDoc
+    )
+    
+    res.status(201).json({ 
+      success: true, 
+      message: 'Application submitted successfully',
+      data: result 
+    })
+  } catch (error) {
+    console.error('Error submitting application:', error)
+    
+    // If file was uploaded but application creation failed, remove the file
+    if (req.file) {
+      fs.unlink(path.join(uploadDir, req.file.filename), (err) => {
+        if (err) console.error('Error deleting file:', err)
+      })
+    }
+    
+    res.status(500).json({ 
+      success: false, 
+      message: 'An error occurred while submitting your application' 
+    })
+  }
+})
+
+// API: Get all applications
+app.get('/api/applications', async (req, res) => {
+  try {
+    const applications = await getApplications()
+    res.json(applications)
+  } catch (error) {
+    console.error('Error fetching applications:', error)
+    res.status(500).json({ success: false, message: 'Error fetching applications' })
+  }
+})
+
+// API: Get single application
 app.get('/api/applications/:id', async (req, res) => {
-  const id = req.params.id;
-  const userApp = await getApplicationById(id)
-  res.json(userApp)
-});
+  try {
+    const id = req.params.id
+    const application = await getApplicationById(id)
+    
+    if (!application || application.length === 0) {
+      return res.status(404).json({ success: false, message: 'Application not found' })
+    }
+    
+    res.json(application)
+  } catch (error) {
+    console.error('Error fetching application:', error)
+    res.status(500).json({ success: false, message: 'Error fetching application' })
+  }
+})
 
-// Update application status
-app.put('/api/applications/:id', (req, res) => {
-  const id = req.params.id;
-  const { status, notes } = req.body;
-  
-  // This would update in database
-  // For now, just return success
-  res.json({ 
-    id, 
-    status,
-    message: `Application ${id} status updated to ${status}` 
-  });
-});
+// API: Update application status
+app.put('/api/applications/:id/status', async (req, res) => {
+  try {
+    const id = req.params.id
+    const { status, adminNotes } = req.body
+    
+    // Basic validation
+    if (!status) {
+      return res.status(400).json({ success: false, message: 'Status is required' })
+    }
+    
+    let result
+    
+    if (status === 'Approved') {
+      // Approve application and create user
+      result = await approveApplication(id, adminNotes || '')
+    } else if (status === 'Rejected') {
+      // Reject application
+      result = await rejectApplication(id, adminNotes || '')
+    } else if (status === 'Pending Review') {
+      // Reset to pending
+      result = await resetApplicationStatus(id, adminNotes || '')
+    } else {
+      return res.status(400).json({ success: false, message: 'Invalid status' })
+    }
+    
+    res.json({ 
+      success: true,
+      message: `Application ${id} status updated to ${status}`,
+      data: result
+    })
+  } catch (error) {
+    console.error('Error updating application status:', error)
+    res.status(500).json({ 
+      success: false,
+      message: 'Error updating application status' 
+    })
+  }
+})
+
+// API: Update application notes
+app.put('/api/applications/:id/notes', async (req, res) => {
+  try {
+    const id = req.params.id
+    const { adminNotes } = req.body
+    
+    // Update admin notes in database using the existing status
+    const application = await getApplicationById(id);
+    if (!application || application.length === 0) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+    
+    const result = await updateApplicationStatus(id, application[0].status, adminNotes)
+    
+    res.json({ 
+      success: true,
+      message: 'Notes updated successfully',
+      data: result
+    })
+  } catch (error) {
+    console.error('Error updating notes:', error)
+    res.status(500).json({ 
+      success: false,
+      message: 'Error updating notes' 
+    })
+  }
+})
 
 // 404 page: for routes that do not match any of the above
 // NOTE: HAS TO ALWAYS BE THE LAST ROUTE
