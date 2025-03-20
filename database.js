@@ -108,6 +108,7 @@ export async function createClientRole(roleName) {
     // Return new object if successful
     const id = result[0].insertId
     return getRoleById(id)
+    
 }
 
 // Get role by ID

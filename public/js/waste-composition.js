@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", function () {
             alert("Error: Total waste composition must equal 100%.");
         }
     });
+    
 });
 
 function addEntry(category) {

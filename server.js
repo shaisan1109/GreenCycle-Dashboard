@@ -371,6 +371,7 @@ app.get('/dashboard/submit-report', async (req, res) => {
   })
 })
 
+
 // API: Get locations from json
 app.get('/locations', async (req, res) => {
   // Get all location names
