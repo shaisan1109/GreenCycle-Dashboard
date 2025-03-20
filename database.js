@@ -76,7 +76,7 @@ export async function lastLogin(userId) {
     FORM SUBMISSION
 --------------------------------------- */
 export async function submitForm(name, company_name, region, province, municipality,
-     barangay, population, per_capita, annual, date_submitted, year_collected, date_start, date_end, wasteComposition) {
+     barangay, population, per_capita, annual, date_submitted, year_collected, date_start, date_end, formattedWasteComposition) {
     try {
         // Insert into clients table
         const [clientResult] = await sql.query(
@@ -111,66 +111,59 @@ export async function submitForm(name, company_name, region, province, municipal
         await sql.query(
             `INSERT INTO data_collection_periods (location_code, date_start, date_end)
             VALUES (?, ?, ?)`, 
-            [location_code, date_start, date_end]
+            [location_id, date_start, date_end]
         );
 
-       // Insert into waste_composition table (only if wasteComposition is provided)
-// Define mappings for materials and origins based on your tables
-const materialMap = {
-    "paper": 1,
-    "glass": 2,
-    "metal": 3,
-    "plastics": 4,
-    "kitchen_waste": 5,
-    "hazardous_waste": 6,
-    "electronic_waste": 7,
-    "other_organic": 8,
-    "other_non_organic": 9
-};
-
-const originMap = {
-    "Residential": 1,
-    "Commercial": 2,
-    "Institutional": 3,
-    "Industrial": 4,
-    "Health": 5,
-    "Agricultural and Livestock": 6
-};
-
 // Insert into waste_composition table (only if wasteComposition is provided)
-if (wasteComposition && wasteComposition.length > 0) {
+if (formattedWasteComposition && formattedWasteComposition.length > 0) {
     try {
         await sql.beginTransaction(); // Start transaction
 
-        for (const entry of wasteComposition) {
-            let { material_id, origin_id, waste_amount, subtype_remarks } = entry;
+        // Construct bulk insert values
+        let insertValues = [];
+        let insertPlaceholders = [];
+        
+        for (const entry of formattedWasteComposition) {
+            let { material_name, origin_id, waste_amount, subtype_remarks } = entry;
 
-            // Convert material and origin names to their respective IDs
-            const materialInt = materialMap[material_id.toLowerCase()];
-            const originInt = originMap[origin_id];
+            const [materialResult] = await sql.query(
+                `SELECT id FROM materials WHERE name = ?`, [material_name]
+            );
+            
+            if (materialResult.length === 0) {
+                throw new Error(`Invalid material category: ${material_name}`);
+            }
+            
+            const material_id = parseInt(materialResult[0].id, 10); // Ensure it's an integer
+            
+            // Fetch origin_id from database (if necessary)
+            const [originResult] = await sql.query(
+                `SELECT id FROM origins WHERE id = ?`, [origin_id]
+            );
 
-            // Ensure IDs are valid before inserting
-            if (!materialInt || !originInt) {
-                throw new Error(`Invalid material (${material_id}) or origin (${origin_id}) provided.`);
+            if (originResult.length === 0) {
+                throw new Error(`Invalid origin ID: ${origin_id}`);
             }
 
-            // Insert into database
-            await sql.query(
-                `INSERT INTO waste_composition (collection_id, material_id, origin_id, waste_amount, subtype_remarks)
-                 VALUES (?, ?, ?, ?, ?)`, 
-                [collection_id, materialInt, originInt, waste_amount, subtype_remarks || null]
-            );
+            // Prepare values for bulk insert
+            insertValues.push(collection_id, material_id, origin_id, waste_amount, subtype_remarks || null);
+            insertPlaceholders.push("(?, ?, ?, ?, ?)");
         }
+
+        // Perform bulk insertion
+        const query = `
+            INSERT INTO waste_composition (collection_id, material_id, origin_id, waste_amount, subtype_remarks) 
+            VALUES ${insertPlaceholders.join(", ")}
+        `;
+        await sql.query(query, insertValues);
 
         await sql.commit(); // Commit transaction if successful
     } catch (error) {
-        await sql.rollback(); // Rollback transaction on error
+        await sql.rollback(); // Rollback on error
         console.error("Error inserting waste composition:", error);
         throw new Error("Failed to insert waste composition data.");
     }
 }
-
-
 
         return { success: true, message: "Form submitted successfully!" };
 

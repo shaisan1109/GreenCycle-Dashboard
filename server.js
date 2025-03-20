@@ -385,15 +385,8 @@ app.post("/submit-report", async (req, res) => {
     console.log("Received payload:", req.body); // Debugging line
       const { name, company_name, region, province, municipality, barangay, 
           population, per_capita, annual, date_submitted, year_collected, 
-          date_start, date_end, wasteComposition } = req.body;
+          date_start, date_end, location_id ,wasteComposition } = req.body;
           
-          if (!region) {
-            console.error("Region is missing or null");
-            return res.status(400).json({ error: "Region is required" });
-        }
-      if (!Array.isArray(wasteComposition)) {
-          return res.status(400).json({ error: "Invalid wasteComposition format" });
-      }
 
       const formattedWasteComposition = wasteComposition.map(entry => {
           if (!entry.name || !entry.origin) {

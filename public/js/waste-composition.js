@@ -1,45 +1,57 @@
 const categories = [
-    "paper", "plastic", "metal", "kitchen_waste", "organic", "inorganic", 
-    "hazardous_waste", "electrical_waste", "wood", "textiles", "rubber"
+    "paper", "glass", "metal", "plastic",  "kitchen_waste",  
+    "hazardous_waste", "electrical_waste", "organic", "inorganic",
 ];
+
+const materialMap = {
+    "paper": '1',
+    "glass": '2',
+    "metal": '3',
+    "plastic": '4',
+    "kitchen_waste": '5',
+    "hazardous_waste": '6',
+    "electrical_waste": '7',
+    "organic": '8',
+    "inorganic": '9',
+
+};
 
 document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("waste-form").addEventListener("submit", async function (event) {
-        event.preventDefault(); // Prevent default submission
-    
+        event.preventDefault();
+
         if (!validateTotalPercentage()) {
             alert("Error: Total waste composition must equal 100%.");
             return;
         }
-    
+
         const formData = new FormData(this);
         const jsonObject = Object.fromEntries(formData.entries());
-    
-        // Collect waste composition entries
+
         let wasteComposition = [];
         document.querySelectorAll(".waste-category").forEach(categoryDiv => {
-            const category = categoryDiv.dataset.category;
             categoryDiv.querySelectorAll(".waste-entry").forEach(entry => {
+                const materialName = categoryDiv.dataset.category;
+                const material_id = materialMap[materialName] || null; // Convert category name to ID
                 const subtype_remarks = entry.querySelector('input[name$="[name]"]').value.trim();
                 const origin_id = entry.querySelector('select[name$="[origin]"]').value;
                 const waste_amount = parseFloat(entry.querySelector('input[name$="[weight]"]').value) || 0;
-        
-                if (subtype_remarks && origin_id && waste_amount > 0) {
-                    wasteComposition.push({ material_id: category, subtype_remarks, origin_id, waste_amount });
+
+                if (material_id && subtype_remarks && origin_id && waste_amount > 0) {
+                    wasteComposition.push({ material_id, subtype_remarks, origin_id, waste_amount });
                 }
             });
         });
-        
-    
-        jsonObject.wasteComposition = wasteComposition; // Attach waste composition data
-    
+
+        jsonObject.wasteComposition = wasteComposition;
+
         try {
             const response = await fetch("/submit-report", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(jsonObject)
             });
-    
+
             const result = await response.json();
             if (response.ok) {
                 alert("Report submitted successfully!");
@@ -51,6 +63,9 @@ document.addEventListener("DOMContentLoaded", function () {
             alert("Something went wrong.");
         }
     });
+});
+
+
     
     const container = document.getElementById("wasteComposition");
     categories.forEach(category => {
@@ -83,7 +98,7 @@ document.addEventListener("DOMContentLoaded", function () {
             validateTotalPercentage();
         }
     });
-});    
+
 
 function addEntry(category) {
     let container = document.querySelector(`[data-category="${category}"] .entries`);
