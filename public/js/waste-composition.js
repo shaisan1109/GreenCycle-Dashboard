@@ -1,7 +1,58 @@
-const categories = ["paper", "plastic", "metal", "kitchen_waste", "organic", "inorganic", "hazardous_waste", "electrical_waste", "wood", "textiles", "rubber"];
+const categories = [
+    "paper", "plastic", "metal", "kitchen_waste", "organic", "inorganic", 
+    "hazardous_waste", "electrical_waste", "wood", "textiles", "rubber"
+];
 
 document.addEventListener("DOMContentLoaded", function () {
-    const container = document.getElementById("waste-composition");
+    document.getElementById("waste-form").addEventListener("submit", async function (event) {
+        event.preventDefault(); // Prevent default submission
+    
+        if (!validateTotalPercentage()) {
+            alert("Error: Total waste composition must equal 100%.");
+            return;
+        }
+    
+        const formData = new FormData(this);
+        const jsonObject = Object.fromEntries(formData.entries());
+    
+        // Collect waste composition entries
+        let wasteComposition = [];
+        document.querySelectorAll(".waste-category").forEach(categoryDiv => {
+            const category = categoryDiv.dataset.category;
+            categoryDiv.querySelectorAll(".waste-entry").forEach(entry => {
+                const subtype_remarks = entry.querySelector('input[name$="[name]"]').value.trim();
+                const origin_id = entry.querySelector('select[name$="[origin]"]').value;
+                const waste_amount = parseFloat(entry.querySelector('input[name$="[weight]"]').value) || 0;
+        
+                if (subtype_remarks && origin_id && waste_amount > 0) {
+                    wasteComposition.push({ material_id: category, subtype_remarks, origin_id, waste_amount });
+                }
+            });
+        });
+        
+    
+        jsonObject.wasteComposition = wasteComposition; // Attach waste composition data
+    
+        try {
+            const response = await fetch("/submit-report", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(jsonObject)
+            });
+    
+            const result = await response.json();
+            if (response.ok) {
+                alert("Report submitted successfully!");
+            } else {
+                alert(result.error || "Submission failed.");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("Something went wrong.");
+        }
+    });
+    
+    const container = document.getElementById("wasteComposition");
     categories.forEach(category => {
         let categoryDiv = document.createElement("div");
         categoryDiv.className = "waste-category";
@@ -9,7 +60,6 @@ document.addEventListener("DOMContentLoaded", function () {
         categoryDiv.innerHTML = `
             <label>${category.replace("_", " ").toUpperCase()}:</label>
             <div class="entries"></div>
-            
             <button class="btn-approve" type="button" onclick="addEntry('${category}')">
                 <i class="fa-solid fa-plus"></i> Add Entry
             </button>
@@ -22,10 +72,18 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!validateTotalPercentage()) {
             event.preventDefault(); // Prevent form submission
             alert("Error: Total waste composition must equal 100%.");
+            return false;
         }
     });
     
-});
+
+    // Validate on input change
+    document.addEventListener("input", function (event) {
+        if (event.target.classList.contains("weight-input")) {
+            validateTotalPercentage();
+        }
+    });
+});    
 
 function addEntry(category) {
     let container = document.querySelector(`[data-category="${category}"] .entries`);
@@ -34,39 +92,47 @@ function addEntry(category) {
 
     entryDiv.innerHTML = `
         <input type="text" name="${category}[][name]" placeholder="Waste Type" required>
-        
         <select name="${category}[][origin]" required>
-            <option value="">Select Origin</option>
-            <option value="Residential">Residential</option>
-            <option value="Commercial">Commercial</option>
-            <option value="Institution">Institution</option>
-            <option value="Industrial">Industrial</option>
-            <option value="Health">Health</option>
-            <option value="Livestock">Livestock</option>
+        <option value="">Select Origin</option>
+        <option value="1">Residential</option>
+        <option value="2">Commercial</option>
+        <option value="3">Institutional</option>
+        <option value="4">Industrial</option>
+        <option value="5">Health</option>
+        <option value="6">Agricultural and Livestock</option>
         </select>
-
         <input type="number" name="${category}[][weight]" class="weight-input" min="0" step="0.001" placeholder="Weight % (wt)" required oninput="validateTotalPercentage()">
-
         <button class="btn-reject" type="button" onclick="removeEntry(this)">
             Remove <i class="fa-solid fa-trash-can"></i>
         </button>
     `;
-    
     container.appendChild(entryDiv);
 }
 
-// Remove entry
 function removeEntry(button) {
     button.parentElement.remove();
-    validateTotalPercentage(); // Revalidate after removal
+    validateTotalPercentage();
 }
 
-// Validate that total weight percentage equals 100%
 function validateTotalPercentage() {
     let total = 0;
     document.querySelectorAll(".weight-input").forEach(input => {
         total += parseFloat(input.value) || 0;
     });
 
-    return total === 100;
+    let warning = document.getElementById("waste-warning");
+    if (!warning) {
+        warning = document.createElement("p");
+        warning.id = "waste-warning";
+        warning.style.color = "red";
+        document.getElementById("wasteComposition").appendChild(warning);
+    }
+
+    if (Math.abs(total - 100) < 0.01) {
+        warning.textContent = "";
+        return true;
+    } else {
+        warning.textContent = `Total waste composition must be 100%. Current: ${total.toFixed(2)}%`;
+        return false;
+    }
 }

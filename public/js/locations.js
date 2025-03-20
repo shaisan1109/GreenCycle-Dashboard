@@ -35,7 +35,7 @@ function getProvinces() {
 
     let output = ""
     output += "<option value=''>Select a province</option>"
-    
+   
     // If no region is selected, disable this
     if(regionIndex.trim() === "" || regionIndex == 0) {
         provincesDropdown.disabled = true
