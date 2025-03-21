@@ -1,10 +1,17 @@
+/* LOCATIONS SEARCH
+    The version of locations.js used in the search query for data display. */
+
 let form = document.forms[0]
 let regionsDropdown = form.regions
 let provincesDropdown = form.provinces
 let municipalitiesDropdown = form.municipalities
+let locationCodeDisplay = form.locationcode
 
 // Variables changing with selection
 let jsonData
+
+// Waste data display div
+let divWasteData = document.getElementById('waste-data')
 
 // Get PH locations json
 fetch('/locations')
@@ -102,4 +109,77 @@ function getMunicipalities() {
     }
 
     municipalitiesDropdown.innerHTML = output
+}
+
+// Update user's current location code
+function updateLocation() {
+    const region = regionsDropdown.value;
+    const province = provincesDropdown.value;
+    const city = municipalitiesDropdown.value;
+ 
+    let setLocation = city || province || region || null;
+ 
+    // Output the result for debugging
+    locationCodeDisplay.value = setLocation
+}
+ 
+// Add event listeners to update `setLocation` when any dropdown changes
+regionsDropdown.addEventListener("change", updateLocation);
+provincesDropdown.addEventListener("change", updateLocation);
+municipalitiesDropdown.addEventListener("change", updateLocation);
+
+// Store waste data to display here
+let wasteData
+
+// When user submits location code, a query will be made to search for the matching waste data
+form.addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    // Get location code submitted by user
+    const locationCode = locationCodeDisplay.value
+    
+    // Fetch users with role ID from server
+    fetch(`/api/waste-data/${locationCode}`)
+        .then(response => response.json())
+        .then((data) => {
+            wasteData = data
+            showWasteData(wasteData)
+        })
+})
+
+// Display users of a certain role
+function showWasteData(wasteData) {
+    console.log(wasteData)
+
+    // Initialize HTML
+    let output = ""
+
+    // Check if usersOfRole has contents
+    if(wasteData.length > 0) {
+        // Show number of results
+        output += `<h1>Results: ${wasteData.length} entries</h1>`
+
+        // For each row of data, display HTML table row
+        wasteData.forEach((entry) => {
+            // Format submission date
+            var options = { year: 'numeric', month: 'long', day: 'numeric' };
+            var date = new Date(entry.date_submitted)
+            var formattedDate = date.toLocaleDateString("en-US", options); //  September 17, 2016
+
+            output += `
+                <a href='/dashboard/data/${entry.waste_gen_id}'>
+                    <button class='waste-data-btn'>
+                        <h1>Entry #${entry.waste_gen_id}</h1>
+                        <i>Submitted on ${formattedDate}</i>
+                        
+                        <p><b>Submitted by:</b> ${entry.name}</p>
+                    </button>
+                </a>
+        `})
+    } else {
+        output += `No data currently exists for this location.`
+    }
+
+    // Paste HTML output on waste data div
+    divWasteData.innerHTML = output
 }

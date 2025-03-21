@@ -1,9 +1,9 @@
-<form>
+<form id="loc-search">
     <fieldset>
         <legend>Select Location</legend>
         <p>
             <label for="region">Select a region:</label><br>
-            <select name="region" id="regions">
+            <select name="region" id="regions" required>
                 <!-- Populated by locations.js -->
             </select>
         </p>
@@ -24,10 +24,20 @@
             </select>
         </p>
 
-        <button class="btn-form">
+        <p>
+            <label for="location-code">Location code:</label><br>
+            <input type="text" id="location-code" name="locationcode" readonly>
+        </p>
+
+        <button class="btn-form" type="submit">
             <i class="fa-solid fa-location-dot"></i> Select Location
         </button>
     </fieldset>
 </form>
 
-<script src="../js/locations.js"></script>
+<!-- Output: Waste data that matches the location query -->
+<div id="waste-data">
+    <!-- Populated by javascript -->
+</div>
+
+<script src="../js/locations-search.js"></script>

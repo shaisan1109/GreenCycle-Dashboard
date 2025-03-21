@@ -17,7 +17,8 @@ import {
   updateApplicationStatus, createApplication, resetApplicationStatus,
   deactivateUserByEmail,
   lastLogin,
-  submitForm
+  submitForm,
+  getDataByLocation
 } from './database.js'
 
 // File Upload
@@ -466,8 +467,6 @@ app.post("/submit-report", async (req, res) => {
           
 
       const formattedWasteComposition = wasteComposition.map((entry) => {
-          console.log(entry)
-
           if (!entry.material_name || !entry.origin) {
               console.error("Missing name or origin in:", entry);
               return null;  // Skip this entry
@@ -692,6 +691,23 @@ app.put('/api/applications/:id/notes', async (req, res) => {
       success: false,
       message: 'Error updating notes' 
     })
+  }
+})
+
+// Get waste data from a location
+app.get('/api/waste-data/:location', async (req, res) => {
+  try {
+    const location = req.params.location
+    const dataEntries = await getDataByLocation(location)
+    
+    if (!dataEntries || dataEntries.length === 0) {
+      return res.status(404).json({ success: false, message: 'Data not found' })
+    }
+    
+    res.json(dataEntries)
+  } catch (error) {
+    console.error('Error fetching data:', error)
+    res.status(500).json({ success: false, message: 'Error fetching data' })
   }
 })
 

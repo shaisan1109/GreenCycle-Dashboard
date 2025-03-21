@@ -341,3 +341,32 @@ select {
 .user-profile .label {
     font-weight: bold;
 }
+
+/* ------ Data Entry Search ------ */
+#waste-data {
+    display: block;
+    margin-top: 10px;
+}
+
+#waste-data a {
+    text-decoration: none;
+}
+
+.waste-data-btn {
+    width: 100%;
+    border: 2px solid #127009;
+    border-radius: 5px;
+    background-color: white;
+    text-align: left;
+    padding: 20px;
+    margin-top: 10px;
+    font-size: 16px;
+}
+.waste-data-btn:hover {
+    cursor: pointer;
+    background-color: #dcecda;
+}
+
+.waste-data-btn h1 {
+    margin: 0;
+}

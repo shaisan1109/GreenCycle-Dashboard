@@ -378,3 +378,24 @@ export async function rejectApplication(appId, adminNotes) {
 export async function resetApplicationStatus(appId, adminNotes) {
     return updateApplicationStatus(appId, 'Pending Review', adminNotes)
 }
+
+/* ---------------------------------------
+    DATA RETRIEVAL
+--------------------------------------- */
+
+// Get data entries from a location
+export async function getDataByLocation(locationCode) {
+    const [result] = await sql.query(`
+        SELECT
+            loc.region, loc.province, loc.municipality,
+            c.name, c.company_name,
+            wg.*
+        FROM waste_generation wg
+        JOIN locations loc ON wg.location_id = loc.location_id
+        JOIN clients c ON wg.client_id = c.client_id
+        WHERE loc.region = ${locationCode}
+        OR loc.province = ${locationCode}
+        OR loc.municipality = ${locationCode}
+    `)
+    return result
+}
