@@ -63,12 +63,12 @@ main {
 .header {
     width: 100%;
     background-color: #283619;
-    color:white;
+    color: white;
     display: flex;
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 10;
+    z-index: 1000; /* Increased from 10 */
     align-items: center;
 }
 
@@ -97,7 +97,7 @@ main {
     position: fixed;
     top: 60px; 
     left: 0;
-    z-index: 11;
+    z-index: 900; /* Changed from 11 */
 }
 
 .taskbar ul {
@@ -519,7 +519,7 @@ button:hover {
     margin-left: auto;
     margin-top: 0;
     padding-top: 0;
-    z-index: 999 !important;
+    z-index: 1100 !important; /* Higher z-index than header and taskbar */
 }
 
 .user-menu-button {
@@ -537,8 +537,6 @@ button:hover {
     margin-left: auto;
     border-radius: 0% !important;
     margin-top: 0 !important;
-}
-.user-menu-button:hover {
     cursor: pointer;
 }
   
@@ -548,7 +546,7 @@ button:hover {
     background-color: #f1f1f1;
     width: 100%;
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    z-index: 9999 !important;
+    z-index: 1200 !important; /* Even higher z-index for dropdown content */
 }
 
 .user-menu-content a {
@@ -558,11 +556,18 @@ button:hover {
     display: block;
 }
 
-.user-menu-content a:hover {background-color: #ddd;}
+.user-menu-content a:hover {
+    background-color: #ddd;
+}
 
-.user-menu:hover .user-menu-content {display: block;}
+/* Using hover behavior to display dropdown */
+.user-menu:hover .user-menu-content {
+    display: block;
+}
 
-.user-menu:hover .user-menu-button {background-color: #3e8e41;}
+.user-menu:hover .user-menu-button {
+    background-color: #3e8e41;
+}
 
 .user-menu-caret {
     margin-left: 10px;

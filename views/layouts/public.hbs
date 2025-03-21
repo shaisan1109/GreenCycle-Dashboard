@@ -90,22 +90,24 @@
         </div>
     </footer>
 
-    <!-- JavaScript for User Dropdown -->
     <script>
-        function toggleDropdown() {
-            document.getElementById("dropdown").classList.toggle("show");
-        }
-
-        // Close dropdown when clicking outside
-        window.onclick = function(event) {
-            if (!event.target.matches('.user-icon')) {
-                var dropdowns = document.getElementsByClassName("dropdown-content");
-                for (var i = 0; i < dropdowns.length; i++) {
-                    if (dropdowns[i].classList.contains('show')) {
-                        dropdowns[i].classList.remove('show');
+        // Handle logout button click
+        const logoutButton = document.getElementById('logout');
+        if (logoutButton) {
+            logoutButton.addEventListener('click', function(event) {
+                event.preventDefault(); // Prevent default navigation
+                
+                fetch('/logout', { 
+                    method: 'DELETE', 
+                    credentials: 'include' 
+                })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = "/"; // Redirect to home after logout
                     }
-                }
-            }
+                })
+                .catch(err => console.error("Logout failed", err));
+            });
         }
     </script>
 
