@@ -106,9 +106,9 @@ export async function submitForm(name, company_name, region, province, municipal
 
         // Insert into waste_generation table
         const [wasteGenResult] = await sql.query(
-            `INSERT INTO waste_generation (client_id, location_id, population, per_capita, annual, date_submitted, year_collected)
-            VALUES (?, ?, ?, ?, ?, ?, ?)`, 
-            [client_id, location_id, population, per_capita, annual, date_submitted, year_collected]
+            `INSERT INTO waste_generation (client_id, location_id, population, per_capita, annual, date_submitted, year_collected, collection_start, collection_end)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+            [client_id, location_id, population, per_capita, annual, date_submitted, year_collected, date_start, date_end]
         );
 
         const collection_id = wasteGenResult.insertId;
@@ -117,15 +117,6 @@ export async function submitForm(name, company_name, region, province, municipal
         if (!collection_id) {
             throw new Error("Failed to insert into waste_generation, collection_id is NULL.");
         }
-
-        const [dataCollectResult] = await sql.query(
-            `INSERT INTO data_collection_periods (location_code, date_start, date_end)
-            VALUES (?, ?, ?)`, 
-            [location_id, date_start, date_end]
-        );
-        
-        // Get latest ID from the insert result
-        const dataCollectId = dataCollectResult.insertId;
 
 
         // Insert into waste_composition table (only if wasteComposition is provided)
@@ -149,9 +140,7 @@ export async function submitForm(name, company_name, region, province, municipal
                     if (materialResult.length === 0) {
                         throw new Error(`Invalid material category: ${material_id}`);
                     }
-                    
-                    //const material_id = parseInt(materialResult[0].id, 10); // Ensure it's an integer
-                    
+                                        
                     // Fetch origin_id from database (if necessary)
                     const [originResult] = await connection.query(
                         `SELECT id FROM waste_origins WHERE id = ?`, [origin_id]
@@ -162,13 +151,13 @@ export async function submitForm(name, company_name, region, province, municipal
                     }
 
                     // Prepare values for bulk insert
-                    insertValues.push(dataCollectId, material_id, origin_id, waste_amount, subtype_remarks || null);
+                    insertValues.push(collection_id, material_id, origin_id, waste_amount, subtype_remarks || null);
                     insertPlaceholders.push("(?, ?, ?, ?, ?)");
                 }
 
                 // Perform bulk insertion
                 const query = `
-                    INSERT INTO waste_composition (collection_id, material_id, origin_id, waste_amount, subtype_remarks) 
+                    INSERT INTO waste_composition (waste_gen_id, material_id, origin_id, waste_amount, subtype_remarks) 
                     VALUES ${insertPlaceholders.join(", ")}
                 `;
                 
