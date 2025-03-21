@@ -183,10 +183,6 @@ export async function submitForm(name, company_name, region, province, municipal
    }
 }
 
-/* ---------------------------------------
-    MAP
---------------------------------------- */
-console.log(PSGCResource);
 const regionEquivalence = {
     "NCR": '0',
     "Cordillera Administrative Region (CAR)": '1',
@@ -324,7 +320,6 @@ const provinceBARMM={
     "Ligawasan":'6'
 };
 
-console.log(getLocationName('0','1','0102823000'));  // Output: '13'
 
 // Fetch regions, provinces, and municipalities dynamically (Municipalities and Cities only)
 // Fetch regions, provinces, municipalities, and cities dynamically
@@ -415,12 +410,19 @@ async function getCoordinates(locationName) {
     const locationParts = locationName.split(",").map(part => part.trim());
 
     let formattedLocation = "Philippines"; // Default country
-    if (locationParts.length >= 3) {
-        formattedLocation = `${locationParts[2]}, Philippines`; // Municipality/City
-    } else if (locationParts.length === 2) {
-        formattedLocation = `${locationParts[1]}, Philippines`; // Province
-    } else if (locationParts.length === 1) {
-        formattedLocation = `${locationParts[0]}, Philippines`; // Region
+
+    // Extract location values safely
+    const region = locationParts[0] || null;
+    const province = locationParts[1] || null;
+    const municipality = locationParts[2] || null;
+    
+    // Check what data is available and format accordingly
+    if (municipality) {
+        formattedLocation = `${municipality}, Philippines`; // Municipality/City
+    } else if (province) {
+        formattedLocation = `${province}, Philippines`; // Province
+    } else if (region) {
+        formattedLocation = `${region}, Philippines`; // Region
     }
 
     const apiUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formattedLocation)}`;
@@ -478,18 +480,18 @@ export async function getWasteDataWithCoordinates() {
                 const provinceCode = row.province ? row.province : null;
                 const municipalityCode = row.municipality ? row.municipality : null;
 
-                // Assign province and municipality names correctly
-// Ensure proper formatting of province and municipality names
-let provinceName = provinceCode ? locationParts[1] || null : null;
-let municipalityName = municipalityCode 
-    ? locationParts[2] || locationParts[1] || null  // Ensure the correct assignment
-    : (!provinceCode && locationParts[1]) ? locationParts[1] : null;
 
-// Special handling for NCR: No province, but ensure municipality is assigned
-if (row.region === "0" && municipalityCode) {
-    provinceName = null;  // NCR has no province
-    municipalityName = locationParts[1] || null;  // Assign city/municipality correctly
-}
+            // Ensure proper formatting of province and municipality names
+                let provinceName = provinceCode ? locationParts[1] || null : null;
+                let municipalityName = municipalityCode 
+                    ? locationParts[2] || locationParts[1] || null  // Ensure the correct assignment
+                    : (!provinceCode && locationParts[1]) ? locationParts[1] : null;
+
+                // Special handling for NCR: No province, but ensure municipality is assigned
+                if (row.region === "0" && municipalityCode) {
+                    provinceName = null;  // NCR has no province
+                    municipalityName = locationParts[1] || null;  // Assign city/municipality correctly
+                }
 
                 await sql.query(
                     `UPDATE locations SET latitude = ?, longitude = ?, region_name = ?, province_name = ?, municipality_name = ? WHERE location_id = ?`,
