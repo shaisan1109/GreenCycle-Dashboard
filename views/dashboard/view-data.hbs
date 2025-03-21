@@ -78,14 +78,6 @@
                 </table>
             </div>
         </fieldset>
-
-        <fieldset class="waste-comp-bar">
-            <legend>Waste Composition per Material</legend>
-
-            <div id="bar-container">
-                <!-- Populated by JS -->
-            </div>
-        </fieldset>
     </div>
     <div class="pie-chart">
         <canvas id="summary-pie">
@@ -93,6 +85,13 @@
         </canvas>
     </div>
 </div>
+
+<fieldset class="waste-comp-bar" id="waste-comp-bar">
+    <legend>Waste Composition per Material</legend>
+
+        <!-- Populated by JS -->
+    
+</fieldset>
 
 <!-- Pass json object and start javascript -->
 <!-- Using JS in the template is technically foul, but w/e it works -->
@@ -160,14 +159,20 @@
     }, {});
 
     // Reference to the charts container
-    const chartsContainer = document.getElementById('bar-container');
+    const chartsContainer = document.getElementById('waste-comp-bar');
 
     Object.keys(groupedData).forEach(material_id => {
         const material = groupedData[material_id];
 
         // Create a new canvas for each material
         const canvasContainer = document.createElement('div');
-        canvasContainer.innerHTML = `<h3>${material.material_name}</h3><canvas id="chart-${material_id}"></canvas>`;
+        canvasContainer.classList.add('bar-container');
+
+        canvasContainer.innerHTML = `
+        <div class='bar-chart-container'>
+            <h3>${material.material_name}</h3>
+            <canvas id="chart-${material_id}"></canvas>
+        </div>`;
         chartsContainer.appendChild(canvasContainer);
 
         // Create the chart

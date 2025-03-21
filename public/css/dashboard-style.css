@@ -384,6 +384,16 @@ select {
 }
 
 .waste-comp-bar {
-    width: 485px;
-    margin-top: 15px;
+    width: 1250px;
+}
+
+.bar-container {
+    display: inline-block;
+}
+
+.bar-chart-container {
+    padding: 15px;
+    border: 2px solid lightgray;
+    border-radius: 5px;
+    margin: 15px;
 }
