@@ -3,6 +3,8 @@ import { engine } from 'express-handlebars'
 import Handlebars from 'handlebars'
 import cors from 'cors'
 
+
+
 // Session
 import session from 'express-session'
 const store = new session.MemoryStore();
@@ -10,7 +12,7 @@ const store = new session.MemoryStore();
 // Import database functions
 import {
   getUsers, getUserByEmail, createUser, getUserById, getUsersOfRole,
-  getPartners,
+  getPartners,getWasteDataWithCoordinates,
   getRolesOfSupertype, createClientRole,
   getApplications, getApplicationById, getApplicationsByEmail,
   approveApplication, rejectApplication, reconsiderApplication, revokeApproval,
@@ -426,6 +428,22 @@ app.get('/dashboard/partners', async (req, res) => {
     current_partners: true
   })
 })
+
+app.get('/tests', async (req, res) => {
+  try {
+      const wasteData = await getWasteDataWithCoordinates();
+      console.log("Fetched Waste Data:", wasteData); // Debugging output
+
+      res.render('tests', {
+          layout: 'public',
+          title: 'Test Table',
+          wasteData 
+      });
+  } catch (error) {
+      console.error("Error fetching waste data:", error);
+      res.status(500).send("Internal Server Error");
+  }
+});
 
 app.get('/dashboard/submit-report', async (req, res) => {
   res.render('dashboard/submit-report', {
