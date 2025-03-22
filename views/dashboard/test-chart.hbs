@@ -3,38 +3,39 @@
     <h1>Waste Management Dashboard</h1>
     {{!-- Heatmap Section --}}
     <div id="filter-box">
+        <fieldset>
+        <legend>Map Filters</legend>
         <label for="color-filter">Filter by Value Range:</label>
         <select id="color-filter">
             <option value="all">All</option>
             <option value="red">Low Level</option>
             <option value="yellow">Medium Level</option>
             <option value="green">High Level</option>
-        </select>
+        </select><br><br>
 
         <label for="broad-category-filter">Select Waste Category:</label>
         <select id="broad-category-filter">
             <option value="none">-none-</option>
             <option value="generation">Waste Generation</option>
             <option value="composition">Waste Composition</option>
-        </select>
+        </select><br><br>
 
         <label for="metric-filter">Waste Metric:</label>
-        <select id="metric-filter"></select>
+        <select id="metric-filter"></select><br><br>
 
         <label for="category-filter">Select Category:</label>
-        <select id="category-filter"></select>
+        <select id="category-filter"></select><br><br>
 
             
         <label for="year-filter">Select Year:</label>
         <select id="year-filter">
             <option value="none">Year</option>
-        </select>
+        </select><br><br>
         
+        </fieldset>
     </div>
 
     <div id="map"></div>
-    <div id="info-box"></div> 
-
     {{!-- Waste Composition Section --}}
     <div class="container">
         <h2>Composition of Disposed Waste</h2>
