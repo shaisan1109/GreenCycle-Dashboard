@@ -1,5 +1,11 @@
+<fieldset style="width: 100%; margin-bottom: 10px;">
+    <h3>
+        {{wasteGen.municipality_name}}, {{wasteGen.province_name}}, {{wasteGen.region_name}}
+    </h3>
+</fieldset>
+
 <div style="display: flex;">
-    <fieldset>
+    <fieldset style="width: 100%;">
         <legend>Submission Info</legend>
         <table class="user-profile">
             <tr>
@@ -17,7 +23,7 @@
         </table>
     </fieldset>
 
-    <fieldset>
+    <fieldset style="width: 100%;">
         <legend>Collection Info</legend>
         <table class="user-profile">
             <tr>
@@ -34,28 +40,28 @@
             </tr>
         </table>
     </fieldset>
-
-    <fieldset>
-        <legend>Waste Generation</legend>
-        <table class="user-profile">
-            <tr>
-                <td class="label">Population (based on Census)</td>
-                <td>{{commaNumber wasteGen.population}}</td>
-            </tr>
-            <tr>
-                <td class="label">Waste Generation per Capita (Kg/cap-day)</td>
-                <td>{{commaNumber wasteGen.per_capita}}</td>
-            </tr>
-            <tr>
-                <td class="label">Annual Waste Generation (kg/year)</td>
-                <td>{{commaNumber wasteGen.annual}}</td>
-            </tr>
-        </table>
-    </fieldset>
 </div>
 
 <div style="display: flex;">
     <div>
+        <fieldset style="width: 95%; margin-top: 10px">
+            <legend>Waste Generation</legend>
+            <table class="user-profile">
+                <tr>
+                    <td class="label">Population (based on Census)</td>
+                    <td>{{commaNumber wasteGen.population}}</td>
+                </tr>
+                <tr>
+                    <td class="label">Waste Generation per Capita (Kg/cap-day)</td>
+                    <td>{{commaNumber wasteGen.per_capita}}</td>
+                </tr>
+                <tr>
+                    <td class="label">Annual Waste Generation (kg/year)</td>
+                    <td>{{commaNumber wasteGen.annual}}</td>
+                </tr>
+            </table>
+        </fieldset>
+
         <fieldset class="waste-comp">
             <legend>Waste Composition</legend>
 

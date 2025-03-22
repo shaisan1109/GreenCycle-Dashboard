@@ -1,0 +1,16 @@
+{{#ifEquals data.length 0}}
+    No entries found.
+{{/ifEquals}}
+
+<h1>Results: {{data.length}} entries</h1>
+
+{{#each data}}
+    <a href='/dashboard/data/{{waste_gen_id}}'>
+        <button class='waste-data-btn'>
+            <h1>Entry #{{waste_gen_id}} - {{municipality_name}}, {{province_name}}, {{region_name}}</h1>
+            <i>Submitted on {{textDate date_submitted}}</i>
+            
+            <p><b>Submitted by:</b> {{name}} </p>
+        </button>
+    </a>
+{{/each}}

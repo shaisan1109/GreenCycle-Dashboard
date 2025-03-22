@@ -696,6 +696,20 @@ export async function resetApplicationStatus(appId, adminNotes) {
     DATA RETRIEVAL
 --------------------------------------- */
 
+// Get all data (unfiltered)
+export async function getAllData() {
+    const [result] = await sql.query(`
+        SELECT
+            loc.region, loc.region_name, loc.province, loc.province_name, loc.municipality, loc.municipality_name,
+            c.name, c.company_name,
+            wg.*
+        FROM waste_generation wg
+        JOIN locations loc ON wg.location_id = loc.location_id
+        JOIN clients c ON wg.client_id = c.client_id
+    `)
+    return result
+}
+
 // Get data entries from a location
 export async function getDataByLocation(locationCode) {
     const [result] = await sql.query(`
@@ -718,9 +732,11 @@ export async function getWasteGenById(id) {
     const [result] = await sql.query(`
         SELECT
             c.name, c.company_name,
-            wg.*
+            wg.*,
+            loc.region_name, loc.province_name, loc.municipality_name
         FROM waste_generation wg
         JOIN clients c ON wg.client_id = c.client_id
+        JOIN locations loc ON wg.location_id = loc.location_id
         WHERE wg.waste_gen_id = ?
     `, [id])
     return result[0]
@@ -730,7 +746,7 @@ export async function getWasteGenById(id) {
 export async function getWasteCompById(entryId) {
     const [result] = await sql.query(`
         SELECT
-            wc.material_id, m.material_name, wc.subtype_remarks, o.origin_name, wc.waste_amount
+        wc.material_id, m.material_name, wc.subtype_remarks, o.origin_name, wc.waste_amount
         FROM waste_composition wc
         JOIN waste_materials m ON wc.material_id = m.id
         JOIN waste_origins o ON wc.origin_id = o.id

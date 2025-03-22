@@ -22,7 +22,8 @@ import {
   submitForm,
   getDataByLocation,
   getWasteGenById,
-  getWasteCompById
+  getWasteCompById,
+  getAllData
 } from './database.js'
 
 // File Upload
@@ -354,6 +355,19 @@ app.get('/dashboard', (req, res) => {
   })
 })
 
+// Get all data entries
+app.get('/dashboard/all', async (req, res) => {
+  const data = await getAllData()
+
+  // This would typically check for authentication
+  res.render('dashboard/all-data', {
+    layout: 'dashboard',
+    title: 'GC Dashboard | All Data Entries',
+    data,
+    current_all: true
+  })
+})
+
 app.get('/dashboard/data/:id', async (req, res) => {
   const id = req.params.id
   const wasteGen = await getWasteGenById(id)
@@ -364,7 +378,7 @@ app.get('/dashboard/data/:id', async (req, res) => {
     title: `GC Dashboard | Entry #${id}`,
     wasteGen,
     wasteComp,
-    current_home: true
+    current_all: true
   })
 })
 
