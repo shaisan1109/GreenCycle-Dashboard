@@ -117,9 +117,12 @@
         return acc;
     }, {});
 
-    // Prepare data for the pie chart
-    const pieLabels = Object.values(totals).map(item => item.material_name);
-    const pieData = Object.values(totals).map(item => item.total_waste);
+    // Convert totals object into a sorted array (least to greatest)
+    const sortedTotals = Object.values(totals).sort((a, b) => a.total_waste - b.total_waste);
+
+    // Extract sorted labels and data
+    const pieLabels = sortedTotals.map(item => item.material_name);
+    const pieData = sortedTotals.map(item => item.total_waste);
 
     // Create the pie chart
     new Chart(pieDiv, {
@@ -128,7 +131,7 @@
             labels: pieLabels,
             datasets: [{
                 data: pieData,
-                hoverOffset: 4,
+                hoverOffset: 8,
                 borderWidth: 0
             }]
         },
