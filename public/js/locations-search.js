@@ -169,7 +169,7 @@ function showWasteData(wasteData) {
             output += `
                 <a href='/dashboard/data/${entry.waste_gen_id}'>
                     <button class='waste-data-btn'>
-                        <h1>Entry #${entry.waste_gen_id}</h1>
+                        <h1>Entry #${entry.waste_gen_id} - ${entry.municipality_name}, ${entry.province_name}, ${entry.region_name}</h1>
                         <i>Submitted on ${formattedDate}</i>
                         
                         <p><b>Submitted by:</b> ${entry.name}</p>

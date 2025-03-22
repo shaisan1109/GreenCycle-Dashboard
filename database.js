@@ -700,7 +700,7 @@ export async function resetApplicationStatus(appId, adminNotes) {
 export async function getDataByLocation(locationCode) {
     const [result] = await sql.query(`
         SELECT
-            loc.region, loc.province, loc.municipality,
+            loc.region, loc.region_name, loc.province, loc.province_name, loc.municipality, loc.municipality_name,
             c.name, c.company_name,
             wg.*
         FROM waste_generation wg

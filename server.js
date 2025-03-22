@@ -354,6 +354,20 @@ app.get('/dashboard', (req, res) => {
   })
 })
 
+app.get('/dashboard/data/:id', async (req, res) => {
+  const id = req.params.id
+  const wasteGen = await getWasteGenById(id)
+  const wasteComp = await getWasteCompById(id)
+
+  res.render('dashboard/view-data', {
+    layout: 'dashboard',
+    title: `GC Dashboard | Entry #${id}`,
+    wasteGen,
+    wasteComp,
+    current_home: true
+  })
+})
+
 // User routes
 // Get all users
 app.get('/dashboard/users', async (req, res) => {

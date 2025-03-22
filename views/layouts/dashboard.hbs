@@ -57,15 +57,19 @@
     <nav>
         <div class="nav-btn-container">
             <a href="/dashboard" class="{{#if current_home}}current{{/if}}">
-                <i class="fa-solid fa-chart-simple nav-icon"></i> Statistics
+                <i class="fa-solid fa-magnifying-glass nav-icon"></i> Data Search
+            </a>
+
+            <a href="/dashboard/all" class="{{#if current_all}}current{{/if}}">
+                <i class="fa-solid fa-chart-simple nav-icon"></i> Data Entries
             </a>
 
             <a href="/test-chart" class="{{#if current_test}}current{{/if}}">
-                <i class="fa-solid fa-chart-simple nav-icon"></i> (Test Dashboard)
+                <i class="fa-solid fa-compass nav-icon"></i></i> Waste Map
             </a>
 
             <a href="/dashboard/submit-report" class="{{#if current_report}}current{{/if}}">
-                <i class="fa-solid fa-file-medical"></i>&nbsp; Submit Report
+                <i class="fa-solid fa-file-medical nav-icon"></i>&nbsp; Submit Report
             </a>
             
             <!-- Only show functions if current user is NOT a client -->
