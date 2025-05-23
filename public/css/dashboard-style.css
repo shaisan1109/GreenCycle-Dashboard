@@ -397,3 +397,8 @@ select {
     border-radius: 5px;
     margin: 15px;
 }
+
+#location-code {
+    color: white;
+    border: none;
+}
