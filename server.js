@@ -3,15 +3,13 @@ import { engine } from 'express-handlebars'
 import Handlebars from 'handlebars'
 import cors from 'cors'
 
-
-
 // Session
 import session from 'express-session'
 const store = new session.MemoryStore();
 
 // Import database functions
 import {
-  getUsers, getUserByEmail, createUser, getUserById, getUsersOfRole,
+  getUsers, getUserByEmail, createUser, getUsersOfRole,
   getPartners,getWasteDataWithCoordinates,
   getRolesOfSupertype, createClientRole,
   getApplications, getApplicationById, getApplicationsByEmail,
@@ -19,11 +17,11 @@ import {
   updateApplicationStatus, createApplication, resetApplicationStatus,
   deactivateUserByEmail,
   lastLogin,
-  submitForm,
+  getSectors, submitForm,
   getDataByLocation,
-  getWasteGenById,
-  getWasteCompById,
-  getAllData
+  getWasteGenById, getWasteCompById, getAllData,
+  getWasteSupertypes,
+  getWasteTypes
 } from './database.js'
 
 // File Upload
@@ -484,10 +482,22 @@ app.get('/tests', async (req, res) => {
 });
 
 app.get('/dashboard/submit-report', async (req, res) => {
+  const sectors = await getSectors()
+  const supertypes = await getWasteSupertypes()
+  const types = await getWasteTypes()
+
+  // Map types to supertypes
+  for (const supertype of supertypes) {
+    supertype.types = types.filter(t => t.supertype_id === supertype.id)
+  }
+
   res.render('dashboard/submit-report', {
     layout: 'dashboard',
     title: 'GC Dashboard | Submit Your Report',
-    current_report: true
+    current_report: true,
+    sectors,
+    supertypes,
+    types
   })
 })
 
@@ -502,15 +512,6 @@ const wasteMaterialMap = {
   "electrical_waste": 7,
   "organic": 8,
   "inorganic": 9
-};
-
-const wasteOriginMap = {
-  "Residential": 1,
-  "Commercial": 2,
-  "Institutional": 3,
-  "Industrial": 4,
-  "Health": 5,
-  "Livestock": 6 // Corrected to match "Agricultural and Livestock"
 };
 
 app.post("/submit-report", async (req, res) => {

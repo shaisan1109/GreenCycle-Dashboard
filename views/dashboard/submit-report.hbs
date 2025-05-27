@@ -2,6 +2,7 @@
 
 <form id="waste-form">
 
+    <!-- Personal Information -->
     <fieldset>
         <legend>Personal Information</legend>
     <label for="name">Name:</label>
@@ -11,7 +12,7 @@
     <input type="text" id="client" name="company_name" placeholder="Enter Company Name" required><br><br>
     </fieldset><br>
     
-
+    <!-- Location Selection -->
      <fieldset>
         <legend>Select Location</legend>
         <p>
@@ -35,39 +36,63 @@
                 <option value=''>Select a city/municipality</option>
                 <!-- Populated by locations.js -->
             </select>
-        </fieldset>
-        <fieldset>
-            <legend>Location Information</legend>
-    <label for="barangay">Barangay (if applicable):</label>
-    <input type="text" id="barangay" name="barangay"><br><br>
+    </fieldset>
+
+    <!-- Waste Generation -->
+    <fieldset>
+        <legend>Location Information</legend>
+        <label for="barangay">Barangay (if applicable):</label>
+        <input type="text" id="barangay" name="barangay"><br><br>
+            
+        <label for="population">Population based on Census:</label>
+        <input type="number" id="population" name="population" required min="0"><br><br>
         
-    <label for="population">Population based on Census:</label>
-    <input type="number" id="population" name="population" required min="0"><br><br>
-    
-    <label for="waste_generation">Waste Generation per Capita (Kg/cap-day):</label>
-    <input type="number" id="per_capita" name="per_capita" min="0" step="0.001" required><br><br>
+        <label for="waste_generation">Waste Generation per Capita (Kg/cap-day):</label>
+        <input type="number" id="per_capita" name="per_capita" min="0" step="0.001" required><br><br>
 
-    <label for="waste_generation">Annual Waste Generation (kg/year):</label>
-    <input type="number" id="annual" name="annual" min="0" step="0.001" required><br><br>
+        <label for="waste_generation">Annual Waste Generation (kg/year):</label>
+        <input type="number" id="annual" name="annual" min="0" step="0.001" required><br><br>
 
-    <label for="date_submitted">Date Submitted:</label>
-    <input type="date" id="date_submitted" name="date_submitted" readonly><br><br>
-    
-   <label for="year_collected">Year Collected:</label>
-    <input type="number" id="year_collected" name="year_collected" required><br><br>
+        <label for="date_start">Data Collection Start Date:</label>
+        <input type="date" id="date_start" name="date_start" required><br><br>
 
-    <label for="date_start">Data Collection Start Date:</label>
-    <input type="date" id="date_start" name="date_start" required><br><br>
-
-    <label for="date_end">Data Collection End Date:</label>
-    <input type="date" id="date_end" name="date_end" required><br><br>
+        <label for="date_end">Data Collection End Date:</label>
+        <input type="date" id="date_end" name="date_end" required><br><br>
     </fieldset><br>
 
+    <!-- Waste Composition -->
     <fieldset>
-        <legend>Waste Composition</legend> 
+        <legend>Waste Composition</legend>
+
+        {{#each supertypes}}
+            {{uppercase name}}
+
+            <!-- Display types of current supertype -->
+            <table>
+                <tr>
+                    <td><!-- Blank cell for type --></td>
+                    {{#each ../sectors}}
+                        <td>{{name}}</td>
+                    {{/each}}
+                </tr>
+                {{#each types}}
+                    <tr>
+                        <td>{{name}}</td>
+                        {{#each ../../sectors}}
+                            <td>
+                                <input type="text" name="sector">
+                            </td>
+                        {{/each}}
+                    </tr>
+                {{/each}}
+            </table>
+        {{/each}}
+
+        <!--
             <div id="wasteComposition" name="waste_composition">
                 <script src="/js/waste-composition.js"></script>
             </div>
+        -->
     </fieldset>
     <br><button class="btn-approve" type="submit">Submit</button>
 </form>

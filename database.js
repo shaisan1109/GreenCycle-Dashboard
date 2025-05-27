@@ -86,7 +86,25 @@ export async function deactivateUserByEmail(email) {
 }
 
 /* ---------------------------------------
-    FORM SUBMISSION
+    WASTE CATEGORIES
+--------------------------------------- */
+export async function getSectors() {
+    const [result] = await sql.query(`SELECT * FROM greencycle.sector`)
+    return result
+}
+
+export async function getWasteSupertypes() {
+    const [result] = await sql.query(`SELECT * FROM greencycle.waste_supertype`)
+    return result
+}
+
+export async function getWasteTypes() {
+    const [result] = await sql.query(`SELECT * FROM greencycle.waste_type`)
+    return result
+}
+
+/* ---------------------------------------
+    DATA SUBMISSION
 --------------------------------------- */
 export async function submitForm(name, company_name, region, province, municipality,
     barangay, population, per_capita, annual, date_submitted, year_collected, date_start, date_end, formattedWasteComposition) {
@@ -183,145 +201,6 @@ export async function submitForm(name, company_name, region, province, municipal
    }
 }
 
-const regionEquivalence = {
-    "NCR": '0',
-    "Cordillera Administrative Region (CAR)": '1',
-    "Region I (Ilocos Region)": '2',
-    "Region II (Cagayan Valley)": '3',
-    "Region III (Central Luzon)": '4',
-    "Region IV-A (CALABARZON)": '5',
-    "MIMAROPA Region": '6',
-    "Region V (Bicol Region)": '7',
-    "Region VI (Western Visayas)": '8',
-    "Region VII (Central Visayas)": '9',
-    "Region VIII (Eastern Visayas)": '10',
-    "Region IX (Zamboanga Peninsula)": '11',
-    "Region X (Northern Mindanao)": '12',
-    "Region XI (Davao Region)": '13',
-    "Region XII (SOCCSKSARGEN)": '14',
-    "Region XIII (Caraga)": '15',
-    "Bangsamoro Autonomous Region In Muslim Mindanao (BARMM)": '16'
-};
-
-const provinceCAR = {
-    "Abra": '0',
-    "Benguet": '1',
-    "Ifugao": '2',
-    "Kalinga": '3',
-    "Mountain Province": '4',
-    "Apayao": '5',
-    
-};
-const provinceIllocos={
-    "Ilocos Norte": '0',
-    "Ilocos Sur": '1',
-    "La Union": '2',
-    "Pangasinan": '3',
-};
-const provinceCagayan={
-    "Batanes": '0',
-    "Cagayan": '1',
-    "Isabela": '2',
-    "Nueva Vizcaya": '3',
-    "Quirino": '4',
-};
-const provinceCentralLuzon={
-    "Bataan": '0',
-    "Bulacan": '1',
-    "Nueva Ecija": '2',
-    "Pampanga": '3',
-    "Tarlac": '4',
-    "Zambales": '5',
-    "Aurora": '6',
-};
-const provinceCALABARZON ={
-    "Batangas": '0',
-    "Cavite": '1',
-    "Laguna": '2',
-    "Quezon": '3',
-    "Rizal": '4',
-};
-const provinceMIMAROPA={
-    "Marinduque": '0',
-    "Occidental Mindoro": '1',
-    "Oriental Mindoro": '2',
-    "Palawan": '3',
-    "Romblon": '4',
-};
-const provinceBicol={
-    "Albay": '0',
-    "Camarines Norte": '1',
-    "Camarines Sur": '2',
-    "Catanduanes": '3',
-    "Masbate": '4',
-    "Sorsogon": '5',
-};
-const provinceWestVis={
-    "Aklan": '0',
-    "Antique": '1',
-    "Capiz": '2',
-    "Iloilo": '3',
-    "Negros Occidental": '4',
-    "Guimaras": '5',
-};
-const provinceCentralVis={
-    "Bohol": '0',
-    "Cebu": '1',
-    "Negros Oriental": '2',
-    "Siquijor": '3',
-};
-const provinceEastVis={ 
-    "Eastern Samar": '0',
-    "Leyte": '1',
-    "Northern Samar": '2',
-    "Samar": '3',
-    "Southern Leyte": '4',
-    "Biliran": '5',
-};
-const provinceZamb={
-    "Zamboanga del Norte": '0',
-    "Zamboanga del Sur": '1',
-    "Zamboanga Sibugay": '2',
-};
-const provinceNorthMin={
-    "Bukidnon": '0',
-    "Camiguin": '1',
-    "Lanao del Norte": '2',
-    "Misamis Occidental": '3',
-    "Misamis Oriental": '4',
-};
-const provinceDavao={
-    "Davao del Norte": '0',
-    "Davao del Sur": '1',
-    "Davao Oriental": '2',
-    "Davao de Oro": '3',
-    "Davao Occidental": '4',
-};
-const provinceSOCCSKSARGEN={
-    "Cotabato": '0',
-    "South Cotabato": '1',
-    "Sultan Kudarat": '2',
-    "Sarangani": '3',
-};
-const provinceCaraga={
-    "Agusan del Norte": '0',
-    "Agusan del Sur": '1',
-    "Surigao del Norte": '2',
-    "Surigao del Sur": '3',
-    "Dinagat Islands": '4',
-};
-const provinceBARMM={
-    "Basilan": '0',
-    "Lanao del Sur": '1',
-    "Sulu": '2',
-    "Tawi-Tawi": '3',
-    "Maguindanao del Norte": '4',
-    "Maguindanao del Sur": '5',
-    "Ligawasan":'6'
-};
-
-
-// Fetch regions, provinces, and municipalities dynamically (Municipalities and Cities only)
 // Fetch regions, provinces, municipalities, and cities dynamically
 async function fetchPSGCData() {
     try {
@@ -388,8 +267,6 @@ async function getLocationName(regionCode, provinceCode, municipalityCode, exist
     }
 }
 
-
- 
 // Function to fetch coordinates using OpenStreetMap API
 async function getCoordinates(locationName) {
     const locationParts = locationName.split(",").map(part => part.trim());
@@ -428,7 +305,6 @@ async function getCoordinates(locationName) {
         return null;
     }
 }
-
 
 export async function getWasteDataWithCoordinates() {
     const [rows] = await sql.query(`
@@ -494,6 +370,7 @@ export async function getWasteDataWithCoordinates() {
     }
     return rows;
 }
+
 /* ---------------------------------------
     PARTNERS
 --------------------------------------- */
