@@ -86,7 +86,7 @@
 
     <!-- Waste Composition -->
     {{#each supertypes}}
-        <div class="step" data-step="{{id}}">
+        <div class="step waste-supertype" data-step="{{id}}">
             <fieldset>
                 <legend>Waste Composition</legend>
 
@@ -105,25 +105,24 @@
                                 <td>{{name}}</td>
                                 {{#each ../../sectors}}
                                     <td>
-                                        <input type="text" name="sector">
+                                        <input type="text" sectorId="{{id}}" typeId="{{../id}}" class="waste-entry">
                                     </td>
                                 {{/each}}
                             </tr>
                         {{/each}}
                     </table>
-                    
+
             </fieldset>
         </div>
     {{/each}}
 
     <div>
-        <button id="prevBtn" class="disabled">Previous</button>
-        <button id="nextBtn" class="disabled">Next</button>
+        <button type="button" id="prevBtn" class="disabled">Previous</button>
+        <button type="button" id="nextBtn" class="disabled">Next</button>
         <button class="btn-approve" type="submit" id="submitBtn">Submit</button>
     </div>
-    {{!-- <br><button class="btn-approve" type="submit">Submit</button> --}}
 </form>
 
 <script src="/../js/form-step.js" type="text/javascript"></script>
 <script src="/../js/locations.js" type="text/javascript"></script>
-<script src="/../js/waste-composition.js"></script>
+<script src="/../js/waste-composition.js" type="text/javascript"></script>

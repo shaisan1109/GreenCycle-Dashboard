@@ -1,15 +1,3 @@
-const materialMap = {
-    "paper": '1',
-    "glass": '2',
-    "metal": '3',
-    "plastic": '4',
-    "kitchen_waste": '5',
-    "hazardous_waste": '6',
-    "electrical_waste": '7',
-    "organic": '8',
-    "inorganic": '9',
-
-};
 
 document.addEventListener("DOMContentLoaded", function () {
 
@@ -17,29 +5,24 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("waste-form").addEventListener("submit", async function (event) {
         event.preventDefault();
 
-        
         const formData = new FormData(this);
         const jsonObject = Object.fromEntries(formData.entries());
 
-        /*
+        // Push to waste composition array
         let wasteComposition = [];
 
-        document.querySelectorAll(".waste-category").forEach(categoryDiv => {
-            categoryDiv.querySelectorAll(".waste-entry").forEach(entry => {
-                const material_name = categoryDiv.dataset.category;
-                const material_id = materialMap[material_name] || null; // Convert category name to ID
-                const subtype_remarks = entry.querySelector('input[name$="[name]"]').value.trim();
-                const origin_id = entry.querySelector('select[name$="[origin]"]').value;
-                const waste_amount = parseFloat(entry.querySelector('input[name$="[weight]"]').value) || 0;
+        document.querySelectorAll(".waste-supertype").forEach(entryDiv => {
+            entryDiv.querySelectorAll(".waste-entry").forEach(entry => {
+                // Get type attributes
+                const sectorId = entry.getAttribute('sectorId')
+                const typeId = entry.getAttribute('typeId')
+                const amt = entry.value
 
-                if (material_id && subtype_remarks && origin_id && waste_amount > 0) {
-                    wasteComposition.push({ material_name, material_id, subtype_remarks, origin: origin_id, waste_amount });
-                }
+                wasteComposition.push({ sector_id: sectorId, type_id: typeId, waste_amount: amt })
             });
         });
 
         jsonObject.wasteComposition = wasteComposition;
-        */
 
         try {
             const response = await fetch("/submit-report", {

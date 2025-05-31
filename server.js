@@ -508,56 +508,27 @@ app.get('/dashboard/submit-report/upload', async (req, res) => {
   })
 })
 
-// API: Submit data form to SQL
-const wasteMaterialMap = {
-  "paper": 1,
-  "glass": 2,
-  "metal": 3,
-  "plastic": 4,
-  "kitchen_waste": 5,
-  "hazardous_waste": 6,
-  "electrical_waste": 7,
-  "organic": 8,
-  "inorganic": 9
-};
-
 app.post("/submit-report", async (req, res) => {
   try {
-    const { region, province, municipality, population, per_capita,
-         annual, date_start, date_end,
-        //wasteComposition
+    const {
+        region, province, municipality, population, per_capita, annual, date_start, date_end, wasteComposition
       } = req.body;
+
+    // Format waste composition entries for insertion to DB
+    const newWasteComp = wasteComposition.map((entry) => {
+        return {
+          sector_id: entry.sector_id,
+          type_id: entry.type_id,
+          waste_amount: Number(entry.waste_amount) || 0,  // Ensure weight is always a number
+        };
+    }).filter(entry => entry !== null); // Remove any invalid entries
 
     console.log("Received payload:", req.body); // Debugging line
 
-    /*
-    const formattedWasteComposition = wasteComposition.map((entry) => {
-        console.log(entry);
-
-        if (!entry.material_name || !entry.origin) {
-            console.error("Missing name or origin in:", entry);
-            return null;  // Skip this entry
-        }
-
-        return {
-            material_id: wasteMaterialMap[entry.material_name.toLowerCase()] || null,
-            origin_id: Number(entry.origin) || null,
-            waste_amount: entry.waste_amount || 0,  // Ensure weight is always a number
-            subtype_remarks: entry.subtype_remarks || null
-        };
-    }).filter(entry => entry !== null); // Remove any invalid entries
-    */
-
-    //console.log(formattedWasteComposition);
-
     // Submit form data
     const result = await submitForm(
-      req.session.user.id, region, province, municipality, population, per_capita, annual, date_start, date_end
+      req.session.user.id, region, province, municipality, population, per_capita, annual, date_start, date_end, newWasteComp
     );
-
-    // 🔹 Fetch updated waste data after submitting the report
-    //const wasteData = await getWasteDataWithCoordinates();
-    //console.log("Updated waste data:", wasteData);
 
     res.status(200).json({
         message: "Report submitted successfully",

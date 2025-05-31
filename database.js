@@ -107,7 +107,7 @@ export async function getWasteTypes() {
     DATA SUBMISSION
 --------------------------------------- */
 export async function submitForm(user_id, region_id, province_id, municipality_id,
-    population, per_capita, annual, collection_start, collection_end) {
+    population, per_capita, annual, collection_start, collection_end, wasteComposition) {
    try {
        // Insert into date_entry table
        const [dataEntryResult] = await sql.query(
@@ -116,68 +116,37 @@ export async function submitForm(user_id, region_id, province_id, municipality_i
            [user_id, region_id, province_id, municipality_id, population, per_capita, annual, collection_start, collection_end]
        );
 
-       const collection_id = dataEntryResult.insertId;
+       const data_entry_id = dataEntryResult.insertId;
 
-       // Ensure collection_id is valid
-       if (!collection_id) {
-           throw new Error("Failed to insert into data_entry, collection_id is NULL.");
+       // Ensure data_entry_id is valid
+       if (!data_entry_id) {
+           throw new Error("Failed to insert into data_entry, data_entry_id is NULL.");
        }
 
        // Insert into waste_composition table (only if wasteComposition is provided)
-       /*
-       if (formattedWasteComposition && formattedWasteComposition.length > 0) {
-           const connection = await sql.getConnection(); // Get a connection from the pool
+       if (wasteComposition) {
+           // Create array of values
+            const values = wasteComposition.map(item => [
+                data_entry_id,
+                item.sector_id,
+                item.type_id,
+                item.waste_amount
+            ]);
 
-           try {
-               await connection.beginTransaction(); // Start transaction
+            // Create placeholders for bulk insert
+            const placeholders = values.map(() => '(?, ?, ?, ?)').join(', ');
 
-               // Construct bulk insert values
-               let insertValues = [];
-               let insertPlaceholders = [];
-               
-               for (const entry of formattedWasteComposition) {
-                   let { material_id, origin_id, waste_amount, subtype_remarks } = entry;
+            const insertQuery = `
+                INSERT INTO data_waste_composition (data_entry_id, sector_id, type_id, waste_amount)
+                VALUES ${placeholders}
+            `;
 
-                   const [materialResult] = await connection.query(
-                       `SELECT id FROM waste_materials WHERE id = ?`, [material_id]
-                   );
-                   
-                   if (materialResult.length === 0) {
-                       throw new Error(`Invalid material category: ${material_id}`);
-                   }
-                                       
-                   // Fetch origin_id from database (if necessary)
-                   const [originResult] = await connection.query(
-                       `SELECT id FROM waste_origins WHERE id = ?`, [origin_id]
-                   );
-
-                   if (originResult.length === 0) {
-                       throw new Error(`Invalid origin ID: ${origin_id}`);
-                   }
-
-                   // Prepare values for bulk insert
-                   insertValues.push(collection_id, material_id, origin_id, waste_amount, subtype_remarks || null);
-                   insertPlaceholders.push("(?, ?, ?, ?, ?)");
-               }
-
-               // Perform bulk insertion
-               const query = `
-                   INSERT INTO waste_composition (waste_gen_id, material_id, origin_id, waste_amount, subtype_remarks) 
-                   VALUES ${insertPlaceholders.join(", ")}
-               `;
-               
-               await connection.query(query, insertValues);
-
-               await connection.commit(); // Commit transaction if successful
-           } catch (error) {
-               await connection.rollback(); // Rollback on error
-               console.error("Error inserting waste composition:", error);
-               throw new Error("Failed to insert waste composition data.");
-           } finally {
-               connection.release(); // Release the connection back to the pool
-           }
+            try {
+                await sql.query(insertQuery, values.flat());
+            } catch (err) {
+                console.error('DB Error:', err);
+            }
        }
-        */
 
        return { success: true, message: "Form submitted successfully!" };
 
