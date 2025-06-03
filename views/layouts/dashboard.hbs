@@ -82,6 +82,10 @@
             {{#ifNotEquals user.supertype 2}}
                 <div class="nav-divider">STAFF FUNCTIONS</div>
 
+                <a href="/dashboard/data/submissions" class="{{#if current_datasubs}}current{{/if}}">
+                    <i class="fa-solid fa-file-pen"></i>&nbsp; Review Data Submissions
+                </a>
+
                 <a href="/dashboard/user-applications" class="{{#if current_userapp}}current{{/if}}">
                     <i class="fa-solid fa-clipboard-list nav-icon"></i> User Applications
                 </a>

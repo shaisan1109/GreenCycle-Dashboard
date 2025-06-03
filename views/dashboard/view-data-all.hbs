@@ -1,13 +1,26 @@
-<h1>Results: {{data.length}} entries</h1>
+{{#if current_datasubs}}
+    <h1 style="margin: 0;">Data Submissions for Review</h1>
+    <span style="font-size: larger;">Results: {{data.length}} entries</span>
+    <br><br>
+{{else}}
+    <h1>Results: {{data.length}} entries</h1>
+{{/if}}
 
 {{#ifEquals data.length 0}}
     No entries found.
 {{/ifEquals}}
 
 {{#each data}}
-    <a href='/dashboard/data/{{data_entry_id}}'>
+    <a href="/dashboard/data{{#if ../current_datasubs}}/review{{/if}}/{{data_entry_id}}">
         <button class='waste-data-btn'>
-            <h2 style="margin: 0">Entry #{{data_entry_id}} - {{location_name}}</h2>
+            <div style="display: flex;">
+                <!-- Title -->
+                <h2 style="margin: 0">Entry #{{data_entry_id}} - {{location_name}}</h2>
+
+                <!-- Data entry status -->
+                <span class="data-status {{#ifEquals status 'Pending Review'}}stat-pending{{/ifEquals}} {{#ifEquals status 'Approved'}}stat-approved{{/ifEquals}} {{#ifEquals status 'Rejected'}}stat-rejected{{/ifEquals}}">{{status}}</span>
+            </div>
+
             <i>Submitted on {{textDate date_submitted}}</i><br>
             
             <p>

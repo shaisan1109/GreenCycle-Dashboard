@@ -371,6 +371,24 @@ select {
     margin: 0;
 }
 
+.data-status {
+    font-size: normal !important;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 15px;
+    margin-left: auto;
+}
+
+.stat-rejected {
+    background-color: red;
+}
+.stat-approved {
+    background-color: #18A50C;
+}
+.stat-pending {
+    background-color: orange;
+}
+
 /* ------ Data Entry ------ */
 .pie-chart {
     width: 600px;
@@ -451,6 +469,8 @@ select {
 }
 .review-approve:hover {
     cursor: pointer;
+    background-color: #70e765;
+
 }
 
 .review-reject {
@@ -464,4 +484,19 @@ select {
 }
 .review-reject:hover {
     cursor: pointer;
+    background-color: rgb(255, 78, 78);
+}
+
+.review-cancel {
+    background-color: gray;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: large;
+    padding: 10px;
+    width: 250px;
+}
+.review-cancel:hover {
+    cursor: pointer;
+    background-color: rgb(154, 154, 154);
 }

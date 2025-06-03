@@ -371,6 +371,17 @@ app.get('/dashboard/data/all', async (req, res) => {
   })
 })
 
+app.get('/dashboard/data/submissions', async (req, res) => {
+  const data = await getDataByStatus('Pending Review')
+
+  res.render('dashboard/view-data-all', {
+    layout: 'dashboard',
+    title: 'GC Dashboard | Data Submissions for Review',
+    data,
+    current_datasubs: true
+  })
+})
+
 // Get all data entries by one user
 app.get('/dashboard/data/user/:id', async (req, res) => {
   const user = Number(req.session.user.id)
@@ -385,9 +396,47 @@ app.get('/dashboard/data/user/:id', async (req, res) => {
 })
 
 // View one data entry
+app.get('/dashboard/data/review/:id', async (req, res) => {
+  const id = req.params.id
+  const wasteGen = await getWasteGenById(id)
+
+  const sectors = await getSectors()
+  const supertypes = await getWasteSupertypes()
+  const types = await getWasteTypes()
+
+  // Map types to supertypes
+  for (const supertype of supertypes) {
+    supertype.types = types.filter(t => t.supertype_id === supertype.id)
+  }
+
+  //const wasteComp = await getWasteCompById(id)
+
+  res.render('dashboard/view-data-review', {
+    layout: 'dashboard',
+    title: `GC Dashboard | Entry #${id}`,
+    wasteGen,
+    //wasteComp,
+    current_all: true,
+    sectors,
+    supertypes,
+    types
+  })
+})
+
+// View one data entry
 app.get('/dashboard/data/:id', async (req, res) => {
   const id = req.params.id
   const wasteGen = await getWasteGenById(id)
+
+  const sectors = await getSectors()
+  const supertypes = await getWasteSupertypes()
+  const types = await getWasteTypes()
+
+  // Map types to supertypes
+  for (const supertype of supertypes) {
+    supertype.types = types.filter(t => t.supertype_id === supertype.id)
+  }
+
   //const wasteComp = await getWasteCompById(id)
 
   res.render('dashboard/view-data-entry', {
@@ -395,7 +444,10 @@ app.get('/dashboard/data/:id', async (req, res) => {
     title: `GC Dashboard | Entry #${id}`,
     wasteGen,
     //wasteComp,
-    current_all: true
+    current_all: true,
+    sectors,
+    supertypes,
+    types
   })
 })
 

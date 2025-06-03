@@ -1,9 +1,21 @@
+<!-- Approval window -->
+<fieldset class="review-window">
+    <h3 style="font-weight: normal;">Approve data entry?</h3>
+
+    <button type="button" class="review-approve" onclick="showApprove()">
+        <i class="fa-solid fa-thumbs-up"></i>&nbsp; Approve
+    </button>&emsp;
+
+    <button type="button" class="review-reject" onclick="showReject()">
+        <i class="fa-solid fa-thumbs-down"></i>&nbsp; Reject
+    </button>
+</fieldset>
 
 <!-- Actual Data Display -->
 <fieldset style="width: 100%; margin-bottom: 10px; padding-top: 20px; padding-bottom: 20px">
     <h1 style="margin:0">Insert Title Here</h1>
     <h3 style="margin:0; font-weight:normal;">
-        <i class="fa-solid fa-location-dot"></i>&nbsp; {{wasteGen.location_name}}
+        <i>{{wasteGen.location_name}}</i>
     </h3>
 </fieldset>
 
@@ -226,3 +238,166 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 --}}
+
+<!-- Approval modal -->
+<div id="approve-modal" class="modal">
+    <div class="modal-content">
+        <span id="approve-close" class="close">&times;</span>
+        <h3 style="font-weight: normal;">Confirm: Approve data entry</h3>
+
+        <button type="button" id="approve-cancel" class="review-cancel">
+            <i class="fa-solid fa-think"></i>&nbsp; Cancel
+        </button>&emsp;
+
+        <button type="button" class="review-approve">
+            <i class="fa-solid fa-thumbs-up"></i>&nbsp; Approve
+        </button>
+    </div>
+</div>
+
+<!-- Rejection modal -->
+<div id="reject-modal" class="modal">
+    <div class="modal-content">
+        <span id="reject-close" class="close">&times;</span>
+        <h3 style="font-weight: normal;">Reject data entry?</h3>
+
+        <form id="rejectForm">
+            <div>
+                <!-- Reasons for rejection -->
+                <h3 style="text-align: left; margin-left: 5%;">Reasons for rejection:</h3>
+
+                <textarea id="reject-notes" placeholder="State reasons of rejection..."></textarea>
+            </div><br>
+
+            <!-- Modal buttons -->
+            <button type="button" id="reject-cancel" class="review-cancel">
+                <i class="fa-solid fa-think"></i>&nbsp; Cancel
+            </button>&emsp;
+
+            <button type="submit" class="review-reject">
+                <i class="fa-solid fa-thumbs-down"></i>&nbsp; Reject
+            </button>
+
+        </form>
+    </div>
+</div>
+
+<!-- Modal script -->
+<script>
+
+// Wait for the DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Modal functionality
+    const approveModal = document.getElementById('approve-modal');
+    const approveClose = document.getElementById('approve-close');
+    const approveCancel = document.getElementById('approve-cancel');
+
+    /* APPROVE MODAL */
+    // Hide modal if close btn is clicked
+    if (approveClose) {
+        approveClose.onclick = function() {
+            approveModal.style.display = "none";
+        }
+    }
+
+    // Hide modal if Cancel button is clicked
+    if (approveCancel) {
+        approveCancel.onclick = function() {
+            approveModal.style.display = "none";
+        }
+    }
+    
+    // Hide modal if user clicks outside content
+    window.onclick = function(event) {
+        if (event.target == approveModal) {
+            approveModal.style.display = "none";
+        }
+    }
+
+    /* REJECT MODAL */
+    const rejectModal = document.getElementById('reject-modal');
+    const rejectClose = document.getElementById('reject-close');
+    const rejectCancel = document.getElementById('reject-cancel');
+
+    // Hide modal if close btn is clicked
+    if (rejectClose) {
+        rejectClose.onclick = function() {
+            rejectModal.style.display = "none";
+        }
+    }
+
+    // Hide modal if Cancel button is clicked
+    if (rejectCancel) {
+        rejectCancel.onclick = function() {
+            rejectModal.style.display = "none";
+        }
+    }
+    
+    // Hide modal if user clicks outside content
+    window.onclick = function(event) {
+        if (event.target == rejectModal) {
+            rejectModal.style.display = "none";
+        }
+    }
+})
+
+function showApprove() {
+    document.getElementById('approve-modal').style.display = 'block';
+}
+
+function showReject() {
+    document.getElementById('reject-modal').style.display = 'block';
+}
+
+</script>
+
+<!-- Modal style -->
+<style>
+    /* Modal styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.4);
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 20% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 900px;
+        border-radius: 5px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+    }
+
+    #reject-notes {
+        width: 90%;
+        min-height: 100px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        resize: vertical;
+    }
+</style>
