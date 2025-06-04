@@ -540,12 +540,32 @@ export async function getDataByStatus(status) {
         FROM data_entry dat
         JOIN user u ON u.user_id = dat.user_id
         WHERE dat.status = '${status}'
+        ORDER BY dat.data_entry_id DESC
     `)
 
     return result
 }
 
-// Get all data by user
+// Get all data for review EXCEPT for current user
+// Current user cannot review their own reports
+export async function getDataForReview(currentUser) {
+    const [result] = await sql.query(`
+        SELECT
+            dat.data_entry_id, dat.user_id, dat.location_name,
+            u.lastname, u.firstname, u.company_name,
+            dat.region_id, dat.province_id, dat.municipality_id,
+            dat.date_submitted, dat.collection_start, dat.collection_end,
+            dat.status
+        FROM data_entry dat
+        JOIN user u ON u.user_id = dat.user_id
+        WHERE dat.status = 'Pending Review' AND NOT dat.user_id = ${currentUser}
+        ORDER BY dat.data_entry_id DESC
+    `)
+
+    return result
+}
+
+// Get all data by user and sort according to IDs in descending order (recent to oldest)
 export async function getDataByUser(userId) {
     const [result] = await sql.query(`
         SELECT
@@ -557,6 +577,7 @@ export async function getDataByUser(userId) {
         FROM data_entry dat
         JOIN user u ON u.user_id = dat.user_id
         WHERE u.user_id = ${userId}
+        ORDER BY dat.data_entry_id DESC
     `)
 
     return result
@@ -577,6 +598,7 @@ export async function getDataByLocation(locationCode) {
         OR dat.province_id = ${locationCode}
         OR dat.municipality_id = ${locationCode})
         AND dat.status = 'Approved'
+        ORDER BY dat.data_entry_id DESC
     `)
     return result
 }
@@ -612,12 +634,12 @@ export async function getWasteCompById(entryId) {
 --------------------------------------- */
 
 // Change status of data entry
-export async function updateDataStatus(dataId, status, rejectionReason) {
+export async function updateDataStatus(dataId, status, rejectionReason, reviewedBy) {
     await sql.query(`
         UPDATE greencycle.data_entry
-        SET status = ?, rejection_reason = ?
+        SET status = ?, rejection_reason = ?, reviewed_by = ?
         WHERE data_entry_id = ?
-    `, [status, rejectionReason, dataId], function (err, result) {
+    `, [status, rejectionReason, reviewedBy, dataId], function (err, result) {
         if (err) throw err;
         console.log(result.affectedRows + " record(s) updated");
     })

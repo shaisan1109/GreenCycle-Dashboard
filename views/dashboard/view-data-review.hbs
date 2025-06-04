@@ -311,6 +311,7 @@
 
 // Get ID of current entry
 const entryId = {{{ entryId }}}
+const reviewedBy = {{{ reviewer }}}
 
 // Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -379,7 +380,7 @@ function showReject() {
 function updateEntry(status) {
     if(status === 'Approved') {
         // Send request to server
-        reviewApi('Approved', null)
+        reviewApi('Approved', null, reviewedBy)
             .then(response => {
                 if (response.success) {                
                     // Pop up to show success
@@ -393,7 +394,7 @@ function updateEntry(status) {
         const rejectionReason = document.getElementById('reject-notes').value
 
         // Send request to server
-        reviewApi('Rejected', rejectionReason)
+        reviewApi('Rejected', rejectionReason, reviewedBy)
             .then(response => {
                 if (response.success) {                
                     // Pop up to show success
@@ -406,7 +407,7 @@ function updateEntry(status) {
     }
 }
 
-async function reviewApi(status, rejectionReason) {
+async function reviewApi(status, rejectionReason, reviewedBy) {
     try {
         const response = await fetch(`/api/data/${entryId}/status`, {
             method: 'PATCH',
@@ -415,7 +416,8 @@ async function reviewApi(status, rejectionReason) {
             },
             body: JSON.stringify({
                 status,
-                rejectionReason
+                rejectionReason,
+                reviewedBy
             })
         });
         
@@ -432,16 +434,6 @@ async function reviewApi(status, rejectionReason) {
     } catch (error) {
         console.error('Error in reviewApi() -- ', error);
         throw error;
-    }
-}
-
-function successModal(status) {
-    if(status === 'Approved') {
-        document.getElementById('approve-modal').style.display = 'none'
-        document.getElementById('success-approve').style.display = 'block'
-    } else {
-        document.getElementById('reject-modal').style.display = 'none'
-        document.getElementById('success-reject').style.display = 'block'
     }
 }
 

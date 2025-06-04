@@ -24,7 +24,8 @@ import {
   getWasteTypes,
   getDataByUser,
   getPsgcName,
-  updateDataStatus
+  updateDataStatus,
+  getDataForReview
 } from './database.js'
 
 // File Upload
@@ -373,7 +374,8 @@ app.get('/dashboard/data/all', async (req, res) => {
 })
 
 app.get('/dashboard/data/submissions', async (req, res) => {
-  const data = await getDataByStatus('Pending Review')
+  const currentUser = req.session.user.id
+  const data = await getDataForReview(currentUser)
 
   res.render('dashboard/view-data-all', {
     layout: 'dashboard',
@@ -399,6 +401,7 @@ app.get('/dashboard/data/user/:id', async (req, res) => {
 // View one data entry
 app.get('/dashboard/data/review/:id', async (req, res) => {
   const entryId = req.params.id
+  const reviewer = req.session.user.id
   const wasteGen = await getWasteGenById(entryId)
 
   const sectors = await getSectors()
@@ -421,7 +424,8 @@ app.get('/dashboard/data/review/:id', async (req, res) => {
     sectors,
     supertypes,
     types,
-    entryId
+    entryId,
+    reviewer
   })
 })
 
@@ -860,14 +864,14 @@ app.get('/api/waste-data/:location', async (req, res) => {
 app.patch('/api/data/:id/status', async (req, res) => {
   try {
     const id = req.params.id
-    const { status, rejectionReason } = req.body
+    const { status, rejectionReason, reviewedBy } = req.body
     
     // Basic validation
     if (!status) {
       return res.status(400).json({ success: false, message: 'Status is required' })
     }
     
-    let result = await updateDataStatus(id, status, rejectionReason || '')
+    let result = await updateDataStatus(id, status, rejectionReason || '', reviewedBy)
     
     res.json({ 
       success: true,
