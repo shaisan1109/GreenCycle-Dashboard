@@ -83,9 +83,13 @@
 <!-- Display B: Raw Data -->
 <div id="Table" class="tabcontent">
     <div style="display: flex;">
-        <div class="data-table-container">
+        <div id="data-table-container">
+            <!-- Export buttons -->
+            <button onclick="exportTableToCSV()">Export as CSV</button>
+            <button onclick="exportTableToExcel()">Export as Excel</button>
+
             <!-- Waste Composition -->
-            <table class="data-table">
+            <table class="data-table" id="waste-comp-table">
                 <thead>
                     <tr class="tb-header">
                         <th>Waste Type</th>
@@ -179,8 +183,43 @@ const chart = new Chart(ctx, {
 
 </script>
 
+<!-- File export script -->
+<script>
+
+const table = document.getElementById("waste-comp-table");
+
+function exportTableToCSV() {
+    let csv = [];
+    for (let row of table.rows) {
+    let rowData = [];
+    for (let cell of row.cells) {
+        rowData.push(`"${cell.textContent.trim()}"`);
+    }
+    csv.push(rowData.join(","));
+    }
+    const blob = new Blob([csv.join("\n")], { type: "text/csv" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "waste-data.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function exportTableToExcel() {
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.table_to_sheet(table);
+    XLSX.utils.book_append_sheet(wb, ws, "WasteData");
+    XLSX.writeFile(wb, "waste-data.xlsx");
+}
+
+</script>
+
 <!-- Access to chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- SheetsJS (for Excel export) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <!-- JS behind the tabs -->
 <script src="/js/tabs.js"></script>
