@@ -573,3 +573,8 @@ select {
     color: #fff;
     text-align: center;
 }
+
+.tb-subtotal {
+    background-color: rgb(219, 250, 207) !important;
+    text-align: center;
+}

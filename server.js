@@ -482,7 +482,7 @@ app.get('/dashboard/data/:id', async (req, res) => {
     for (const type of supertype.types) {
       const amounts = type.amounts || {};
       const total = Object.values(amounts).reduce((a, b) => a + Number(b), 0);
-      type.totalWeight = total;
+      type.totalWeight = total.toFixed(3);
       grandTotal += total;
     }
   }
@@ -511,6 +511,36 @@ app.get('/dashboard/data/:id', async (req, res) => {
         sectorTotals[sectorId] += Number(value);
       }
     }
+  }
+
+  // Set up subtotal rows
+  for (const supertype of Object.values(supertypeMap)) {
+    const sectorTotals = {};
+    let totalWeight = 0;
+
+    for (const sector of sectors) {
+      sectorTotals[sector.id] = 0;
+    }
+
+    for (const type of supertype.types) {
+      for (const [sectorIdStr, val] of Object.entries(type.amounts || {})) {
+        const sectorId = Number(sectorIdStr);
+        const amount = Number(val);
+        sectorTotals[sectorId] += amount;
+        totalWeight += amount;
+      }
+    }
+
+    // Format each value to 3 decimal places
+    for (const id in sectorTotals) {
+      sectorTotals[id] = sectorTotals[id].toFixed(3);
+    }
+
+    supertype.sectorTotals = sectorTotals;      // { sector_id: subtotal }
+    supertype.totalWeight = totalWeight.toFixed(3);        // e.g., 250
+    supertype.percentage = grandTotal > 0
+      ? ((totalWeight / grandTotal) * 100).toFixed(3)
+      : '0.000';
   }
 
   /* -------- PIE CHART -------- */

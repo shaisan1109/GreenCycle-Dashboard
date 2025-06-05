@@ -113,6 +113,14 @@
                             {{/with}}
                             </tr>
                         {{/each}}
+                        <tr class="tb-subtotal">
+                            <td style="text-align: left;"><strong>{{name}} Subtotal</strong></td>
+                            {{#each ../sectors}}
+                                <td><strong>{{lookup ../this.sectorTotals this.id}}</strong></td>
+                            {{/each}}
+                            <td><strong>{{this.totalWeight}}</strong></td>
+                            <td><strong>{{this.percentage}}%</strong></td>
+                        </tr>
                     {{/each}}
                 </tbody>
                 <tfoot>
