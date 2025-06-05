@@ -543,3 +543,33 @@ select {
     border: 2px solid #127009;
     border-top: none;
 }
+
+.data-table-container {
+    margin-left:auto;
+    margin-right:auto;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.data-table {
+    border: 1px solid gray;
+    border-radius: 20px;
+}
+
+.tb-header {
+    background-color: #2C3927;
+    color: #fff;
+}
+
+.tb-supertype {
+    background-color: #709860;
+    color: #fff;
+}
+
+.tb-total {
+    font-weight: bold;
+    background-color: #2d6a4f;
+    color: #fff;
+    text-align: center;
+}

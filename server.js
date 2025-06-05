@@ -212,7 +212,13 @@ Handlebars.registerHelper('commaNumber', function(num) {
 // Return json object
 Handlebars.registerHelper('json', function(context) {
   return JSON.stringify(context);
-});
+})
+
+// Default value fallback (e.g., 0)
+Handlebars.registerHelper('default', (value, fallback) => value != null ? value : fallback);
+
+// Add helper for data entry colspan
+Handlebars.registerHelper('add', (a, b) => a + b);
 
 /* ---------------------------------------
     ROUTES (PUBLIC)
@@ -469,6 +475,44 @@ app.get('/dashboard/data/:id', async (req, res) => {
       });
   }
 
+  // Grand total (for "percentage" column) for each type
+  let grandTotal = 0;
+
+  for (const supertype of Object.values(supertypeMap)) {
+    for (const type of supertype.types) {
+      const amounts = type.amounts || {};
+      const total = Object.values(amounts).reduce((a, b) => a + Number(b), 0);
+      type.totalWeight = total;
+      grandTotal += total;
+    }
+  }
+
+  // Compute percentage for each type's total weight
+  for (const supertype of Object.values(supertypeMap)) {
+    for (const type of supertype.types) {
+      type.percentage = grandTotal > 0
+        ? ((type.totalWeight / grandTotal) * 100).toFixed(3)
+        : '0.000';
+    }
+  }
+
+  // Grand total of all sectors
+  // -- Initialize sector totals
+  const sectorTotals = {}; // { sector_id: total }
+  for (const sector of sectors) {
+    sectorTotals[sector.id] = 0;
+  }
+
+  // -- Sum up sector values
+  for (const supertype of Object.values(supertypeMap)) {
+    for (const type of supertype.types) {
+      for (const [sectorIdStr, value] of Object.entries(type.amounts || {})) {
+        const sectorId = Number(sectorIdStr);
+        sectorTotals[sectorId] += Number(value);
+      }
+    }
+  }
+
   /* -------- PIE CHART -------- */
 
   // Total per supertype
@@ -506,6 +550,8 @@ app.get('/dashboard/data/:id', async (req, res) => {
       pieData.data.push(item.total);
   }
 
+  //res.json(supertypeMap)
+
   /* -------- RENDER PAGE -------- */
 
   res.render('dashboard/view-data-entry', {
@@ -515,7 +561,9 @@ app.get('/dashboard/data/:id', async (req, res) => {
     current_all: true,
     sectors,
     supertypes: Object.values(supertypeMap),
-    pieData: JSON.stringify(pieData) // pass as JSON for Chart.js
+    pieData: JSON.stringify(pieData), // pass as JSON for Chart.js
+    sectorTotals,
+    grandTotal: grandTotal.toFixed(3)
   })
 })
 

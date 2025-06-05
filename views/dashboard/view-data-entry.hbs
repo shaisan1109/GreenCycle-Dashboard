@@ -83,34 +83,48 @@
 <!-- Display B: Raw Data -->
 <div id="Table" class="tabcontent">
     <div style="display: flex;">
-        <div>
+        <div class="data-table-container">
             <!-- Waste Composition -->
-            <table>
+            <table class="data-table">
                 <thead>
-                    <tr>
-                    <th>Waste Type</th>
-                    {{#each sectors}}
-                        <th style="width: 100px;">{{name}}</th>
-                    {{/each}}
+                    <tr class="tb-header">
+                        <th>Waste Type</th>
+                        {{#each sectors}}
+                            <th style="width: 100px;">{{name}}</th>
+                        {{/each}}
+                        <th>Total (kg)</th>
+                        <th>Percentage (%)</th>
                     </tr>
                 </thead>
                 <tbody>
                     {{#each supertypes}}
                         <tr>
-                            <td colspan="7"><strong>{{name}}</strong></td>
+                            <td colspan="{{add ../sectors.length 3}}" class="tb-supertype"><strong>{{uppercase name}}</strong></td>
                         </tr>
                         {{#each types}}
                             <tr>
                             <td>{{name}}</td>
                             {{#with amounts as |a|}} <!-- Set alias for amounts -->
                                 {{#each ../../../sectors}}
-                                <td style="text-align: center;">{{lookup a this.id}}</td>
+                                    <td style="text-align: center;">{{lookup a this.id}}</td>
                                 {{/each}}
+                                <td style="text-align: center;">{{../totalWeight}}</td>
+                                <td style="text-align: center;">{{../percentage}}%</td>
                             {{/with}}
                             </tr>
                         {{/each}}
                     {{/each}}
                 </tbody>
+                <tfoot>
+                    <tr class="tb-total">
+                        <td style="text-align:left">TOTAL</td>
+                        {{#each sectors}}
+                        <td>{{lookup ../sectorTotals this.id}}</td>
+                        {{/each}}
+                        <td>{{grandTotal}}</td>
+                        <td>100%</td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     </div>
