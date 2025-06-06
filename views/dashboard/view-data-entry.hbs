@@ -196,11 +196,11 @@ const chart = new Chart(ctx, {
             tooltip: {
                 callbacks: {
                     label: function(context) {
-                        const value = context.parsed;
+                        const value = Number(context.raw).toFixed(3);
                         const total = context.chart._metasets[0].total || 
                                     context.chart._metasets[0].data.reduce((a, b) => a + b, 0);
 
-                        const percentage = ((value / total) * 100).toFixed(1);
+                        const percentage = ((value / total) * 100).toFixed(3);
                         return ` ${value} kg (${percentage}%)`;
                     }
                 }
