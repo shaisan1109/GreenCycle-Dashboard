@@ -633,6 +633,7 @@ app.get('/dashboard/data/:id', async (req, res) => {
 
   /* -------- PIE CHART -------- */
 
+  /*
   // Total per supertype
   const supertypeTotals = {}; // { supertype_id: totalWaste }
 
@@ -668,6 +669,70 @@ app.get('/dashboard/data/:id', async (req, res) => {
       pieData.data.push(item.total);
   }
 
+  */
+
+  // Generate summary pie
+  const summaryData = {
+    labels: [],
+    data: [],
+    backgroundColor: []
+  };
+
+  // Generate detailed pie
+  const detailedData = {
+    labels: [],
+    data: [],
+    backgroundColor: []
+  };
+
+  // Generate shades (for detailed pie chart)
+  function shadeColor(hex, percent) {
+    let f = parseInt(hex.slice(1),16),
+        t = percent<0?0:255,
+        p = percent<0?percent*-1:percent,
+        R = f>>16,
+        G = f>>8&0x00FF,
+        B = f&0x0000FF;
+    return `rgb(${Math.round((t-R)*p+R)}, ${Math.round((t-G)*p+G)}, ${Math.round((t-B)*p+B)})`;
+  }
+
+  const baseHexMap = {
+    'Biodegradable': '#4caf50',    // green
+    'Recyclable': '#2196f3',       // blue
+    'Residual': '#ff9800',         // orange
+    'Special/Hazardous': '#f44336' // red
+  };
+
+  const supertypeTotals = Object.values(supertypeMap).map(supertype => {
+  const total = supertype.types.reduce((sum, t) => {
+    return sum + Object.values(t.amounts || {}).reduce((a, b) => a + Number(b), 0);
+  }, 0);
+    return { supertype, total };
+  });
+
+  // Sort descending by total
+  supertypeTotals.sort((a, b) => b.total - a.total);
+
+  for (const { supertype, total } of supertypeTotals) {
+    const supertypeName = supertype.name;
+    const baseColor = baseHexMap[supertypeName];
+
+    // Summary pie entry
+    summaryData.labels.push(supertypeName);
+    summaryData.data.push(Number(total.toFixed(3)));
+    summaryData.backgroundColor.push(baseColor);
+
+    // Detailed entries (types under this supertype)
+    supertype.types.forEach((type, i) => {
+      const weight = Object.values(type.amounts || {}).reduce((a, b) => a + Number(b), 0);
+      if (weight > 0) {
+        detailedData.labels.push(type.name);
+        detailedData.data.push(Number(weight.toFixed(3)));
+        detailedData.backgroundColor.push(shadeColor(baseColor, -0.3 + 0.15 * i));
+      }
+    });
+  }
+
   /* -------- BAR CHART -------- */
 
   const barChartData = {}; // keyed by supertype name or ID
@@ -699,8 +764,10 @@ app.get('/dashboard/data/:id', async (req, res) => {
     supertypes: Object.values(supertypeMap),
     sectorTotals,
     grandTotal: grandTotal.toFixed(3),
-    pieData: JSON.stringify(pieData), // pass as JSON for Chart.js
-    barChartData: JSON.stringify(barChartData)
+    //pieData: JSON.stringify(pieData), // pass as JSON for Chart.js
+    barChartData: JSON.stringify(barChartData),
+    summaryPieData: JSON.stringify(summaryData),
+    detailedPieData: JSON.stringify(detailedData)
   })
 })
 
