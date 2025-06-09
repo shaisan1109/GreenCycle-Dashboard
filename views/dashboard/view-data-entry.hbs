@@ -77,7 +77,7 @@
         </canvas>
 
         <!-- Toggle showing summary or detailed pie -->
-        <button id="togglePieBtn">Show Detailed Chart</button>
+        <button id="togglePieBtn">More Details</button>
     </div>
 
     <!-- Subtypes bar charts -->
@@ -212,11 +212,11 @@ document.getElementById('togglePieBtn').addEventListener('click', () => {
     if (currentMode === 'summary') {
         chart = createPieChart(detailedData, "Detailed Waste by Type");
         currentMode = 'detailed';
-        togglePieBtn.textContent = 'Show Summary Pie Chart';
+        togglePieBtn.textContent = 'Back to Summary';
     } else {
         chart = createPieChart(summaryData, "Waste by Supertype");
         currentMode = 'summary';
-        togglePieBtn.textContent = 'Show Detailed Pie Chart';
+        togglePieBtn.textContent = 'More Details';
     }
 });
 
