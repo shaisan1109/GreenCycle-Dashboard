@@ -118,14 +118,14 @@ export async function getAllTypes() {
 /* ---------------------------------------
     DATA SUBMISSION
 --------------------------------------- */
-export async function submitForm(user_id, region_id, province_id, municipality_id, location_name, population, per_capita, annual, collection_start, collection_end, wasteComposition) {
+export async function submitForm(user_id, title, region_id, province_id, municipality_id, location_name, population, per_capita, annual, collection_start, collection_end, wasteComposition) {
 
    try {
        // Insert into date_entry table
        const [dataEntryResult] = await sql.query(
-           `INSERT INTO greencycle.data_entry (user_id, region_id, province_id, municipality_id, location_name, population, per_capita, annual, date_submitted, collection_start, collection_end, status)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, 'Pending Review')`, 
-           [user_id, region_id, province_id, municipality_id, location_name, population, per_capita, annual, collection_start, collection_end]
+           `INSERT INTO greencycle.data_entry (user_id, title, region_id, province_id, municipality_id, location_name, population, per_capita, annual, date_submitted, collection_start, collection_end, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, 'Pending Review')`, 
+           [user_id, title, region_id, province_id, municipality_id, location_name, population, per_capita, annual, collection_start, collection_end]
        );
 
        const data_entry_id = dataEntryResult.insertId;

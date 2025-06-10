@@ -860,10 +860,10 @@ app.get('/dashboard/submit-report/upload', async (req, res) => {
   })
 })
 
-app.post("/submit-report", async (req, res) => {
+app.post("/api/data/submit-report", async (req, res) => {
   // Request body
   const {
-    region, province, municipality, population, per_capita, annual, date_start, date_end, wasteComposition
+    title, region, province, municipality, population, per_capita, annual, date_start, date_end, wasteComposition
   } = req.body;
 
   // Prepare PSGC data for location names
@@ -893,7 +893,7 @@ app.post("/submit-report", async (req, res) => {
 
     // Submit form data
     const result = await submitForm(
-      req.session.user.id, region, province, municipality, fullLocation, population, per_capita, annual, date_start, date_end, newWasteComp
+      req.session.user.id, title, region, province, municipality, fullLocation, population, per_capita, annual, date_start, date_end, newWasteComp
     );
 
     res.status(200).json({
