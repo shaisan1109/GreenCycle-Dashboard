@@ -27,7 +27,11 @@ import {
   updateDataStatus,
   getDataForReview,
   getAllTypes,
-  wrongPassword
+  wrongPassword,
+  getEditHistory,
+  getLatestEdit,
+  createEditEntry,
+  getLatestDataEntry
 } from './database.js'
 
 // File Upload
@@ -532,6 +536,20 @@ app.get('/dashboard/data/review/:id', async (req, res) => {
   })
 })
 
+// View data entry edit history
+app.get('/dashboard/data/:id/history', async (req, res) => {
+  const entryId = req.params.id
+  const wasteGen = await getWasteGenById(entryId)
+  const editPointers = await getEditHistory(entryId)
+
+  res.render('dashboard/view-edit-history', {
+    layout: 'dashboard',
+    title: `${wasteGen.title} (Edit History) | GC Dashboard`,
+    wasteGen,
+    editPointers
+  })
+})
+
 // View one data entry
 app.get('/dashboard/data/:id', async (req, res) => {
   /* -------- INITIALIZATION -------- */
@@ -544,6 +562,9 @@ app.get('/dashboard/data/:id', async (req, res) => {
   const sectors = await getSectors()
   const supertypes = await getAllTypes()
   const wasteComp = await getWasteCompById(id)
+
+  // Initialize latest editing date
+  const latestEdit = await getLatestEdit(id)
 
   // Create a lookup map for waste amounts
   const wasteMap = {};
@@ -740,7 +761,8 @@ app.get('/dashboard/data/:id', async (req, res) => {
     grandTotal: grandTotal.toFixed(3),
     barChartData: JSON.stringify(barChartData),
     summaryPieData: JSON.stringify(summaryData),
-    detailedPieData: JSON.stringify(detailedData)
+    detailedPieData: JSON.stringify(detailedData),
+    latestEdit: latestEdit[0].datetime
   })
 })
 
@@ -874,6 +896,8 @@ app.post("/api/data/submit-report", async (req, res) => {
     title, region, province, municipality, population, per_capita, annual, date_start, date_end, wasteComposition
   } = req.body;
 
+  const currentUser = req.session.user.id
+
   // Prepare PSGC data for location names
   const psgcRegions = await PSGCResource.getRegions()
   const psgcProvinces = await PSGCResource.getProvinces()
@@ -900,9 +924,21 @@ app.post("/api/data/submit-report", async (req, res) => {
     }).filter(entry => entry !== null); // Remove any invalid entries
 
     // Submit form data
-    const result = await submitForm(
-      req.session.user.id, title, region, province, municipality, fullLocation, population, per_capita, annual, date_start, date_end, newWasteComp
+    // const result = await submitForm(
+    //   req.session.user.id, title, region, province, municipality, fullLocation, population, per_capita, annual, date_start, date_end, newWasteComp
+    // );
+
+    // Push form data to db
+    await submitForm(
+      currentUser, title, region, province, municipality, fullLocation, population, per_capita, annual, date_start, date_end, newWasteComp
     );
+
+    // Get ID of new data
+    const idResult = await getLatestDataEntry()
+    const newId = idResult[0].data_entry_id
+
+    // Insert first edit history entry
+    const result = await createEditEntry(newId, currentUser, 'Data entry submitted')
 
     res.status(200).json({
         message: "Report submitted successfully",

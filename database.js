@@ -674,3 +674,49 @@ export function getPsgcName(locationSet, code) {
     const entry = locationSet.find(loc => loc.code === code)
     return entry ? entry.name : null
 }
+
+/* ---------------------------------------
+    DATA EDITING HISTORY
+--------------------------------------- */
+export async function createEditEntry(entryId, editorId, remarks) {
+    const result = await sql.query(`
+        INSERT INTO greencycle.data_edit_history (data_entry_id, user_id, remarks)
+        VALUES (?, ?, ?)
+    `, [entryId, editorId, remarks])
+    
+    // Return new object if successful
+    const id = result[0].insertId
+    return getUserById(id)
+}
+
+export async function getEditHistory(entryId) {
+    const [result] = await sql.query(`
+        SELECT u.lastname, u.firstname, eh.datetime, eh.remarks
+        FROM greencycle.data_edit_history eh
+        JOIN greencycle.user u ON u.user_id = eh.user_id
+        WHERE eh.data_entry_id = ?
+        ORDER BY eh.datetime DESC
+    `, [entryId])
+    return result // important, to not return an array
+}
+
+export async function getLatestEdit(entryId) {
+    const [result] = await sql.query(`
+        SELECT datetime
+        FROM greencycle.data_edit_history
+        WHERE data_entry_id = ?
+        ORDER BY datetime DESC
+        LIMIT 1
+    `, [entryId])
+    return result // important, to not return an array
+}
+
+// Retrieve newest data entry (upon creation)
+export async function getLatestDataEntry() {
+    const [result] = await sql.query(`
+        SELECT data_entry_id FROM data_entry 
+        ORDER BY data_entry_id DESC 
+        LIMIT 1
+    `)
+    return result // important, to not return an array
+}

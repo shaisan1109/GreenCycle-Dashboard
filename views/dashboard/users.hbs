@@ -55,11 +55,7 @@
                 <td>{{uppercase lastname}}, {{firstname}}</td>
                 <td>{{email}}</td>
                 <td>{{contact_no}} </td>
-                <td>
-                    {{#check last_login null}}
-                        {{textDateTime last_login}}
-                    {{/check}}
-                </td>
+                <td>{{textDateTime last_login}}</td>
                 <td>{{successful_logins}} </td>
                 <td>{{failed_logins}}</td>
             </tr>
