@@ -398,6 +398,16 @@ export async function getApplications() {
     return result
 }
 
+// Get count of pending applications
+export async function getPendingApplicationCount() {
+    const [result] = await sql.query(`
+        SELECT COUNT(application_id)
+        FROM greencycle.user_applications
+        WHERE status = 'Pending Review'    
+    `)
+    return result
+}
+
 // Get application by ID
 export async function getApplicationById(id) {
     const [result] = await sql.query(`SELECT * FROM user_applications WHERE application_id = ?`, [id])
@@ -581,6 +591,16 @@ export async function getDataForReview(currentUser) {
         ORDER BY dat.data_entry_id DESC
     `)
 
+    return result
+}
+
+// Get *number* of entries to review (for notifications)
+export async function getDataForReviewCount(currentUser) {
+    const [result] = await sql.query(`
+        SELECT COUNT(data_entry_id)
+        FROM greencycle.data_entry
+        WHERE status = 'Pending Review' AND NOT user_id = ${currentUser}
+    `)
     return result
 }
 

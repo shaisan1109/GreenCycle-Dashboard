@@ -392,6 +392,7 @@ app.get('/dashboard/data/all', async (req, res) => {
   })
 })
 
+// View data submissions
 app.get('/dashboard/data/submissions', async (req, res) => {
   const currentUser = req.session.user.id
   const data = await getDataForReview(currentUser)
