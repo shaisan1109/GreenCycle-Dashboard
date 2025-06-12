@@ -296,6 +296,7 @@ for (const [supertype, chartData] of Object.entries(barChartData)) {
 <!-- File export script -->
 <script>
 
+const dataTitle = "{{wasteGen.title}}"
 const table = document.getElementById("waste-comp-table");
 
 function exportTableToCSV() {
@@ -310,7 +311,7 @@ function exportTableToCSV() {
     const blob = new Blob([csv.join("\n")], { type: "text/csv" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "waste-data.csv";
+    link.download = `${dataTitle}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -320,7 +321,7 @@ function exportTableToExcel() {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.table_to_sheet(table);
     XLSX.utils.book_append_sheet(wb, ws, "WasteData");
-    XLSX.writeFile(wb, "waste-data.xlsx");
+    XLSX.writeFile(wb, `${dataTitle}.xlsx`);
 }
 
 </script>

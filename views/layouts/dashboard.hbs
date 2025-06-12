@@ -84,12 +84,16 @@
 
                 <a href="/dashboard/data/submissions" class="{{#if current_datasubs}}current{{/if}}">
                     <i class="fa-solid fa-file-pen"></i>&nbsp; Review Data Submissions
-                    <span class="notif-badge">{{pendingData}}</span>
+                    {{#ifNotEquals pendingData 0}}
+                        <span class="notif-badge">{{pendingData}}</span>
+                    {{/ifNotEquals}}
                 </a>
 
                 <a href="/dashboard/user-applications" class="{{#if current_userapp}}current{{/if}}">
                     <i class="fa-solid fa-clipboard-list nav-icon"></i> User Applications
-                    <span class="notif-badge">{{pendingApplications}}</span>
+                    {{#ifNotEquals pendingApplications 0}}
+                        <span class="notif-badge">{{pendingApplications}}</span>
+                    {{/ifNotEquals}}
                 </a>
 
                 <a href="/dashboard/partners" class="{{#if current_partners}}current{{/if}}">
