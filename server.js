@@ -445,23 +445,137 @@ app.get('/dashboard/search', async (req, res) => {
       /* ------ RAW DATA ENTRIES ------ */
       const entries = await getDataByLocation(locationCode);
 
-      // If location query is given, but there are no results
-      if(entries.length === 0) {
-        res.render('dashboard/view-data-none', {
-          layout: 'dashboard',
-          title: 'Data Search Result | GC Dashboard',
-          current_search: true,
-          fullLocation,
-          avgInfo: avgInfo[0]
+      /* -------- PIE CHART -------- */
+      const sectors = await getSectors()
+      const supertypes = await getAllTypes()
+
+      // Create a lookup map for waste amounts
+      const wasteMap = {};
+      for (const row of avgData) {
+          if (!wasteMap[row.type_id]) wasteMap[row.type_id] = {};
+          wasteMap[row.type_id][row.sector_id] = row.avg_waste_amount;
+      }
+
+      // Group types under supertypes
+      const supertypeMap = {};
+      for (const row of supertypes) {
+          if (!supertypeMap[row.supertype_id]) {
+              supertypeMap[row.supertype_id] = {
+                  id: row.supertype_id,
+                  name: row.supertype_name,
+                  types: []
+              };
+          }
+          supertypeMap[row.supertype_id].types.push({
+              id: row.type_id,
+              name: row.type_name,
+              amounts: wasteMap[row.type_id] || {}
+          });
+      }
+
+      // Generate summary pie
+      const summaryData = {
+        labels: [],
+        data: [],
+        backgroundColor: []
+      };
+
+      // Generate detailed pie
+      const detailedData = {
+        labels: [],
+        data: [],
+        backgroundColor: []
+      };
+
+      // Generate shades (for detailed pie chart)
+      function shadeColor(hex, percent) {
+        let f = parseInt(hex.slice(1),16),
+            t = percent<0?0:255,
+            p = percent<0?percent*-1:percent,
+            R = f>>16,
+            G = f>>8&0x00FF,
+            B = f&0x0000FF;
+        return `rgb(${Math.round((t-R)*p+R)}, ${Math.round((t-G)*p+G)}, ${Math.round((t-B)*p+B)})`;
+      }
+
+      const baseHexMap = {
+        'Biodegradable': '#4caf50',    // green
+        'Recyclable': '#2196f3',       // blue
+        'Residual': '#ff9800',         // orange
+        'Special/Hazardous': '#f44336' // red
+      };
+
+      const supertypeTotals = Object.values(supertypeMap).map(supertype => {
+      const total = supertype.types.reduce((sum, t) => {
+        return sum + Object.values(t.amounts || {}).reduce((a, b) => a + Number(b), 0);
+      }, 0);
+        return { supertype, total };
+      });
+
+      // Sort descending by total
+      supertypeTotals.sort((a, b) => b.total - a.total);
+
+      for (const { supertype, total } of supertypeTotals) {
+        const supertypeName = supertype.name;
+        const baseColor = baseHexMap[supertypeName];
+
+        // Summary pie entry
+        summaryData.labels.push(supertypeName);
+        summaryData.data.push(Number(total.toFixed(3)));
+        summaryData.backgroundColor.push(baseColor);
+
+        // Detailed entries (types under this supertype)
+        supertype.types.forEach((type, i) => {
+          const weight = Object.values(type.amounts || {}).reduce((a, b) => a + Number(b), 0);
+          if (weight > 0) {
+            detailedData.labels.push(type.name);
+            detailedData.data.push(Number(weight.toFixed(3)));
+            detailedData.backgroundColor.push(shadeColor(baseColor, -0.3 + 0.15 * i));
+          }
         });
-      } else {
+      }
+
+      /* -------- BAR CHART -------- */
+
+      const barChartData = {}; // keyed by supertype name or ID
+
+      for (const supertype of Object.values(supertypeMap)) {
+        const labels = [];
+        const data = [];
+
+        for (const type of supertype.types) {
+          labels.push(type.name);
+
+          const weight = Object.values(type.amounts || {}).reduce((a, b) => a + Number(b), 0);
+          data.push(Number(weight.toFixed(3)));
+        }
+
+        barChartData[supertype.name] = {
+          color: baseHexMap[supertype.name] || '#9e9e9e',
+          labels,
+          data
+        };
+      }
+
+      // If location query is given and results do exist
+      if(entries.length > 0) {
         res.render('dashboard/view-data-result', {
           layout: 'dashboard',
           title: 'Data Search Result | GC Dashboard',
           current_search: true,
           fullLocation,
           avgInfo: avgInfo[0],
+          barChartData: JSON.stringify(barChartData),
+          summaryPieData: JSON.stringify(summaryData),
+          detailedPieData: JSON.stringify(detailedData),
           entries
+        });
+      } else { // If location query is given, but there are no results
+        res.render('dashboard/view-data-none', {
+          layout: 'dashboard',
+          title: 'Data Search Result | GC Dashboard',
+          current_search: true,
+          fullLocation
         });
       }
     } catch (err) {

@@ -44,7 +44,7 @@
 <!-- Display A: Chart -->
 <div id="Chart" class="tabcontent">
     <!-- Supertype summary pie chart -->
-    {{!-- <div class="pie-chart">
+    <div class="pie-chart">
         <canvas id="supertypePieChart">
             <!-- Populated by JS -->
         </canvas>
@@ -54,7 +54,7 @@
     </div>
 
     <!-- Subtypes bar charts -->
-    <div id="bar-charts-container"></div> --}}
+    <div id="bar-charts-container"></div>
 </div>
 
 <!-- Display B: Raw Data -->
@@ -90,6 +90,132 @@
     {{/each}}
     
 </div>
+
+<!-- Pie chart script -->
+<script>
+
+/* --------- PIE CHART --------- */
+const summaryData = {{{summaryPieData}}};
+const detailedData = {{{detailedPieData}}};
+
+let currentMode = 'summary';
+const ctx = document.getElementById('supertypePieChart').getContext('2d');
+
+const createPieChart = (data, title) => {
+    return new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                data: data.data,
+                backgroundColor: data.backgroundColor,
+                hoverOffset: 20
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                tooltip: {
+                callbacks: {
+                    label: function (context) {
+                        const value = Number(context.raw).toFixed(3);
+                        const total = context.chart._metasets[0].total || 1;
+                        const percent = ((context.raw / total) * 100).toFixed(3);
+                        return `${context.label}: ${value} kg (${percent}%)`;
+                    }
+                }
+                },
+                title: {
+                    display: true,
+                    text: title
+                },
+                legend: {
+                    position: 'right'
+                }
+            }
+        }
+    });
+};
+
+let chart = createPieChart(summaryData, "Waste by Supertype");
+
+document.getElementById('togglePieBtn').addEventListener('click', () => {
+    chart.destroy();
+    if (currentMode === 'summary') {
+        chart = createPieChart(detailedData, "Detailed Waste by Type");
+        currentMode = 'detailed';
+        togglePieBtn.textContent = 'Back to Summary';
+    } else {
+        chart = createPieChart(summaryData, "Waste by Supertype");
+        currentMode = 'summary';
+        togglePieBtn.textContent = 'More Details';
+    }
+});
+
+/* --------- BAR CHART --------- */
+
+// Build bar chart
+const barChartData = {{{barChartData}}}; // already JSON string
+
+const container = document.getElementById('bar-charts-container');
+
+for (const [supertype, chartData] of Object.entries(barChartData)) {
+
+    // Create canvas for each supertype
+    const canvas = document.createElement('canvas');
+    canvas.id = `barChart-${supertype.replace(/\s+/g, '-')}`;
+    canvas.style.maxWidth = '600px';
+    canvas.style.marginBottom = '40px';
+    container.appendChild(canvas);
+
+    // Create chart
+    new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                label: `${supertype} Waste Types`,
+                data: chartData.data,
+                backgroundColor: chartData.color
+            }]
+        },
+        options: {
+            responsive: true,
+            indexAxis: 'x', // vertical
+            plugins: {
+                title: {
+                display: true,
+                text: supertype
+                },
+                tooltip: {
+                callbacks: {
+                    label: function(context) {
+                    return `${context.parsed.y.toFixed(3)} kg`;
+                    }
+                }
+                }
+            },
+            scales: {
+                y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Weight (kg)'
+                }
+                },
+                x: {
+                ticks: {
+                    autoSkip: false,
+                    maxRotation: 45,
+                    minRotation: 20
+                }
+                }
+            }
+        }
+    });
+}
+
+</script>
 
 <!-- Access to chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
