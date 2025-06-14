@@ -252,6 +252,28 @@ Handlebars.registerHelper('default', (value, fallback) => value != null ? value 
 // Add helper for data entry colspan
 Handlebars.registerHelper('add', (a, b) => a + b);
 
+Handlebars.registerHelper('toFixed', function (value, digits) {
+  return Number(value).toFixed(digits);
+});
+
+Handlebars.registerHelper('calcPercent', function (value, fullArray) {
+  // Expect fullArray to be an array of objects: { value: number }
+  let total = 0;
+
+  if (Array.isArray(fullArray)) {
+    total = fullArray.reduce((sum, item) => sum + parseFloat(item.value || 0), 0);
+  }
+
+  if (total === 0) return '0';
+  
+  const percent = (parseFloat(value) / total) * 100;
+  return percent.toFixed(3).replace(/\.?0+$/, ''); // Trim trailing zeros
+});
+
+Handlebars.registerHelper('gt', function (a, b) {
+  return Number(a) > Number(b);
+});
+
 /* ---------------------------------------
     ROUTES (PUBLIC)
 --------------------------------------- */
@@ -544,6 +566,13 @@ app.get('/dashboard/search', async (req, res) => {
         });
       }
 
+      // Combine them for easier rendering
+      const legendData = summaryData.labels.map((label, i) => ({
+        label,
+        value: summaryData.data[i],
+        color: summaryData.backgroundColor[i]
+      }));
+
       /* -------- BAR CHART -------- */
 
       const barChartData = {}; // keyed by supertype name or ID
@@ -577,6 +606,7 @@ app.get('/dashboard/search', async (req, res) => {
           barChartData: JSON.stringify(barChartData),
           summaryPieData: JSON.stringify(summaryData),
           detailedPieData: JSON.stringify(detailedData),
+          legendData,
           entries
         });
       } else { // If location query is given, but there are no results
@@ -953,6 +983,13 @@ app.get('/dashboard/data/:id', async (req, res) => {
     });
   }
 
+  // Combine them for easier rendering
+  const legendData = summaryData.labels.map((label, i) => ({
+    label,
+    value: summaryData.data[i],
+    color: summaryData.backgroundColor[i]
+  }));
+
   /* -------- BAR CHART -------- */
 
   const barChartData = {}; // keyed by supertype name or ID
@@ -977,8 +1014,6 @@ app.get('/dashboard/data/:id', async (req, res) => {
 
   /* -------- RENDER PAGE -------- */
 
-  //res.json(barChartData)
-
   res.render('dashboard/view-data-entry', {
     layout: 'dashboard',
     title: `${wasteGen.title} | GC Dashboard`,
@@ -991,6 +1026,7 @@ app.get('/dashboard/data/:id', async (req, res) => {
     barChartData: JSON.stringify(barChartData),
     summaryPieData: JSON.stringify(summaryData),
     detailedPieData: JSON.stringify(detailedData),
+    legendData,
     latestEdit
   })
 })

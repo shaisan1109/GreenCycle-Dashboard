@@ -610,3 +610,52 @@ select {
     padding: 3px 7px;
     font-size: x-small;
 }
+
+/* ------ Data Entry Pie Chart ------ */
+#summary-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-left: 20px;
+  width: 40%;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.legend-item {
+  padding: 10px 20px;
+  color: white;
+  border-radius: 6px;
+  font-weight: 500;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.legend-name {
+    margin-top: auto;
+    margin-bottom: auto;
+    font-size: x-large;
+    display: flex;
+}
+
+.legend-perc {
+    margin-left: auto;
+}
+
+.legend-kg {
+    margin-left: auto;
+    font-size: small;
+}
+
+#togglePieBtn {
+    width: fit-content;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background-color: #127009;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 20px;
+}

@@ -71,13 +71,33 @@
 <!-- Display A: Chart -->
 <div id="Chart" class="tabcontent">
     <!-- Supertype summary pie chart -->
-    <div class="pie-chart">
-        <canvas id="supertypePieChart">
-            <!-- Populated by JS -->
-        </canvas>
+    <div style="display: flex;">
+        <div class="pie-chart">
+            <canvas id="supertypePieChart">
+                <!-- Populated by JS -->
+            </canvas>
+        </div>
 
-        <!-- Toggle showing summary or detailed pie -->
-        <button id="togglePieBtn">More Details</button>
+        <div id="summary-legend">
+            <h2>Top Waste Categories in This Area</h2>
+
+            {{#each legendData}}
+                {{#if (gt value 0)}}
+                <span class="legend-item" style="background-color: {{color}}">
+                    <span class="legend-name">
+                        {{label}}
+                        <span class="legend-perc">{{calcPercent value ../legendData}}%</span>
+                    </span>
+                    <span class="legend-kg">
+                        {{toFixed value 3}} kg
+                    </span>
+                </span>
+                {{/if}}
+            {{/each}}
+
+            <!-- Toggle showing summary or detailed pie -->
+            <button id="togglePieBtn"><i class="fa-solid fa-circle-info"></i>&nbsp; Show Detailed Pie Chart</button>
+        </div>
     </div>
 
     <!-- Subtypes bar charts -->
@@ -177,7 +197,7 @@ const detailedData = {{{detailedPieData}}};
 let currentMode = 'summary';
 const ctx = document.getElementById('supertypePieChart').getContext('2d');
 
-const createPieChart = (data, title) => {
+const createPieChart = (data) => {
     return new Chart(ctx, {
         type: 'pie',
         data: {
@@ -202,8 +222,7 @@ const createPieChart = (data, title) => {
                 }
                 },
                 title: {
-                    display: true,
-                    text: title
+                    display: false
                 },
                 legend: {
                     position: 'right'
@@ -220,11 +239,11 @@ document.getElementById('togglePieBtn').addEventListener('click', () => {
     if (currentMode === 'summary') {
         chart = createPieChart(detailedData, "Detailed Waste by Type");
         currentMode = 'detailed';
-        togglePieBtn.textContent = 'Back to Summary';
+        togglePieBtn.innerHTML = '<i class="fa-solid fa-chart-pie"></i>&nbsp; Back to Summary Pie Chart';
     } else {
         chart = createPieChart(summaryData, "Waste by Supertype");
         currentMode = 'summary';
-        togglePieBtn.textContent = 'More Details';
+        togglePieBtn.innerHTML = '<i class="fa-solid fa-circle-info"></i>&nbsp; Show Detailed Pie Chart';
     }
 });
 
