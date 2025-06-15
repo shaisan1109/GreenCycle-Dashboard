@@ -101,6 +101,13 @@
     </div>
 
     <!-- Subtypes bar charts -->
+    <div class="bar-tab">
+        <button class="bar-tablinks" onclick="openBarTab(event, 'Biodegradable')" id="firstBar">BIODEGRADABLE</button>
+        <button class="bar-tablinks" onclick="openBarTab(event, 'Recyclable')">RECYCLABLE</button>
+        <button class="bar-tablinks" onclick="openBarTab(event, 'Residual')">RESIDUAL</button>
+        <button class="bar-tablinks" onclick="openBarTab(event, 'Special/Hazardous')">SPECIAL/HAZARDOUS</button>
+    </div>
+
     <div id="bar-charts-container"></div>
 </div>
 
@@ -254,13 +261,17 @@ const barChartData = {{{barChartData}}};
 const container = document.getElementById('bar-charts-container');
 
 for (const [supertype, chartData] of Object.entries(barChartData)) {
-    //console.log(chartData)
+    // Create the wrapper tabcontent div
+    const tabContentDiv = document.createElement('div');
+    tabContentDiv.id = supertype.replace(/\s+/g, '');
+    tabContentDiv.classList.add('bar-tabcontent');
 
     // Create canvas
     const canvas = document.createElement('canvas');
     canvas.id = `barChart-${supertype.replace(/\s+/g, '-')}`;
-    canvas.style.maxWidth = '600px';
+    canvas.style.maxWidth = '560px';
     canvas.style.marginBottom = '20px';
+    tabContentDiv.appendChild(canvas);
 
     // Create chart wrapper
     const wrapper = document.createElement('div');
@@ -280,9 +291,10 @@ for (const [supertype, chartData] of Object.entries(barChartData)) {
     const legendTitle = document.createElement('h2');
     legendTitle.classList.add('bar-legend-title');
     legendTitle.textContent = `Top ${supertype} Waste Types`;
+    legendDiv.appendChild(legendTitle);
 
     // Generate legend HTML
-    legendDiv.innerHTML = chartData.legend
+    legendDiv.innerHTML += chartData.legend
     .filter(item => item.value > 0)
     .map(item => {
         const total = chartData.data.reduce((sum, val) => sum + val, 0);
@@ -299,12 +311,14 @@ for (const [supertype, chartData] of Object.entries(barChartData)) {
         </span>`;
     }).join('');
 
-    // Append title first, then the legend itself
-    const legendWrapper = document.createElement('div');
-    legendWrapper.appendChild(legendTitle);
-    legendWrapper.appendChild(legendDiv);
+    // Append title and legend to tab content
+    wrapper.appendChild(legendDiv);
 
-    wrapper.appendChild(legendWrapper);
+    // Append wrapper to tabcontent
+    tabContentDiv.appendChild(wrapper);
+
+    // Append everything to main container
+    container.appendChild(tabContentDiv);
 
     // Chart.js setup
     new Chart(canvas.getContext('2d'), {
@@ -395,3 +409,4 @@ function exportTableToExcel() {
 
 <!-- JS behind the tabs -->
 <script src="/js/tabs.js"></script>
+<script src="/js/tabs-bar.js"></script>

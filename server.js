@@ -1048,8 +1048,6 @@ app.get('/dashboard/data/:id', async (req, res) => {
     };
   }
 
-  //res.json(barChartData)
-
   /* -------- RENDER PAGE -------- */
 
   res.render('dashboard/view-data-entry', {
