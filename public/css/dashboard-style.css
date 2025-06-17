@@ -162,7 +162,7 @@ header {
 /* ------ Nav Styles ------ */
 nav {
     height: 100%;
-    width: 200px; /* Set the width of the sidebar */
+    width: 215px; /* Set the width of the sidebar */
     position: fixed; /* Fixed Sidebar (stay in place on scroll) */
     z-index: 5; /* Stay on top */
     top: 0;
@@ -326,6 +326,8 @@ table td {
     border: 1px solid #ccc;
     display: inline-block;
     background: #f9f9f9;
+    height: fit-content;
+    width: 50%;
 }
 select {
     padding: 5px;
@@ -542,6 +544,8 @@ select {
     padding: 6px 12px;
     border: 2px solid #127009;
     border-top: none;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
 }
 
 #data-table-container {
@@ -726,4 +730,7 @@ select {
     padding: 6px 12px;
     border: 2px solid #127009;
     border-top: none;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    margin-bottom: 10px;
 }

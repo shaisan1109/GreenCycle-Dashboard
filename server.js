@@ -108,6 +108,49 @@ const upload = multer({
 app.use('/uploads', express.static('uploads'));
 
 /* ---------------------------------------
+    CHART DISPLAY FUNCTIONS
+--------------------------------------- */
+
+// Generate shades (for detailed pie chart)
+function shadeColor(hex, percent) {
+  let f = parseInt(hex.slice(1),16),
+      t = percent<0?0:255,
+      p = percent<0?percent*-1:percent,
+      R = f>>16,
+      G = f>>8&0x00FF,
+      B = f&0x0000FF;
+  return `rgb(${Math.round((t-R)*p+R)}, ${Math.round((t-G)*p+G)}, ${Math.round((t-B)*p+B)})`;
+}
+
+// Generate shades (for detailed pie chart)
+function clamp(n) {
+  return Math.max(0, Math.min(255, Math.round(n)));
+}
+
+function shadeBarColor(baseColor, index, total) {
+  // Assume baseColor is in hex: "#4caf50"
+  const base = hexToRgb(baseColor); // Convert hex to RGB object
+
+  // Example: darken based on index
+  const factor = 0.75 + (index / (total * 1.5)); // Adjust factor to taste
+
+  const r = clamp(base.r * factor);
+  const g = clamp(base.g * factor);
+  const b = clamp(base.b * factor);
+
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function hexToRgb(hex) {
+  const bigint = parseInt(hex.replace("#", ""), 16);
+  return {
+    r: (bigint >> 16) & 255,
+    g: (bigint >> 8) & 255,
+    b: bigint & 255
+  };
+}
+
+/* ---------------------------------------
     SESSION
 --------------------------------------- */
 // Set session
@@ -410,21 +453,30 @@ app.get('/partners', async (req, res) => {
     ROUTES (DASHBOARD)
 --------------------------------------- */
 
-/* Testing chart.js */
-app.get('/test-chart', (req, res) => {
-  res.render('dashboard/test-chart', {
-    layout: 'dashboard',
-    title: 'Test Dashboard',
-    current_test: true
-  })
-})
-
 // Dashboard home page
 app.get('/dashboard', (req, res) => {
   res.render('dashboard/dashboard-home', {
     layout: 'dashboard',
     title: 'Main Dashboard | GC Dashboard',
     current_home: true
+  })
+})
+
+// Dashboard home page
+app.get('/dashboard/guide', (req, res) => {
+  res.render('dashboard/guide', {
+    layout: 'dashboard',
+    title: 'Waste Guide | GC Dashboard',
+    current_guide: true
+  })
+})
+
+// Map display
+app.get('/dashboard/data/map', (req, res) => {
+  res.render('dashboard/test-chart', {
+    layout: 'dashboard',
+    title: 'Test Dashboard',
+    current_test: true
   })
 })
 
@@ -508,17 +560,6 @@ app.get('/dashboard/search', async (req, res) => {
         data: [],
         backgroundColor: []
       };
-
-      // Generate shades (for detailed pie chart)
-      function shadeColor(hex, percent) {
-        let f = parseInt(hex.slice(1),16),
-            t = percent<0?0:255,
-            p = percent<0?percent*-1:percent,
-            R = f>>16,
-            G = f>>8&0x00FF,
-            B = f&0x0000FF;
-        return `rgb(${Math.round((t-R)*p+R)}, ${Math.round((t-G)*p+G)}, ${Math.round((t-B)*p+B)})`;
-      }
 
       const baseHexMap = {
         'Biodegradable': '#4caf50',    // green
@@ -925,45 +966,6 @@ app.get('/dashboard/data/:id', async (req, res) => {
     data: [],
     backgroundColor: []
   };
-
-  // Generate shades (for detailed pie chart)
-  function shadeColor(hex, percent) {
-    let f = parseInt(hex.slice(1),16),
-        t = percent<0?0:255,
-        p = percent<0?percent*-1:percent,
-        R = f>>16,
-        G = f>>8&0x00FF,
-        B = f&0x0000FF;
-    return `rgb(${Math.round((t-R)*p+R)}, ${Math.round((t-G)*p+G)}, ${Math.round((t-B)*p+B)})`;
-  }
-
-  // Generate shades (for detailed pie chart)
-  function clamp(n) {
-    return Math.max(0, Math.min(255, Math.round(n)));
-  }
-
-  function shadeBarColor(baseColor, index, total) {
-    // Assume baseColor is in hex: "#4caf50"
-    const base = hexToRgb(baseColor); // Convert hex to RGB object
-
-    // Example: darken based on index
-    const factor = 0.75 + (index / (total * 1.5)); // Adjust factor to taste
-
-    const r = clamp(base.r * factor);
-    const g = clamp(base.g * factor);
-    const b = clamp(base.b * factor);
-
-    return `rgb(${r}, ${g}, ${b})`;
-  }
-
-  function hexToRgb(hex) {
-    const bigint = parseInt(hex.replace("#", ""), 16);
-    return {
-      r: (bigint >> 16) & 255,
-      g: (bigint >> 8) & 255,
-      b: bigint & 255
-    };
-  }
 
   const baseHexMap = {
     'Biodegradable': '#4caf50',    // green

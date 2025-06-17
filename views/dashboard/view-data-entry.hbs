@@ -101,6 +101,8 @@
     </div>
 
     <!-- Subtypes bar charts -->
+    <hr>
+    <br><center><h2>Top Waste Types by Category</h2></center>
     <div class="bar-tab">
         <button class="bar-tablinks" onclick="openBarTab(event, 'Biodegradable')" id="firstBar">BIODEGRADABLE</button>
         <button class="bar-tablinks" onclick="openBarTab(event, 'Recyclable')">RECYCLABLE</button>
@@ -113,6 +115,8 @@
 
 <!-- Display B: Raw Data -->
 <div id="Table" class="tabcontent">
+    <p style="font-size: large;">This table shows the waste composition for <b>{{wasteGen.location_name}}</b> according to waste type. The waste types are further divided into <b>economic sectors</b> (e.g., Residential, Commercial). All raw amounts are in <b>kilograms (kg)</b>.</p>     
+
     <div style="display: flex;">
         <div id="data-table-container">
             <div class="table-operations">
