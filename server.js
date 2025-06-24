@@ -1224,6 +1224,9 @@ app.get('/dashboard/submit-report/form', async (req, res) => {
 // API path after user uploads filled spreadsheet
 app.post("/dashboard/submit-report/upload/confirm", xlsxUpload.single('spreadsheet'), async (req, res) => {
   try {
+    // Form data
+    const formData = req.body
+
     // Set up worksheet for reading
     const fileBuffer = fs.readFileSync(req.file.path);
     const workbook = XLSX.read(fileBuffer, { type: 'buffer' })
@@ -1267,7 +1270,10 @@ app.post("/dashboard/submit-report/upload/confirm", xlsxUpload.single('spreadshe
       perCapita,
       annual,
       sectors,
-      wasteMatrix
+      wasteMatrix,
+      wasteMatrixJson: JSON.stringify(wasteMatrix),
+      formData: JSON.stringify(formData),
+      sectorsJson: JSON.stringify(sectors)
     });
   } catch (err) {
     console.error(err);
@@ -1314,7 +1320,7 @@ app.post("/api/data/submit-report/manual", async (req, res) => {
           sector_id: entry.sector_id,
           type_id: entry.type_id,
           waste_amount: Number(entry.waste_amount) || 0,  // Ensure weight is always a number
-        };
+        }
     }).filter(entry => entry !== null); // Remove any invalid entries
 
     // Push form data to db
@@ -1339,6 +1345,91 @@ app.post("/api/data/submit-report/manual", async (req, res) => {
     res.status(500).json({ error: "Failed to submit report" });
   }
 });
+
+// Conversion function for spreadsheet upload API
+function buildWasteCompositionFromMatrix(wasteMatrix, sectorNames, typeMap, sectorMap) {
+  const wasteComposition = [];
+
+  for (const row of wasteMatrix) {
+    const type_id = typeMap[row.type?.trim()];
+    if (!type_id) continue; // Skip unknown waste types
+
+    row.values.forEach((amount, index) => {
+      const sectorName = sectorNames[index]?.trim();
+      const sector_id = sectorMap[sectorName];
+      if (!sector_id) return; // Skip unknown sectors
+
+      wasteComposition.push({
+        type_id,
+        sector_id,
+        waste_amount: Number(amount) || 0
+      });
+    });
+  }
+
+  return wasteComposition;
+}
+
+// Pass data to db if uploaded spreadsheet values are confirmed
+app.post("/api/data/submit-report/upload", async (req, res) => {
+  /* ------- REQUEST BODY ------- */
+  const {
+    title, region, province, municipality, population, per_capita, annual, date_start, date_end, wasteMatrix, sectorsFromExcel
+  } = req.body;
+
+  const currentUser = req.session.user.id
+
+  /* ------- LOCATION NAME ------- */
+  // Prepare PSGC data for location names
+  const psgcRegions = await PSGCResource.getRegions()
+  const psgcProvinces = await PSGCResource.getProvinces()
+  const psgcMunicipalities = await PSGCResource.getMunicipalities()
+  const psgcCities = await PSGCResource.getCities()
+
+  // Get location names
+  const regionName = getPsgcName(psgcRegions, region)
+  const provinceName = getPsgcName(psgcProvinces, province) || null
+  const municipalityName = getPsgcName(psgcMunicipalities, municipality) || getPsgcName(psgcCities, municipality) || null
+
+  // Set full location name
+  const parts = [municipalityName, provinceName, regionName].filter(Boolean)
+  const fullLocation = parts.join(', ')
+  
+  /* ------- WASTE MATRIX CONVERSION ------- */
+  // Get definitions from db
+  const types = await getWasteTypes()
+  const sectors = await getSectors()
+
+  // Convert to lookup maps
+  const typeMap = Object.fromEntries(types.map(t => [t.name.trim(), t.id]))
+  const sectorMap = Object.fromEntries(sectors.map(s => [s.name.trim(), s.id]))
+
+  // Convert spreadsheet data to insertable data
+  const wasteComposition = buildWasteCompositionFromMatrix(wasteMatrix, sectorsFromExcel, typeMap, sectorMap)
+
+  try {
+    // Push form data to db
+    await submitForm(
+      currentUser, title, region, province, municipality, fullLocation, population, per_capita, annual, date_start, date_end, wasteComposition
+    );
+
+    // Get ID of new data
+    const idResult = await getLatestDataEntry()
+    const newId = idResult[0].data_entry_id
+
+    // Insert first edit history entry
+    const result = await createEditEntry(newId, currentUser, 'Data entry submitted')
+
+    res.status(200).json({
+        message: "Report submitted successfully",
+        reportResult: result,
+    });
+
+  } catch (error) {
+    console.error("Error processing report:", error);
+    res.status(500).json({ error: "Failed to submit report" });
+  }
+})
 
 
 // API: Get locations from json

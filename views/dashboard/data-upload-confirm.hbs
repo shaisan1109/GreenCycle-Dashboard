@@ -22,3 +22,57 @@
     {{/each}}
   </tbody>
 </table>
+
+<button type="submit" id="submitBtn" class="btn-submit">Confirm Submission</button>
+
+<!-- POST request script -->
+<script>
+
+// Pass req.body from previous form to this
+const formData = {{{formData}}}
+
+// Pass variables from server to js
+const wasteMatrix = {{{wasteMatrixJson}}}
+const population = {{population}}
+const per_capita = {{perCapita}}
+const annual = {{annual}}
+const sectorsJson = {{{sectorsJson}}}
+
+// Prepare formData with additional variables
+formData.population = population
+formData.per_capita = per_capita
+formData.annual = annual
+formData.wasteMatrix = wasteMatrix
+formData.sectorsFromExcel = sectorsJson
+
+// Submit button
+const submitBtn = document.getElementById("submitBtn")
+
+document.addEventListener("DOMContentLoaded", function () {
+
+  // Once submit is clicked, begin pushing to db
+  submitBtn.addEventListener("click", async function (event) {
+    event.preventDefault()
+
+    try {
+      const response = await fetch("/api/data/submit-report/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        alert("Report submitted successfully!");
+      } else {
+        alert(result.error || "Submission failed.");
+      } 
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Something went wrong.");
+    }
+  })
+
+})
+
+</script>
