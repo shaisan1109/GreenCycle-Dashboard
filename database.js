@@ -56,11 +56,11 @@ export async function getUsersOfRole(roleId) {
 }
 
 // Create a new user entry
-export async function createUser(roleId, lastName, firstName, email, password, contactNo) {
+export async function createUser(roleId, lastName, firstName, email, password, contactNo, companyName) {
     const result = await sql.query(`
-        INSERT INTO user (user_id, role_id, lastname, firstname, email, password, contact_no)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [0, roleId, lastName, firstName, email, password, contactNo])
+        INSERT INTO user (user_id, role_id, lastname, firstname, email, password, contact_no, company_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [0, roleId, lastName, firstName, email, password, contactNo, companyName])
     
     // Return new object if successful
     const id = result[0].insertId
@@ -437,18 +437,18 @@ export async function revokeApproval(appId, adminNotes) {
 }
 
 // Create new application (no application_id needed as trigger handles it)
-export async function createApplication(firstName, lastName, email, contactNo, verificationDoc) {
+export async function createApplication(firstName, lastName, email, contactNo, companyName, verificationDoc) {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     
     // Insert new application with pending status
     // application_id is auto-generated via trigger
     const result = await sql.query(`
         INSERT INTO user_applications (
-            lastname, firstname, email, contact_no, 
+            lastname, firstname, email, contact_no, company_name,
             verification_doc, status, submission_date
         )
-        VALUES (?, ?, ?, ?, ?, 'Pending Review', ?)
-    `, [lastName, firstName, email, contactNo, verificationDoc, today])
+        VALUES (?, ?, ?, ?, ?, ?, 'Pending Review', ?)
+    `, [lastName, firstName, email, contactNo, companyName, verificationDoc, today])
     
     // Get the last inserted ID (using the auto-increment trigger logic)
     const [idResult] = await sql.query(`
@@ -517,9 +517,9 @@ export async function approveApplication(appId, adminNotes) {
         await connection.query(`
             INSERT INTO user (
                 role_id, lastname, firstname, email, 
-                password, contact_no, verified
+                password, contact_no, company_name, verified
             )
-            VALUES (?, ?, ?, ?, ?, ?, 1)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 1)
         `, [
             4, // Default role for client applications (Government)
             application.lastname,
@@ -527,6 +527,7 @@ export async function approveApplication(appId, adminNotes) {
             application.email,
             'ChangeMe123', // Default password that needs to be changed on first login
             application.contact_no,
+            application.company_name,
             1 // Set as verified since application is approved
         ])
         

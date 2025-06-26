@@ -386,7 +386,7 @@ app.post('/api/login/success', async (req, res) => {
 // Login failed (when the email is right but the password isn't)
 app.post('/api/login/wrong-pass', async (req, res) => {
   const userId = Number(req.body.userId)
-  wrongPassword(userId)
+  wrongPassword(userId) // Adds to count of failed logins for this user
   res.json({ success: true, message: "Wrong password" })
 })
 
@@ -1471,8 +1471,8 @@ app.get('/test-locations', async (req, res) => {
 
 // API: Create user
 app.post('/users', async (req, res) => {
-  const { roleId, lastName, firstName, email, password, contactNo } = req.body
-  const user = await createUser(roleId, lastName, firstName, email, password, contactNo)
+  const { roleId, lastName, firstName, email, password, contactNo, companyName } = req.body
+  const user = await createUser(roleId, lastName, firstName, email, password, contactNo,companyName)
   res.send(user)
 })
 
@@ -1512,7 +1512,7 @@ app.delete('/users/:id', async (req, res) => {
 // API: Submit new application
 app.post('/api/applications', upload.single('verificationDoc'), async (req, res) => {
   try {
-    const { firstName, lastName, email, contactNo } = req.body
+    const { firstName, lastName, email, contactNo, companyName } = req.body
     
     // Basic validation
     if (!firstName || !lastName || !email) {
@@ -1539,7 +1539,7 @@ app.post('/api/applications', upload.single('verificationDoc'), async (req, res)
     
     // Create the application
     const result = await createApplication(
-      firstName, lastName, email, contactNo, verificationDoc
+      firstName, lastName, email, contactNo, companyName, verificationDoc
     )
     
     res.status(201).json({ 

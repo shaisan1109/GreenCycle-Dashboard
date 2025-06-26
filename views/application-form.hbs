@@ -29,6 +29,11 @@
                     <label for="contactNo">Contact Number:</label>
                     <input type="text" id="contactNo" name="contactNo" placeholder="+63 (XXX) XXX XXXX" required>
                 </div>
+
+                <div class="form-group">
+                    <label for="companyName">Company Name:</label>
+                    <input type="text" id="companyName" name="companyName" required>
+                </div>
             </div>
             
             <div class="form-section">
@@ -101,6 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.append('lastName', document.getElementById('lastName').value);
         formData.append('email', document.getElementById('email').value);
         formData.append('contactNo', document.getElementById('contactNo').value);
+        formData.append('companyName', document.getElementById('companyName').value);
         
         // Add file if selected
         const fileInput = document.getElementById('verificationDoc');

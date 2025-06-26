@@ -69,6 +69,10 @@
                     <div id="appContact" class="info-value"></div>
                 </div>
                 <div class="info-row">
+                    <div class="info-label">Company Name:</div>
+                    <div id="appCompany" class="info-value"></div>
+                </div>
+                <div class="info-row">
                     <div class="info-label">Submission Date:</div>
                     <div id="appDate" class="info-value"></div>
                 </div>
@@ -383,6 +387,7 @@ function viewApplication(appId) {
             document.getElementById('appName').textContent = `${app.lastname.toUpperCase()}, ${app.firstname}`;
             document.getElementById('appEmail').textContent = app.email;
             document.getElementById('appContact').textContent = app.contact_no || 'Not provided';
+            document.getElementById('appCompany').textContent = app.company_name;
             
             // Format the date properly
             const submissionDate = new Date(app.submission_date);
