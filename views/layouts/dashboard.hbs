@@ -147,30 +147,32 @@ document.addEventListener('DOMContentLoaded', function () {
     sidebar.classList.add('open');
     openBtn.classList.add('hidden');
 
-    // Open sidebar
+    // Open sidebar (button fades out)
     openBtn.addEventListener('click', () => {
         sidebar.classList.remove('closed');
         sidebar.classList.add('open');
 
-        // Gradual fade-out
-        openBtn.classList.add('hidden');
+        openBtn.classList.add('hidden'); // trigger fade-out
+        openBtn.classList.remove('visible');
 
-        // Fully remove after transition (optional for accessibility)
+        // Fully remove from layout after transition
         setTimeout(() => {
             openBtn.style.display = 'none';
-        }, 300); // match CSS transition duration
+        }, 300);
     });
 
-    // Collapse sidebar
+    // Collapse sidebar (button fades in)
     collapseBtn.addEventListener('click', () => {
         sidebar.classList.remove('open');
         sidebar.classList.add('closed');
 
-        // Reset button visibility (immediately visible)
+        // Reset display, then fade in
         openBtn.style.display = 'flex';
+
         setTimeout(() => {
             openBtn.classList.remove('hidden');
-        }, 10); // allow next paint before fade-in
+            openBtn.classList.add('visible');
+        }, 10); // delay just enough for transition to apply
     });
 
     // Logout code

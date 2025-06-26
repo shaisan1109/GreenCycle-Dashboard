@@ -300,22 +300,29 @@ nav a:hover {
     gap: 10px;
     z-index: 9999;
 
-    /* For fade effect */
-    opacity: 1;
+    /* Fading behavior */
+    opacity: 0;
+    display: none;
     transition: opacity 0.3s ease;
 }
 
-/* Start hidden */
+/* .visible = we want to fade in */
+#open-sidebar-btn.visible {
+    display: flex;
+    opacity: 1;
+}
+
+/* .hidden = we want to fade out */
 #open-sidebar-btn.hidden {
     opacity: 0;
     pointer-events: none;
 }
 
 /* Show Open Sidebar button only when sidebar is collapsed */
-.sidebar.closed ~ #main-content #open-sidebar-btn {
+/* .sidebar.closed ~ #main-content #open-sidebar-btn {
     display: flex;
     opacity: 1;
-}
+} */
 
 /* ------ Table Styles ------ */
 .tb-container {
