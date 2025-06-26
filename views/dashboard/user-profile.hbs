@@ -1,28 +1,64 @@
-<div class="tb-container">
-    <table class="user-profile">
-        <tr>
-            <td class="label">User ID</td>
-            <td>{{user.id}}</td>
-        </tr>
-        <tr>
-            <td class="label">Role</td>
-            <td>{{user.role_name}}</td>
-        </tr>
-        <tr>
-            <td class="label">Full Name</td>
-            <td>{{uppercase user.lastname}}, {{user.firstname}}</td>
-        </tr>
-        <tr>
-            <td class="label">Email</td>
-            <td>{{user.email}}</td>
-        </tr>
-        <tr>
-            <td class="label">Contact No.</td>
-            <td>
-                {{#check user.contact_no null}}
-                    {{user.contact_no}}
-                {{/check}}
-            </td>
-        </tr>
-    </table>
+<div class="profile-container">
+    <div class="profile-header">
+        <h2>{{user.firstname}} {{user.lastname}}</h2>
+        <div class="profile-role">{{user.role_name}}</div>
+    </div>
+
+    <div class="profile-details">
+        <dl>
+        <dt>User ID:</dt>
+        <dd>{{user.id}}</dd>
+
+        <dt>Email:</dt>
+        <dd>{{user.email}}</dd>
+
+        <dt>Contact No.:</dt>
+        <dd>{{user.contact_no}}</dd>
+
+        <dt>Company Name:</dt>
+        <dd>{{user.company}}</dd>
+        </dl>
+    </div>
 </div>
+
+<style>
+    .profile-container {
+      max-width: 600px;
+      margin: auto;
+      background-color: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      border: 2px solid #127009;
+    }
+
+    .profile-header {
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 1.5rem;
+    }
+
+    .profile-header h2 {
+      margin: 0;
+      font-size: 1.75rem;
+      color: #333;
+    }
+
+    .profile-role {
+      font-size: 0.95rem;
+      color: #888;
+      margin-top: 0.25rem;
+    }
+
+    .profile-details dl {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      row-gap: 1rem;
+      column-gap: 1rem;
+      font-size: 1rem;
+      color: #444;
+    }
+
+    .profile-details dt {
+      font-weight: 600;
+    }
+</style>
