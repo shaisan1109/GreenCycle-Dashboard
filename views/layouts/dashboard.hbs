@@ -144,35 +144,43 @@ document.addEventListener('DOMContentLoaded', function () {
     const openBtn = document.getElementById('open-sidebar-btn');
     const collapseBtn = document.getElementById('collapse-sidebar-btn');
 
-    sidebar.classList.add('open');
-    openBtn.classList.add('hidden');
-
-    // Open sidebar (button fades out)
-    openBtn.addEventListener('click', () => {
-        sidebar.classList.remove('closed');
-        sidebar.classList.add('open');
-
-        openBtn.classList.add('hidden'); // trigger fade-out
-        openBtn.classList.remove('visible');
-
-        // Fully remove from layout after transition
+    // --- Restore sidebar state from localStorage ---
+    const savedState = localStorage.getItem('sidebarState');
+    if (savedState === 'closed') {
+        sidebar.classList.add('closed');
+        sidebar.classList.remove('open');
+        openBtn.style.display = 'flex';
         setTimeout(() => {
-            openBtn.style.display = 'none';
-        }, 300);
-    });
+            openBtn.classList.add('visible');
+        }, 10);
+    } else {
+        sidebar.classList.add('open');
+    }
 
-    // Collapse sidebar (button fades in)
+    // --- Collapse sidebar ---
     collapseBtn.addEventListener('click', () => {
         sidebar.classList.remove('open');
         sidebar.classList.add('closed');
+        localStorage.setItem('sidebarState', 'closed');
 
-        // Reset display, then fade in
         openBtn.style.display = 'flex';
-
         setTimeout(() => {
             openBtn.classList.remove('hidden');
             openBtn.classList.add('visible');
-        }, 10); // delay just enough for transition to apply
+        }, 10);
+    });
+
+    // --- Open sidebar ---
+    openBtn.addEventListener('click', () => {
+        sidebar.classList.remove('closed');
+        sidebar.classList.add('open');
+        localStorage.setItem('sidebarState', 'open');
+
+        openBtn.classList.add('hidden');
+        openBtn.classList.remove('visible');
+        setTimeout(() => {
+            openBtn.style.display = 'none';
+        }, 300);
     });
 
     // Logout code
