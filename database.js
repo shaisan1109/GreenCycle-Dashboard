@@ -4,6 +4,7 @@ import 'dotenv/config'
 import fetch from 'node-fetch'
 import mysql from 'mysql2'
 import { PSGCResource } from 'psgc-areas';
+import bcrypt from 'bcrypt'
 
 // Collection of connections to the database
 const sql = mysql.createPool({
@@ -519,6 +520,9 @@ export async function approveApplication(appId, adminNotes) {
         
         const application = applicationData[0]
         
+        // Set default hashed password
+        const hashedPassword = await bcrypt.hash('ChangeMe123', 10)
+
         // 3. Create user in users table
         // Using role_id 4 (Government) as default for client applications
         await connection.query(`
@@ -532,7 +536,7 @@ export async function approveApplication(appId, adminNotes) {
             application.lastname,
             application.firstname,
             application.email,
-            'ChangeMe123', // Default password that needs to be changed on first login
+            hashedPassword, // Default password that needs to be changed on first login
             application.contact_no,
             application.company_name,
             1 // Set as verified since application is approved

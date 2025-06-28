@@ -1533,7 +1533,12 @@ app.get('/test-locations', async (req, res) => {
 // API: Create user
 app.post('/users', async (req, res) => {
   const { roleId, lastName, firstName, email, password, contactNo, companyName } = req.body
-  const user = await createUser(roleId, lastName, firstName, email, password, contactNo,companyName)
+
+  // Hash password
+  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS)
+
+  // Insert user in db
+  const user = await createUser(roleId, lastName, firstName, email, hashedPassword, contactNo,companyName)
   res.send(user)
 })
 
