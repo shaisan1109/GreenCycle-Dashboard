@@ -35,7 +35,8 @@ import {
   getPendingApplicationCount,
   getDataForReviewCount,
   getAvgInfo,
-  getAvgWasteComposition
+  getAvgWasteComposition,
+  hashPassword
 } from './database.js'
 
 // File Upload
@@ -52,6 +53,10 @@ import favicon from 'serve-favicon'
 
 // SheetJS
 import * as XLSX from 'xlsx'
+
+// Password encryption
+import bcrypt from 'bcrypt'
+const SALT_ROUNDS = 10
 
 /* ---------------------------------------
     EXPRESS
@@ -350,7 +355,63 @@ app.get('/login', (req, res) => {
   })
 })
 
+// Login API
+app.post('/api/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // Find user in database
+    const userList = await getUserByEmail(email);
+
+    // If user is not found, send error
+    if (!userList || userList.length === 0) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    // Set user once entry is found
+    const user = userList[0];
+    const storedPassword = user.password
+
+    // Compare password using bcrypt
+    const isMatch = await bcrypt.compare(password, storedPassword);
+    if (!isMatch) {
+      await wrongPassword(user.user_id); // update wrong password count
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    // Set session info
+    req.session.authenticated = true;
+    req.session.user = {
+      id: user.user_id,
+      role_id: user.role_id,
+      lastname: user.lastname,
+      firstname: user.firstname,
+      email: user.email,
+      contact_no: user.contact_no,
+      org_id: user.partner_org_id,
+      role_name: user.role_name,
+      supertype: user.supertype,
+      company: user.company_name
+    };
+
+    await lastLogin(user.user_id); // Add current datetime to user's last login
+
+    req.session.save(err => {
+      if (err) {
+        console.error("Session save error:", err);
+        return res.status(500).json({ success: false, message: 'Session error' });
+      }
+      res.json({ success: true, message: 'Login successful' });
+    });
+
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
 // Login success (called when user is ALREADY validated)
+/*
 app.post('/api/login/success', async (req, res) => {
   const user = req.body;
 
@@ -388,7 +449,7 @@ app.post('/api/login/wrong-pass', async (req, res) => {
   const userId = Number(req.body.userId)
   wrongPassword(userId) // Adds to count of failed logins for this user
   res.json({ success: true, message: "Wrong password" })
-})
+}) */
 
 // Log out current user
 app.delete('/logout', (req, res) => {

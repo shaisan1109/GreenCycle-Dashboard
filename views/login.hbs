@@ -49,98 +49,32 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', function(e) {
         e.preventDefault();
 
-        // Form data to send to server
-        let formData = {
+        const formData = {
             email: emailInput.value,
             password: passwordInput.value,
         };
 
-        // Check if email exists
-        fetch('/api/user', {
+        fetch('/api/login', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+            'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ email: formData.email })
+            body: JSON.stringify(formData)
         })
-        .then(response => response.json())
-        .then((data) => {
-            const accountEntry = data
-
-            // First, check if returned data has contents
-            if(accountEntry.length > 0) {
-
-                // Email exists; now compare passwords
-                // Supposed to be encrypted, but for now, compare passwords in the database
-                if(formData.password === accountEntry[0].password) {
-
-                    // Passwords match; send request to API to set user session
-                    fetch('/api/login/success', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(accountEntry[0])
-                    })
-                    .then(response => {
-                        if (response.ok) {
-                            return response.json();
-                        }
-                        throw new Error('Network response was not ok');
-                    })
-                    .then(data => {
-                        // Reset form
-                        form.reset()
-
-                        window.location.href = '/dashboard';
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Error logging in. Please try again.');
-                    });
-
-                } else { // Passwords do not match
-
-                    // Send request to add number of failed logins for this email
-                    fetch(`/api/login/wrong-pass`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            userId: accountEntry[0].user_id
-                        })
-                    })
-                    .then(response => {
-                        if (response.ok) {
-                            return response.json();
-                        }
-                        throw new Error('Network response was not ok');
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Error logging in. Please try again.');
-                    });
-
-                    // Reveal error on form and return
-                    loginError.style.display = 'block';
-                    
-                    // Reset login form
-                    form.reset()
-                    formData = {}
-
-                    return;
-                }
-
-            } else { // Email does not exist
-                // Reveal error on form and return
-                loginError.style.display = 'block';
-                form.reset()
-                formData = {}
-                return;
-            }
+        .then(response => {
+            if (response.ok) return response.json();
+            else throw new Error('Invalid credentials');
         })
-    })
+        .then(data => {
+            form.reset();
+            window.location.href = '/dashboard';
+        })
+        .catch(error => {
+            console.error('Login failed:', error);
+            loginError.style.display = 'block';
+            form.reset();
+        });
+    });
 })
 
 </script>
