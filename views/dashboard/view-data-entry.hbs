@@ -128,19 +128,32 @@
     <div style="display: flex;">
         <div id="data-table-container">
             <div class="table-operations">
-                <input type="text" class="tbl-search" placeholder="Enter keyword...">&nbsp;
-                <button type="button" class="tbl-export">
-                    <i class="fa-solid fa-magnifying-glass"></i>&nbsp; Search
-                </button>
-                
-                <!-- Export buttons -->
-                <div style="margin-left: auto;">
-                    <button onclick="exportTableToCSV()" class="button tbl-export">
-                        <i class="fa-solid fa-file-csv"></i>&nbsp; Export as CSV
+                <div style="display: flex;">
+                    <input type="text" class="tbl-search" placeholder="Enter keyword...">&nbsp;
+                    <button type="button" class="tbl-export">
+                        <i class="fa-solid fa-magnifying-glass"></i>&nbsp; Search
                     </button>
-                    <button onclick="exportTableToExcel()" class="button tbl-export">
-                        <i class="fa-solid fa-file-excel"></i>&nbsp; Export as Excel
-                    </button>
+                    
+                    <!-- Export buttons -->
+                    <div style="margin-left: auto;">
+                        <button onclick="exportTableToCSV()" class="button tbl-export">
+                            <i class="fa-solid fa-file-csv"></i>&nbsp; Export as CSV
+                        </button>
+                        <button onclick="exportTableToExcel()" class="button tbl-export">
+                            <i class="fa-solid fa-file-excel"></i>&nbsp; Export as Excel
+                        </button>
+                    </div>
+                </div>
+
+                <div style="margin-top: 5px;">
+                    Filters: 
+                    <select id="supertype-filter">
+                        <option value="all">Select Category</option>
+                        <option value="Biodegradable">Biodegradable</option>
+                        <option value="Recyclable">Recyclable</option>
+                        <option value="Residual">Residual</option>
+                        <option value="Special/Hazardous">Special/Hazardous</option>
+                    </select>
                 </div>
             </div>
 
@@ -158,11 +171,11 @@
                 </thead>
                 <tbody>
                     {{#each supertypes}}
-                        <tr>
+                        <tr supertype="{{name}}">
                             <td colspan="{{add ../sectors.length 3}}" class="tb-supertype"><strong>{{uppercase name}}</strong></td>
                         </tr>
                         {{#each types}}
-                            <tr>
+                            <tr supertype="{{../name}}">
                             <td>{{name}}</td>
                             {{#with amounts as |a|}} <!-- Set alias for amounts -->
                                 {{#each ../../../sectors}}
@@ -173,7 +186,7 @@
                             {{/with}}
                             </tr>
                         {{/each}}
-                        <tr class="tb-subtotal">
+                        <tr class="tb-subtotal" supertype="{{name}}">
                             <td style="text-align: left;"><strong>{{name}} Subtotal</strong></td>
                             {{#each ../sectors}}
                                 <td><strong>{{lookup ../this.sectorTotals this.id}}</strong></td>
@@ -205,6 +218,26 @@
         <button class="btn-submit"><i class="fa-solid fa-clock-rotate-left"></i> View Edit History</button>
     </a>
 </fieldset>
+
+<!-- Table filtering script -->
+<script>
+
+// Supertype filter
+document.getElementById('supertype-filter').addEventListener('change', function () {
+  const selected = this.value;
+  const allRows = document.querySelectorAll('tr[supertype]');
+
+  allRows.forEach(row => {
+    const rowSupertype = row.getAttribute('supertype');
+    if (selected === 'all' || rowSupertype === selected) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+});
+
+</script>
 
 <!-- Pie chart script -->
 <script>

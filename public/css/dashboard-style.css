@@ -697,7 +697,8 @@ select {
     border-radius: 5px;
     padding: 5px;
     margin-bottom: 10px;
-    display: flex;
+    /* display: flex; */
+    flex-direction: column;
 }
 
 .tbl-search {
