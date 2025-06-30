@@ -129,10 +129,20 @@
         <div id="data-table-container">
             <div class="table-operations">
                 <div style="display: flex;">
-                    <input type="text" class="tbl-search" placeholder="Enter keyword...">&nbsp;
-                    <button type="button" class="tbl-export">
-                        <i class="fa-solid fa-magnifying-glass"></i>&nbsp; Search
-                    </button>
+                    <!-- Search bar -->
+                    <div class="search-container">
+                        <i class="fas fa-search"></i>
+                        <input type="text" class="tbl-search" id="tbl-search" placeholder="Enter keyword...">
+                    </div>&nbsp;
+                    
+                    <!-- Supertype filter -->
+                    <select id="supertype-filter">
+                        <option value="all">Select Category</option>
+                        <option value="Biodegradable">Biodegradable</option>
+                        <option value="Recyclable">Recyclable</option>
+                        <option value="Residual">Residual</option>
+                        <option value="Special/Hazardous">Special/Hazardous</option>
+                    </select>
                     
                     <!-- Export buttons -->
                     <div style="margin-left: auto;">
@@ -143,17 +153,6 @@
                             <i class="fa-solid fa-file-excel"></i>&nbsp; Export as Excel
                         </button>
                     </div>
-                </div>
-
-                <div style="margin-top: 5px;">
-                    Filters: 
-                    <select id="supertype-filter">
-                        <option value="all">Select Category</option>
-                        <option value="Biodegradable">Biodegradable</option>
-                        <option value="Recyclable">Recyclable</option>
-                        <option value="Residual">Residual</option>
-                        <option value="Special/Hazardous">Special/Hazardous</option>
-                    </select>
                 </div>
             </div>
 
@@ -223,19 +222,26 @@
 <script>
 
 // Supertype filter
-document.getElementById('supertype-filter').addEventListener('change', function () {
-  const selected = this.value;
+const searchInput = document.getElementById('tbl-search');
+const dropdown = document.getElementById('supertype-filter');
+
+function filterTable() {
+  const keyword = searchInput.value.trim().toLowerCase();
+  const selectedSupertype = dropdown.value;
   const allRows = document.querySelectorAll('tr[supertype]');
 
   allRows.forEach(row => {
     const rowSupertype = row.getAttribute('supertype');
-    if (selected === 'all' || rowSupertype === selected) {
-      row.style.display = '';
-    } else {
-      row.style.display = 'none';
-    }
+    const text = row.textContent.toLowerCase();
+    const matchesSupertype = selectedSupertype === 'all' || rowSupertype === selectedSupertype;
+    const matchesSearch = text.includes(keyword);
+
+    row.style.display = matchesSupertype && matchesSearch ? '' : 'none';
   });
-});
+}
+
+searchInput.addEventListener('input', filterTable);
+dropdown.addEventListener('change', filterTable);
 
 </script>
 

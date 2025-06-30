@@ -706,6 +706,24 @@ select {
     font-size: 14px;
 }
 
+.search-container {
+  position: relative;
+  display: inline-block;
+}
+
+.search-container i {
+  position: absolute;
+  top: 50%;
+  right: 10px; /* changed from left: 10px */
+  transform: translateY(-50%);
+  color: #999;
+  pointer-events: none;
+}
+
+.search-container input {
+  padding: 8px 35px 8px 8px; /* adjusted padding: icon is on the right */
+}
+
 .tbl-export {
     cursor: pointer;
     background-color: #209915;
