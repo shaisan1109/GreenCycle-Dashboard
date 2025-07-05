@@ -463,31 +463,16 @@ select {
     text-decoration: none;
 }
 
+.waste-data-btn-link {
+    text-decoration: none;
+}
+
 .waste-data-btn {
-    width: 100%;
-    border: 2px solid #127009;
-    border-radius: 5px;
-    background-color: white;
-    text-align: left;
-    padding: 20px;
-    margin-top: 10px;
-    font-size: 16px;
+  transition: background-color 0.2s ease;
 }
+
 .waste-data-btn:hover {
-    cursor: pointer;
-    background-color: #dcecda;
-}
-
-.waste-data-btn h1 {
-    margin: 0;
-}
-
-.data-status {
-    font-size: normal !important;
-    color: white;
-    padding: 5px 15px;
-    border-radius: 15px;
-    margin-left: auto;
+  background-color: #e9ffeb;
 }
 
 .stat-rejected {
@@ -498,6 +483,28 @@ select {
 }
 .stat-pending {
     background-color: orange;
+}
+
+.data-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.data-entry-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #2c3e50;
+}
+
+.data-status {
+  padding: 5px 15px;
+  border-radius: 15px;
+  font-size: normal !important;
+  font-weight: bold;
+  color: white;
 }
 
 /* ------ Data Entry ------ */

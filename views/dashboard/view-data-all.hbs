@@ -1,102 +1,118 @@
-<!-- Search bar -->
-<!-- Search Bar and Filter Toggle -->
-<div class="search-bar-container">
-  <input type="text" class="search-input-main" placeholder="Search data entries...">
-  
-  <button class="search-btn">
-    <i class="fas fa-search"></i> Search
-  </button>
+<!-- Search form -->
+<form id="data-search">
+    <!-- Search Bar and Filter Toggle -->
+    <div class="search-bar-container">
+        <input type="text" class="search-input-main" placeholder="Search data entries...">
+        
+        <button class="search-btn">
+            <i class="fas fa-search"></i> Search
+        </button>
 
-  <span class="filter-toggle" onclick="toggleFilters()">
-    <i class="fas fa-sliders-h"></i> Show Filters
-  </span>
-</div>
+        <span id="filter-toggle" class="filter-toggle" onclick="toggleFilters()">
+            <i class="fas fa-sliders-h"></i> Show Filters
+            </span>
+        </div>
 
-<!-- Hidden Filters Section -->
-<div id="filter-section" class="filter-section hidden">
-  <div class="filter-columns">
-    
-    <!-- Location Filters -->
-    <div class="filter-column">
-      <label for="filter-region">Region</label>
-      <select name="region" id="regions">
-        <option value="">Select a region</option>
-        <!-- Populated by locations.js -->
-      </select>
+        <!-- Hidden Filters Section -->
+        <div id="filter-section" class="filter-section hidden">
+        <div class="filter-columns">
+            
+            <!-- Location Filters -->
+            <div class="filter-column">
+              <label for="region">Region</label>
+              <select name="region" id="regions">
+                  <option value="">Select a region</option>
+                  <!-- Populated by locations.js -->
+              </select>
 
-      <label for="filter-province">Province</label>
-      <select name="province" id="provinces" disabled>
-        <option value="">Select a province</option>
-        <!-- Populated by locations.js -->
-      </select>
+              <label for="province">Province</label>
+              <select name="province" id="provinces" disabled>
+                  <option value="">Select a province</option>
+                  <!-- Populated by locations.js -->
+              </select>
 
-      <label for="filter-municipality">City/Municipality</label>
-      <select name="municipality" id="municipalities" disabled>
-        <option value="">Select a city/municipality</option>
-        <!-- Populated by locations.js -->
-      </select>
+              <label for="municipality">City/Municipality</label>
+              <select name="municipality" id="municipalities" disabled>
+                  <option value="">Select a city/municipality</option>
+                  <!-- Populated by locations.js -->
+              </select>
 
-      <label for="filter-barangay">Barangay</label>
-      <input type="text" id="filter-barangay">
+              <label for="barangay">Barangay</label>
+              <input type="text" id="barangay">
+            </div>
+
+            <!-- Author & Date Filters -->
+            <div class="filter-column">
+              <label for="filter-author">Author</label>
+              <input type="text" id="filter-author" placeholder="Enter author's name">
+
+              <label for="filter-org">Organization Name</label>
+              <input type="text" id="filter-org" placeholder="Enter organization name">
+
+              <label>Collection Date Range</label>
+              <div class="date-range">
+                  <input type="date" id="filter-date-start"> to
+                  <input type="date" id="filter-date-end">
+              </div>
+            </div>
+
+        </div>
     </div>
-
-    <!-- Author & Date Filters -->
-    <div class="filter-column">
-      <label for="filter-author">Author</label>
-      <input type="text" id="filter-author" placeholder="Enter author's name">
-
-      <label for="filter-org">Organization Name</label>
-      <input type="text" id="filter-org" placeholder="Enter organization name">
-
-      <label>Collection Date Range</label>
-      <div class="date-range">
-        <input type="date" id="filter-date-start"> to
-        <input type="date" id="filter-date-end">
-      </div>
-    </div>
-
-  </div>
-</div>
+</form>
 
 {{#ifEquals data.length 0}}
     No entries found.
 {{/ifEquals}}
 
 {{#each data}}
-    <a href="/dashboard/data{{#if ../current_datasubs}}/review{{/if}}/{{data_entry_id}}">
-        <button class='waste-data-btn'>
-            <div style="display: flex;">
-                <!-- Title -->
-                <h2 style="margin: 0">{{title}}</h2>
-
-                <!-- Data entry status -->
-                <span class="data-status {{#ifEquals status 'Pending Review'}}stat-pending{{/ifEquals}} {{#ifEquals status 'Approved'}}stat-approved{{/ifEquals}} {{#ifEquals status 'Rejected'}}stat-rejected{{/ifEquals}}">{{status}}</span>
+    <a href="/dashboard/data{{#if ../current_datasubs}}/review{{/if}}/{{data_entry_id}}" class="waste-data-btn-link">
+        <div class="form-section waste-data-btn" style="cursor: pointer;">
+            
+            <!-- Header: Title and Status -->
+            <div class="data-entry-header">
+            <h2>{{title}}</h2>
+            <span class="data-status 
+                {{#ifEquals status 'Pending Review'}}stat-pending{{/ifEquals}} 
+                {{#ifEquals status 'Approved'}}stat-approved{{/ifEquals}} 
+                {{#ifEquals status 'Rejected'}}stat-rejected{{/ifEquals}}">
+                {{status}}
+            </span>
             </div>
 
+            <!-- Main Info -->
             <p>
-                <b>Location: </b>{{location_name}} <br>
-                <i>Submitted on {{textDate date_submitted}}</i>
-            </p>
-            
-            <p>
-                <b>Submitted by:</b> {{uppercase lastname}}, {{firstname}}<br>
-                <i>{{company_name}}</i>
+            <strong>Location:</strong> {{location_name}}<br>
+            <i>Submitted on {{textDate date_submitted}}</i>
             </p>
 
-            <b>Collection Period:</b> {{textDate collection_start}} - {{textDate collection_end}}<br>
-        </button>
+            <p>
+            <strong>Submitted by:</strong> {{uppercase lastname}}, {{firstname}}<br>
+            <i>{{company_name}}</i>
+            </p>
+
+            <p>
+            <strong>Collection Period:</strong> {{textDate collection_start}} – {{textDate collection_end}}</p>
+
+        </div>
     </a>
 {{/each}}
 
 <!-- Location search script -->
-<script src="../js/locations-search.js"></script>
+<script src="../../js/locations-search.js"></script>
 
 <!-- Toggle filter script -->
 <script>
 
 function toggleFilters() {
     const filterSection = document.getElementById('filter-section');
-    filterSection.classList.toggle('hidden');
+    const toggleText = document.getElementById('filter-toggle');
+
+    const isHidden = filterSection.classList.toggle('hidden');
+
+    // Update toggle label text
+    toggleText.innerHTML = `
+      <i class="fas fa-sliders-h"></i> ${isHidden ? 'Show Filters' : 'Hide Filters'}
+    `;
   }
 
 </script>
@@ -206,6 +222,36 @@ function toggleFilters() {
 
 .search-btn:hover {
   background-color: #34b452;
+}
+
+.form-section {
+  background-color: #fdfdfd;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  margin: 1rem auto;
+  font-family: 'Segoe UI', sans-serif;
+  color: #333;
+}
+
+.form-section h3 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+}
+
+.form-section h3 i {
+  margin-right: 0.6rem;
+  color: #127009;;
+}
+
+.form-section label {
+  display: block;
+  margin-top: 1rem;
+  font-weight: 600;
+  font-size: 0.95rem;
 }
 
 </style>
