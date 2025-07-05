@@ -36,7 +36,9 @@ import {
   getDataForReviewCount,
   getAvgInfo,
   getAvgWasteComposition,
-  hashPassword
+  hashPassword,
+  getDataByStatusPaginated,
+  getTotalDataCountByStatus
 } from './database.js'
 
 // File Upload
@@ -56,7 +58,7 @@ import * as XLSX from 'xlsx'
 
 // Password encryption
 import bcrypt from 'bcrypt'
-const SALT_ROUNDS = 10
+const SALT_ROUNDS = 10 // bcrypt salt rounds
 
 /* ---------------------------------------
     EXPRESS
@@ -315,6 +317,8 @@ Handlebars.registerHelper('default', (value, fallback) => value != null ? value 
 // Add helper for data entry colspan
 Handlebars.registerHelper('add', (a, b) => a + b);
 
+Handlebars.registerHelper('subtract', (a, b) => a - b);
+
 Handlebars.registerHelper('toFixed', function (value, digits) {
   return Number(value).toFixed(digits);
 });
@@ -336,6 +340,20 @@ Handlebars.registerHelper('calcPercent', function (value, fullArray) {
 Handlebars.registerHelper('gt', function (a, b) {
   return Number(a) > Number(b);
 });
+
+Handlebars.registerHelper('lt', (a, b) => a < b);
+
+Handlebars.registerHelper('paginationRange', (currentPage, totalPages) => {
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(totalPages, currentPage + 2);
+    let range = [];
+    for (let i = start; i <= end; i++) {
+        range.push(i);
+    }
+    return range;
+});
+
+Handlebars.registerHelper('eq', (a, b) => a === b);
 
 /* ---------------------------------------
     ROUTES (PUBLIC)
@@ -746,15 +764,26 @@ app.get('/dashboard/search', async (req, res) => {
 
 // Get all approved data entries
 app.get('/dashboard/data/all', async (req, res) => {
-  const data = await getDataByStatus('Approved')
+  const page = parseInt(req.query.page) || 1
+  const limit = 1 // entries per page
+  const offset = (page - 1) * limit
+
+  const [data, totalCount] = await Promise.all([
+    getDataByStatusPaginated('Approved', limit, offset),
+    getTotalDataCountByStatus('Approved')
+  ]);
+
+  const totalPages = Math.ceil(totalCount / limit);
 
   res.render('dashboard/view-data-all', {
     layout: 'dashboard',
     title: 'All Data Entries | GC Dashboard',
     data,
+    currentPage: page,
+    totalPages,
     current_all: true
-  })
-})
+  });
+});
 
 // View data submissions
 app.get('/dashboard/data/submissions', async (req, res) => {

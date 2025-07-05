@@ -873,3 +873,33 @@ select {
     border-bottom-right-radius: 5px;
     margin-bottom: 10px;
 }
+
+
+/* ------ Pagination ------ */
+.pagination {
+    margin-top: 1em;
+    text-align: center;
+}
+.pagination-btn {
+    display: inline-block;
+    margin: 0 4px;
+    padding: 6px 12px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    color: #343434;
+    text-decoration: none;
+    transition: background 0.3s;
+}
+.pagination-btn:hover {
+    background: #c7f1cc;
+}
+.pagination-btn.active {
+    background: #28a745;
+    color: white;
+    font-weight: bold;
+    border: 1px solid #28a745;
+}
+.pagination-btn.arrow {
+    color: #aaa;
+}

@@ -587,6 +587,36 @@ export async function getDataByStatus(status) {
     return result
 }
 
+// Get all data with status (paginated version)
+export async function getDataByStatusPaginated(status, limit, offset) {
+    const [result] = await sql.query(`
+        SELECT
+            dat.data_entry_id, dat.title, dat.location_name,
+            u.lastname, u.firstname, u.company_name,
+            dat.region_id, dat.province_id, dat.municipality_id,
+            dat.date_submitted, dat.collection_start, dat.collection_end,
+            dat.status
+        FROM data_entry dat
+        JOIN user u ON u.user_id = dat.user_id
+        WHERE dat.status = ?
+        ORDER BY dat.data_entry_id DESC
+        LIMIT ? OFFSET ?
+    `, [status, limit, offset]);
+
+    return result;
+}
+
+// Get count of data entries (for pagination)
+export async function getTotalDataCountByStatus(status) {
+    const [[{ count }]] = await sql.query(`
+        SELECT COUNT(*) as count
+        FROM data_entry
+        WHERE status = ?
+    `, [status]);
+
+    return count;
+}
+
 // Get all data for review EXCEPT for current user
 // Current user cannot review their own reports
 export async function getDataForReview(currentUser) {
