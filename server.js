@@ -38,7 +38,9 @@ import {
   getAvgWasteComposition,
   hashPassword,
   getDataByStatusPaginated,
-  getTotalDataCountByStatus
+  getTotalDataCountByStatus,
+  getDataWithFilters,
+  getFilteredDataCount
 } from './database.js'
 
 // File Upload
@@ -764,13 +766,20 @@ app.get('/dashboard/search', async (req, res) => {
 
 // Get all approved data entries
 app.get('/dashboard/data/all', async (req, res) => {
-  const page = parseInt(req.query.page) || 1
-  const limit = 10 // entries per page
-  const offset = (page - 1) * limit
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const offset = (page - 1) * limit;
+
+  const {
+    title, region, province, municipality, author, company, startDate, endDate
+  } = req.query;
+
+  // Use the most specific locationCode available
+  const locationCode = municipality || province || region || null;
 
   const [data, totalCount] = await Promise.all([
-    getDataByStatusPaginated('Approved', limit, offset),
-    getTotalDataCountByStatus('Approved')
+    getDataWithFilters(limit, offset, title, locationCode, author, company, startDate, endDate),
+    getFilteredDataCount(title, locationCode, author, company, startDate, endDate)
   ]);
 
   const totalPages = Math.ceil(totalCount / limit);
@@ -781,7 +790,8 @@ app.get('/dashboard/data/all', async (req, res) => {
     data,
     currentPage: page,
     totalPages,
-    current_all: true
+    current_all: true,
+    query: req.query // Pass current query so you can preserve form values
   });
 });
 

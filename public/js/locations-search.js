@@ -5,7 +5,6 @@ let form = document.forms[0]
 let regionsDropdown = form.regions
 let provincesDropdown = form.provinces
 let municipalitiesDropdown = form.municipalities
-let locationCodeDisplay = form.locationcode
 
 // Variables changing with selection
 let jsonData
@@ -111,17 +110,14 @@ function getMunicipalities() {
     municipalitiesDropdown.innerHTML = output
 }
 
+ /*
+ 
 // Update user's current location code
 function updateLocation() {
     const region = regionsDropdown.value;
     const province = provincesDropdown.value;
     const city = municipalitiesDropdown.value;
- 
-    let setLocation = city || province || region || null;
- 
-    // Output the result for debugging
-    locationCodeDisplay.value = setLocation
-}
+ }
  
 // Add event listeners to update `setLocation` when any dropdown changes
 regionsDropdown.addEventListener("change", updateLocation);
@@ -139,9 +135,6 @@ form.addEventListener('submit', function(e) {
     const region = regionsDropdown.value
     const province = provincesDropdown.value
     const municipality = municipalitiesDropdown.value
-
-    // Get final location code submitted by user
-    const locationCode = locationCodeDisplay.value
     
     // Params to add on address
     const params = new URLSearchParams()
@@ -150,63 +143,6 @@ form.addEventListener('submit', function(e) {
     if (region) params.append('region', region);
     if (province) params.append('province', province);
     if (municipality) params.append('municipality', municipality)
-    params.append('location', locationCode)
-
-    // Redirect to results pages
-    window.location.replace(`/dashboard/search?${params.toString()}`)
 })
 
-// Display users of a certain role
-/*
-function showWasteData(wasteData) {
-    console.log(wasteData)
-
-    // Initialize HTML
-    let output = ""
-
-    // Check if usersOfRole has contents
-    if(wasteData.length > 0) {
-        // Show number of results
-        output += `<h1>Results: ${wasteData.length} entries</h1>`
-
-        // For each row of data, display HTML table row
-        wasteData.forEach((entry) => {
-            // Format submission date
-            var options = { year: 'numeric', month: 'long', day: 'numeric' };
-            
-            var date = new Date(entry.date_submitted)
-            var newSubmissionDate = date.toLocaleDateString("en-US", options); //  September 17, 2016
-
-            var colStart = new Date(entry.collection_start)
-            var newColStart = colStart.toLocaleDateString("en-US", options); //  September 17, 2016
-
-            var colEnd = new Date(entry.collection_end)
-            var newColEnd = colEnd.toLocaleDateString("en-US", options); //  September 17, 2016
-
-            output += `
-                <a href='/dashboard/data/${entry.data_entry_id}'>
-                    <button class='waste-data-btn'>
-                        <h2 style='margin: 0'>${entry.title}</h2>
-                        
-                        <p>
-                            <b>Location: </b>${entry.location_name}<br>
-                            <i>Submitted on ${newSubmissionDate}</i>
-                        </p>
-                        
-                        <p>
-                            <b>Submitted by:</b> ${entry.lastname.toUpperCase()}, ${entry.firstname}<br>
-                            <i>${entry.company_name}</i>
-                        </p>
-
-                        <b>Collection Period:</b> ${newColStart} - ${newColEnd}
-                    </button>
-                </a>
-        `})
-    } else {
-        output += `No data currently exists for this location.`
-    }
-
-    // Paste HTML output on waste data div
-    divWasteData.innerHTML = output
-}
 */

@@ -606,6 +606,120 @@ export async function getDataByStatusPaginated(status, limit, offset) {
     return result;
 }
 
+export async function getDataWithFilters(limit, offset, title, locationCode, name, companyName, startDate, endDate) {
+    // Unmodified query
+    let query = `
+        SELECT
+            dat.data_entry_id, dat.title, dat.location_name,
+            u.lastname, u.firstname, u.company_name,
+            dat.region_id, dat.province_id, dat.municipality_id,
+            dat.date_submitted, dat.collection_start, dat.collection_end,
+            dat.status
+        FROM data_entry dat
+        JOIN user u ON u.user_id = dat.user_id
+        WHERE dat.status = 'Approved'`;
+
+    // Stores filters and parameters
+    const conditions = [];
+    const params = [];
+
+    // Add filters only if values are provided
+    if (title) {
+        conditions.push(`dat.title LIKE ?`);
+        params.push(`%${title}%`);
+    }
+
+    if (locationCode) {
+        conditions.push(`(dat.region_id = ? OR dat.province_id = ? OR dat.municipality_id = ?)`);
+        params.push(locationCode, locationCode, locationCode);
+    }
+
+    if (name) {
+        conditions.push(`(u.lastname LIKE ? OR u.firstname LIKE ?)`);
+        params.push(`%${name}%`, `%${name}%`);
+    }
+
+    if (companyName) {
+        conditions.push(`u.company_name LIKE ?`);
+        params.push(`%${companyName}%`);
+    }
+
+    // Optional date range logic
+    if (startDate && endDate) {
+        conditions.push(`(dat.collection_start >= ? AND dat.collection_end <= ?)`);
+        params.push(startDate, endDate);
+    } else if (startDate) {
+        conditions.push(`dat.collection_start >= ?`);
+        params.push(startDate);
+    } else if (endDate) {
+        conditions.push(`dat.collection_end <= ?`);
+        params.push(endDate);
+    }
+
+    // Combine all filters
+    if (conditions.length > 0) {
+        query += ` AND ` + conditions.join(' AND ');
+    }
+
+    // Apply pagination
+    query += ` ORDER BY dat.data_entry_id DESC LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+
+    // Return final result
+    const [result] = await sql.query(query, params);
+    return result;
+}
+
+export async function getFilteredDataCount(title, locationCode, name, companyName, startDate, endDate) {
+  let query = `
+    SELECT COUNT(*) as count
+    FROM data_entry dat
+    JOIN user u ON u.user_id = dat.user_id
+    WHERE dat.status = 'Approved'
+  `;
+
+  const conditions = [];
+  const params = [];
+
+  if (title) {
+    conditions.push(`dat.title LIKE ?`);
+    params.push(`%${title}%`);
+  }
+
+  if (locationCode) {
+    conditions.push(`(dat.region_id = ? OR dat.province_id = ? OR dat.municipality_id = ?)`);
+    params.push(locationCode, locationCode, locationCode);
+  }
+
+  if (name) {
+    conditions.push(`(u.lastname LIKE ? OR u.firstname LIKE ?)`);
+    params.push(`%${name}%`, `%${name}%`);
+  }
+
+  if (companyName) {
+    conditions.push(`u.company_name LIKE ?`);
+    params.push(companyName);
+  }
+
+  if (startDate && endDate) {
+    conditions.push(`(dat.collection_start >= ? AND dat.collection_end <= ?)`);
+    params.push(startDate, endDate);
+  } else if (startDate) {
+    conditions.push(`dat.collection_start >= ?`);
+    params.push(startDate);
+  } else if (endDate) {
+    conditions.push(`dat.collection_end <= ?`);
+    params.push(endDate);
+  }
+
+  if (conditions.length > 0) {
+    query += ' AND ' + conditions.join(' AND ');
+  }
+
+  const [result] = await sql.query(query, params);
+  return result[0].count;
+}
+
 // Get count of data entries (for pagination)
 export async function getTotalDataCountByStatus(status) {
     const [[{ count }]] = await sql.query(`

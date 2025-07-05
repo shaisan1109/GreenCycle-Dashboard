@@ -1,10 +1,10 @@
 <!-- Search form -->
-<form id="data-search">
+<form id="data-search" method="GET" action="/dashboard/data/all">
     <!-- Search Bar and Filter Toggle -->
     <div class="search-bar-container">
-        <input type="text" class="search-input-main" placeholder="Search data entries...">
+        <input type="text" name="title" class="search-input-main" placeholder="Search data entry title...">
         
-        <button class="search-btn">
+        <button class="search-btn" type="submit">
             <i class="fas fa-search"></i> Search
         </button>
 
@@ -44,15 +44,15 @@
             <!-- Author & Date Filters -->
             <div class="filter-column">
               <label for="filter-author">Author</label>
-              <input type="text" id="filter-author" placeholder="Enter author's name">
+              <input type="text" id="filter-author" name="author" placeholder="Enter author's name">
 
               <label for="filter-org">Organization Name</label>
-              <input type="text" id="filter-org" placeholder="Enter organization name">
+              <input type="text" id="filter-org" name="company" placeholder="Enter organization name">
 
               <label>Collection Date Range</label>
               <div class="date-range">
-                  <input type="date" id="filter-date-start"> to
-                  <input type="date" id="filter-date-end">
+                  <input type="date" id="filter-date-start" name="startDate"> to
+                  <input type="date" id="filter-date-end" name="endDate">
               </div>
             </div>
 
@@ -61,7 +61,9 @@
 </form>
 
 {{#ifEquals data.length 0}}
-    No entries found.
+  <div class="form-section">
+    <span style="font-size: large;">No entries found.</span>
+  </div>
 {{/ifEquals}}
 
 {{#each data}}
