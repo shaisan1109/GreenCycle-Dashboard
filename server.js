@@ -765,7 +765,7 @@ app.get('/dashboard/search', async (req, res) => {
 // Get all approved data entries
 app.get('/dashboard/data/all', async (req, res) => {
   const page = parseInt(req.query.page) || 1
-  const limit = 1 // entries per page
+  const limit = 10 // entries per page
   const offset = (page - 1) * limit
 
   const [data, totalCount] = await Promise.all([
