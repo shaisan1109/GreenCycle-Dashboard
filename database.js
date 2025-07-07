@@ -937,3 +937,48 @@ export async function getAvgWasteComposition(locationCode) {
     `)
     return result // important, to not return an array
 }
+
+/* ---------------------------------------
+    CONTROL PANEL
+--------------------------------------- */
+export async function getTopContributors(limit) {
+    let query = `
+        SELECT 
+            u.user_id, u.lastname, u.firstname,
+            COUNT(dat.data_entry_id) AS entry_count
+        FROM greencycle.data_entry AS dat
+        JOIN greencycle.user AS u ON dat.user_id = u.user_id
+        GROUP BY u.user_id, u.firstname, u.lastname
+        ORDER BY entry_count DESC
+    `;
+
+    const values = [];
+
+    if (limit && Number.isInteger(limit)) {
+        query += ` LIMIT ?`;
+        values.push(limit);
+    }
+
+    const [result] = await sql.query(query, values);
+    return result;
+}
+
+export async function getLatestSubmissions(limit) {
+    let query = `
+        SELECT
+            dat.title, u.lastname, u.firstname, dat.date_submitted, dat.status
+        FROM data_entry dat
+        JOIN user u ON u.user_id = dat.user_id
+        ORDER BY dat.date_submitted DESC
+    `;
+
+    const values = [];
+
+    if (limit && Number.isInteger(limit)) {
+        query += ` LIMIT ?`;
+        values.push(limit);
+    }
+
+    const [result] = await sql.query(query, values);
+    return result;
+}

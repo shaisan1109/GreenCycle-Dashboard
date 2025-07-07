@@ -10,12 +10,11 @@ const store = new session.MemoryStore();
 // Import database functions
 import {
   getUsers, getUserByEmail, createUser, getUsersOfRole,
-  getPartners,getWasteDataWithCoordinates,
+  getPartners,
   getRolesOfSupertype, createClientRole,
   getApplications, getApplicationById, getApplicationsByEmail,
   approveApplication, rejectApplication, reconsiderApplication, revokeApproval,
   updateApplicationStatus, createApplication, resetApplicationStatus,
-  deactivateUserByEmail,
   lastLogin,
   getSectors, submitForm,
   getDataByLocation,
@@ -40,7 +39,9 @@ import {
   getDataByStatusPaginated,
   getTotalDataCountByStatus,
   getDataWithFilters,
-  getFilteredDataCount
+  getFilteredDataCount,
+  getTopContributors,
+  getLatestSubmissions
 } from './database.js'
 
 // File Upload
@@ -225,6 +226,7 @@ const loginSetup = async (req, res, next) => {
 
 // Lock out dashboard AND its child routes for logged in users
 app.use('/dashboard', loginSetup)
+app.use('/control-panel', loginSetup)
 
 /* ---------------------------------------
     HANDLEBARS
@@ -1580,7 +1582,6 @@ app.post("/api/data/submit-report/upload", async (req, res) => {
   }
 })
 
-
 // API: Get locations from json
 app.get('/locations', async (req, res) => {
   // Get all location names
@@ -1639,6 +1640,29 @@ app.delete('/users/:id', async (req, res) => {
     res.status(500).json({ message: "Error deleting user" });
   }
 });
+
+/* ---------------------------------------
+    CONTROL PANEL ROUTES
+--------------------------------------- */
+// Dashboard home page
+app.get('/control-panel', async (req, res) => {
+  const entryCount = {
+    approved: await getTotalDataCountByStatus('Approved'),
+    pending: await getTotalDataCountByStatus('Pending Review'),
+    rejected: await getTotalDataCountByStatus('Rejected')
+  }
+  const contributors = await getTopContributors(5)
+  const latestSubmissions = await getLatestSubmissions(5)
+
+  res.render('control-panel/cp-home', {
+    layout: 'control-panel',
+    title: 'Main Dashboard | GC Dashboard',
+    current_home: true,
+    entryCount,
+    contributors,
+    latestSubmissions
+  })
+})
 
 /* ---------------------------------------
     USER APPLICATION API ENDPOINTS

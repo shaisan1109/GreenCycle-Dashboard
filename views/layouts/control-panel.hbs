@@ -22,7 +22,7 @@
     <header>
         <img src="/pictures/Greencycle-Logo.png" class="header-logo">
         <div class="header-logo-text">
-            GreenCycle <text style="color:#d4ffd0; font-weight: bold;">DASHBOARD</text>
+            GreenCycle <text style="color:#d4ffd0; font-weight: bold;">CONTROL PANEL</text>
         </div>
         
         <!-- User Menu -->
@@ -41,6 +41,9 @@
                     </a>
                     <a href="#">
                         <i class="fa-solid fa-gear"></i> Settings
+                    </a>
+                    <a href="/dashboard">
+                        <i class="fa-solid fa-house"></i> Return to Dashboard
                     </a>
                     <a href="/">
                         <i class="fa-solid fa-house"></i> Return to Main Site
@@ -64,28 +67,6 @@
                 <a href="/dashboard" class="{{#if current_home}}current{{/if}}">
                     <i class="fa-solid fa-house nav-icon"></i> Home
                 </a>
-
-                <a href="/dashboard/data/all" class="{{#if current_all}}current{{/if}}">
-                    <i class="fa-solid fa-chart-simple nav-icon"></i> Data Entries
-                </a>
-
-                <a href="/dashboard/data/map" class="{{#if current_test}}current{{/if}}">
-                    <i class="fa-solid fa-compass nav-icon"></i></i> Waste Map
-                </a>
-
-                <a href="/dashboard/guide" class="{{#if current_guide}}current{{/if}}">
-                    <i class="fa-solid fa-book nav-icon"></i></i> Waste Type Guide
-                </a>
-
-                <!-- Report Functions -->
-                <div class="nav-divider">DATA REPORTS</div>
-                <a href="/dashboard/submit-report" class="{{#if current_report}}current{{/if}}">
-                    <i class="fa-solid fa-file-medical nav-icon"></i>&nbsp; Submit Data Entry
-                </a>
-
-                <a href="/dashboard/data/user/{{user.id}}" class="{{#if current_user_report}}current{{/if}}">
-                    <i class="fa-solid fa-folder nav-icon"></i> Your Submissions
-                </a>
                 
                 <!-- Only show functions if current user is NOT a client -->
                 {{#ifNotEquals user.supertype 2}}
@@ -97,7 +78,31 @@
                             <span class="notif-badge">{{pendingData}}</span>
                         {{/ifNotEquals}}
                     </a>
+
+                    <a href="/dashboard/user-applications" class="{{#if current_userapp}}current{{/if}}">
+                        <i class="fa-solid fa-clipboard-list nav-icon"></i> User Applications
+                        {{#ifNotEquals pendingApplications 0}}
+                            <span class="notif-badge">{{pendingApplications}}</span>
+                        {{/ifNotEquals}}
+                    </a>
+
+                    <a href="/dashboard/partners" class="{{#if current_partners}}current{{/if}}">
+                        <i class="fa-solid fa-handshake nav-icon"></i> Partners
+                    </a>
                 {{/ifNotEquals}}
+
+                <!-- Only show functions if current user is admin -->
+                {{#ifEquals user.supertype 0}}
+                    <div class="nav-divider">ADMIN FUNCTIONS</div>
+
+                    <a href="/dashboard/users" class="{{#if current_users}}current{{/if}}">
+                        <i class="fa-solid fa-users nav-icon"></i> Manage Users
+                    </a>
+
+                    <a href="/dashboard/roles" class="{{#if current_roles}}current{{/if}}">
+                        <i class="fa-solid fa-helmet-safety nav-icon"></i> Manage Roles
+                    </a>
+                {{/ifEquals}}
             </div>
         </nav>
         

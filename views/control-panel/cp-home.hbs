@@ -1,0 +1,71 @@
+<!-- Application counts by status -->
+<div style="display:flex">
+    <fieldset style="display: flex; flex-direction: column; text-align:center;">
+        <span style="font-size: xx-large;">{{entryCount.approved}} </span>
+        <span>Total Approved Entries</span>
+    </fieldset>
+
+    <fieldset style="display: flex; flex-direction: column; text-align:center;">
+        <span style="font-size: xx-large;">{{entryCount.pending}} </span>
+        <span>Total Pending Entries</span>
+    </fieldset>
+
+    <fieldset style="display: flex; flex-direction: column; text-align:center;">
+        <span style="font-size: xx-large;">{{entryCount.rejected}} </span>
+        <span>Total Rejected Entries</span>
+    </fieldset>
+
+    <fieldset style="display: flex; flex-direction: column; text-align:center;">
+        <span style="font-size: xx-large;">National Capital Region</span>
+        <span>Top Reporting Region</span>
+    </fieldset>
+</div>
+
+<div style="display:flex">
+    <!-- Latest submissions -->
+    <fieldset style="display: flex; flex-direction: column;">
+        <h3>Latest Submissions</h3>
+        {{#each latestSubmissions}}
+            <div style="display: flex; margin:10px;">
+                <div>
+                    <span style="font-size: large; font-weight:bold;">{{title}}</span><br>
+                    {{uppercase lastname}}, {{firstname}}
+                </div>
+                <div style="margin-left: auto; text-align:right;">
+                    {{status}}<br>
+                    {{textDate date_submitted}}
+                </div>
+            </div>
+        {{/each}}
+        <button>See all submissions</button>
+    </fieldset>
+
+    <!-- Top contibutors -->
+    <div>
+        <fieldset style="display: flex; flex-direction: column; text-align:center;">
+            <h3>Top Contributors</h3>
+            {{#each contributors}}
+                <div style="display: flex;">
+                    {{uppercase lastname}}, {{firstname}}
+                    <div style="margin-left: auto;">{{entry_count}} </div>
+                </div>
+            {{/each}}
+        </fieldset>
+
+        <!-- Top contibuting regions -->
+        <fieldset style="display: flex; flex-direction: column; text-align:center;">
+
+        </fieldset>
+    </div>
+</div>
+
+<!-- Submission History (Line Graph) -->
+<fieldset style="width: 95%">
+
+</fieldset>
+
+<style>
+
+
+
+</style>
