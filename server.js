@@ -41,7 +41,8 @@ import {
   getDataWithFilters,
   getFilteredDataCount,
   getTopContributors,
-  getLatestSubmissions
+  getLatestSubmissions,
+  getTopReportingRegions
 } from './database.js'
 
 // File Upload
@@ -1653,6 +1654,7 @@ app.get('/control-panel', async (req, res) => {
   }
   const contributors = await getTopContributors(5)
   const latestSubmissions = await getLatestSubmissions(5)
+  const topRegions = await getTopReportingRegions(5)
 
   res.render('control-panel/cp-home', {
     layout: 'control-panel',
@@ -1660,7 +1662,8 @@ app.get('/control-panel', async (req, res) => {
     current_home: true,
     entryCount,
     contributors,
-    latestSubmissions
+    latestSubmissions,
+    topRegions
   })
 })
 

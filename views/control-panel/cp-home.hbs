@@ -16,7 +16,7 @@
     </fieldset>
 
     <fieldset style="display: flex; flex-direction: column; text-align:center;">
-        <span style="font-size: xx-large;">National Capital Region</span>
+        <span style="font-size: xx-large;">{{topRegions.[0].region_name}} </span>
         <span>Top Reporting Region</span>
     </fieldset>
 </div>
@@ -50,17 +50,26 @@
                     <div style="margin-left: auto;">{{entry_count}} </div>
                 </div>
             {{/each}}
+            <button>See all top contributors</button>
         </fieldset>
 
         <!-- Top contibuting regions -->
         <fieldset style="display: flex; flex-direction: column; text-align:center;">
-
+            <h3>Top Reporting Regions</h3>
+            {{#each topRegions}}
+                <div style="display: flex;">
+                    {{region_name}}
+                    <div style="margin-left: auto;">{{entry_count}} </div>
+                </div>
+            {{/each}}
+            <button>See all top reporting regions</button>
         </fieldset>
     </div>
 </div>
 
 <!-- Submission History (Line Graph) -->
 <fieldset style="width: 95%">
+    <h3>Submission History</h3>
 
 </fieldset>
 

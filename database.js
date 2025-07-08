@@ -963,6 +963,7 @@ export async function getTopContributors(limit) {
     return result;
 }
 
+// Get latest data entry submissions
 export async function getLatestSubmissions(limit) {
     let query = `
         SELECT
@@ -981,4 +982,34 @@ export async function getLatestSubmissions(limit) {
 
     const [result] = await sql.query(query, values);
     return result;
+}
+
+// Get top reporting regions
+export async function getTopReportingRegions(limit) {
+    let query = `
+        SELECT region_id, COUNT(data_entry_id) AS entry_count
+        FROM greencycle.data_entry
+        GROUP BY region_id
+        ORDER BY entry_count DESC
+    `;
+
+    const values = [];
+    if (limit && Number.isInteger(limit)) {
+        query += ` LIMIT ?`;
+        values.push(limit);
+    }
+
+    const [result] = await sql.query(query, values);
+
+    // Get PSGC data once
+    const psgcRegions = await PSGCResource.getRegions();
+
+    // Add region name to each entry
+    const resultWithNames = result.map(row => ({
+        region_id: row.region_id,
+        region_name: getPsgcName(psgcRegions, row.region_id),
+        entry_count: row.entry_count
+    }));
+
+    return resultWithNames;
 }
