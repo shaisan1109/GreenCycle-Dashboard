@@ -43,7 +43,7 @@
                         <i class="fa-solid fa-gear"></i> Settings
                     </a>
                     <a href="/dashboard">
-                        <i class="fa-solid fa-house"></i> Return to Dashboard
+                        <i class="fa-solid fa-chart-simple"></i> Return to Dashboard
                     </a>
                     <a href="/">
                         <i class="fa-solid fa-house"></i> Return to Main Site
@@ -64,8 +64,12 @@
                     <i class="fa-solid fa-angles-left"></i> Collapse Sidebar
                 </button>
 
-                <a href="/dashboard" class="{{#if current_home}}current{{/if}}">
+                <a href="/control-panel" class="{{#if current_home}}current{{/if}}">
                     <i class="fa-solid fa-house nav-icon"></i> Home
+                </a>
+
+                <a href="/dashboard">
+                    <i class="fa-solid fa-chart-simple"></i>&nbsp; Return to Dashboard
                 </a>
                 
                 <!-- Only show functions if current user is NOT a client -->
@@ -79,14 +83,14 @@
                         {{/ifNotEquals}}
                     </a>
 
-                    <a href="/dashboard/user-applications" class="{{#if current_userapp}}current{{/if}}">
+                    <a href="/control-panel/user-applications" class="{{#if current_userapp}}current{{/if}}">
                         <i class="fa-solid fa-clipboard-list nav-icon"></i> User Applications
                         {{#ifNotEquals pendingApplications 0}}
                             <span class="notif-badge">{{pendingApplications}}</span>
                         {{/ifNotEquals}}
                     </a>
 
-                    <a href="/dashboard/partners" class="{{#if current_partners}}current{{/if}}">
+                    <a href="/control-panel/partners" class="{{#if current_partners}}current{{/if}}">
                         <i class="fa-solid fa-handshake nav-icon"></i> Partners
                     </a>
                 {{/ifNotEquals}}
@@ -95,11 +99,11 @@
                 {{#ifEquals user.supertype 0}}
                     <div class="nav-divider">ADMIN FUNCTIONS</div>
 
-                    <a href="/dashboard/users" class="{{#if current_users}}current{{/if}}">
+                    <a href="/control-panel/users" class="{{#if current_users}}current{{/if}}">
                         <i class="fa-solid fa-users nav-icon"></i> Manage Users
                     </a>
 
-                    <a href="/dashboard/roles" class="{{#if current_roles}}current{{/if}}">
+                    <a href="/control-panel/roles" class="{{#if current_roles}}current{{/if}}">
                         <i class="fa-solid fa-helmet-safety nav-icon"></i> Manage Roles
                     </a>
                 {{/ifEquals}}

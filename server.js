@@ -1242,10 +1242,10 @@ app.get('/dashboard/data/:id', async (req, res) => {
 
 // User routes
 // Get all users
-app.get('/dashboard/users', async (req, res) => {
+app.get('/control-panel/users', async (req, res) => {
   const users = await getUsers()
   res.render('dashboard/users', {
-    layout: 'dashboard',
+    layout: 'control-panel',
     title: 'Users | GC Dashboard',
     users,
     current_users: true
@@ -1288,13 +1288,13 @@ app.post('/roles/client', async (req, res) => {
   res.send(role)
 })
 
-app.get('/dashboard/roles', async (req, res) => {
+app.get('/control-panel/roles', async (req, res) => {
   const adminRoles = await getRolesOfSupertype(0)
   const gcRoles = await getRolesOfSupertype(1)
   const clientRoles = await getRolesOfSupertype(2)
 
   res.render('dashboard/roles', {
-    layout: 'dashboard',
+    layout: 'control-panel',
     title: 'Roles | GC Dashboard',
     adminRoles,
     gcRoles,
@@ -1304,21 +1304,21 @@ app.get('/dashboard/roles', async (req, res) => {
 })
 
 // User applications page
-app.get('/dashboard/user-applications', async (req, res) => {
+app.get('/control-panel/user-applications', async (req, res) => {
   const applications = await getApplications()
 
   res.render('dashboard/user-applications', { 
-    layout: 'dashboard',
+    layout: 'control-panel',
     title: 'User Applications | GC Dashboard',
     current_userapp: true,
     applications
   })
 })
 
-app.get('/dashboard/partners', async (req, res) => {
+app.get('/control-panel/partners', async (req, res) => {
   const partners = await getPartners()
   res.render('dashboard/partners', {
-    layout: 'dashboard',
+    layout: 'control-panel',
     title: 'Partner Organizations | GC Dashboard',
     partners,
     current_partners: true
