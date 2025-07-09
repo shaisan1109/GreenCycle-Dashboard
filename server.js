@@ -787,194 +787,6 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
     }
 })
 
-// Data search
-app.get('/dashboard/search', async (req, res) => {
-  const locationCode = req.query.location;
-  const { region, province, municipality } = req.query
-
-  // If there's no location query, show just the search input page
-  if (!locationCode) {
-    res.render('dashboard/view-data-search', {
-      layout: 'dashboard',
-      title: 'Data Search | GC Dashboard',
-      current_search: true
-    })
-  } else {
-    // Otherwise, show the actual results page
-    try {
-      /* ------ LOCATION NAME ------ */
-      // Prepare PSGC data for location names
-      const psgcRegions = await PSGCResource.getRegions()
-      const psgcProvinces = await PSGCResource.getProvinces()
-      const psgcMunicipalities = await PSGCResource.getMunicipalities()
-      const psgcCities = await PSGCResource.getCities()
-
-      // Get location names
-      const regionName = getPsgcName(psgcRegions, region)
-      const provinceName = getPsgcName(psgcProvinces, province) || null
-      const municipalityName = getPsgcName(psgcMunicipalities, municipality) || getPsgcName(psgcCities, municipality) || null
-
-      // Set full location name
-      const parts = [municipalityName, provinceName, regionName].filter(Boolean)
-      const fullLocation = parts.join(', ')
-
-      /* ------ AVERAGE DATA ------ */
-      // Retrieve summary data of given location
-      const avgInfo = await getAvgInfo(locationCode)
-
-      // Initialize waste comp
-      //const sectors = await getSectors()
-      const supertypes = await getAllTypes()
-      const avgData = await getAvgWasteComposition(locationCode)
-
-      /* ------ RAW DATA ENTRIES ------ */
-      const entries = await getDataByLocation(locationCode);
-
-      /* -------- PIE CHART -------- */
-      // Create a lookup map for waste amounts
-      const wasteMap = {};
-      for (const row of avgData) {
-          if (!wasteMap[row.type_id]) wasteMap[row.type_id] = {};
-          wasteMap[row.type_id][row.sector_id] = row.avg_waste_amount;
-      }
-
-      // Group types under supertypes
-      const supertypeMap = {};
-      for (const row of supertypes) {
-          if (!supertypeMap[row.supertype_id]) {
-              supertypeMap[row.supertype_id] = {
-                  id: row.supertype_id,
-                  name: row.supertype_name,
-                  types: []
-              };
-          }
-          supertypeMap[row.supertype_id].types.push({
-              id: row.type_id,
-              name: row.type_name,
-              amounts: wasteMap[row.type_id] || {}
-          });
-      }
-
-      // Generate summary pie
-      const summaryData = {
-        labels: [],
-        data: [],
-        backgroundColor: []
-      };
-
-      // Generate detailed pie
-      const detailedData = {
-        labels: [],
-        data: [],
-        backgroundColor: []
-      };
-
-      const supertypeTotals = Object.values(supertypeMap).map(supertype => {
-      const total = supertype.types.reduce((sum, t) => {
-        return sum + Object.values(t.amounts || {}).reduce((a, b) => a + Number(b), 0);
-      }, 0);
-        return { supertype, total };
-      });
-
-      // Sort descending by total
-      supertypeTotals.sort((a, b) => b.total - a.total);
-
-      for (const { supertype, total } of supertypeTotals) {
-        const supertypeName = supertype.name;
-        const baseColor = baseHexMap[supertypeName];
-
-        // Summary pie entry
-        summaryData.labels.push(supertypeName);
-        summaryData.data.push(Number(total.toFixed(3)));
-        summaryData.backgroundColor.push(baseColor);
-
-        // Detailed entries (types under this supertype)
-        // Calculate total weight per type
-        const typeWeights = supertype.types.map(type => {
-          const weight = Object.values(type.amounts || {}).reduce((a, b) => a + Number(b), 0);
-          return { name: type.name, weight };
-        });
-
-        // Sort types descending by weight
-        typeWeights.sort((a, b) => b.weight - a.weight);
-
-        // Add sorted types to chart data
-        typeWeights.forEach((type, i) => {
-          if (type.weight > 0) {
-            detailedData.labels.push(type.name);
-            detailedData.data.push(Number(type.weight.toFixed(3)));
-            detailedData.backgroundColor.push(shadeColor(baseColor, -0.17 + 0.15 * i));
-          }
-        });
-      }
-
-      // Combine them for easier rendering
-      const legendData = summaryData.labels.map((label, i) => ({
-        label,
-        value: summaryData.data[i],
-        color: summaryData.backgroundColor[i]
-      }));
-
-      /* -------- BAR CHART -------- */
-
-      const barChartData = {}; // keyed by supertype name or ID
-
-      for (const supertype of Object.values(supertypeMap)) {
-        const baseColor = baseHexMap[supertype.name] || '#9e9e9e';
-        const legend = [];
-
-        // Collect and sort types by weight
-        const sortedTypes = supertype.types.map(type => {
-          const weight = Object.values(type.amounts || {}).reduce((a, b) => a + Number(b), 0);
-          return {
-            label: type.name,
-            value: Number(weight.toFixed(3))
-          };
-        }).sort((a, b) => b.value - a.value);
-
-        // Assign shaded color to each
-        const total = sortedTypes.length;
-        sortedTypes.forEach((item, i) => {
-          item.color = shadeBarColor(baseColor, i, total); // example: lighter/darker shades per index
-        });
-
-        barChartData[supertype.name] = {
-          labels: sortedTypes.map(item => item.label),
-          data: sortedTypes.map(item => item.value),
-          legend: sortedTypes
-        };
-      }
-
-      // If location query is given and results do exist
-      if(entries.length > 0) {
-        // res.json(supertypeMap)
-
-        res.render('dashboard/view-data-result', {
-          layout: 'dashboard',
-          title: 'Data Search Result | GC Dashboard',
-          current_search: true,
-          fullLocation,
-          avgInfo: avgInfo[0],
-          barChartData: JSON.stringify(barChartData),
-          summaryPieData: JSON.stringify(summaryData),
-          detailedPieData: JSON.stringify(detailedData),
-          legendData,
-          entries
-        });
-      } else { // If location query is given, but there are no results
-        res.render('dashboard/view-data-none', {
-          layout: 'dashboard',
-          title: 'Data Search Result | GC Dashboard',
-          current_search: true,
-          fullLocation
-        });
-      }
-    } catch (err) {
-      res.status(500).send('Error loading search results');
-    }
-  }
-})
-
 // Get all approved data entries
 app.get('/dashboard/data/all', async (req, res, next) => {
   // Clean query before proceeding
@@ -1416,6 +1228,46 @@ app.get('/dashboard/data/:id', async (req, res) => {
     color: sectorColor(i)
   }));
 
+  /* -------- SECTOR PIE CHARTS -------- */
+  const sectorPieData = {}; // { sectorName: { labels: [], data: [], backgroundColor: [] } }
+
+  for (const sector of sectors) {
+    const sectorId = sector.id;
+    const sectorName = sector.name;
+
+    // Step 1: Build raw totals by supertype
+    const rawSupertypeTotals = [];
+
+    for (const supertype of Object.values(supertypeMap)) {
+      let subtotal = 0;
+
+      for (const type of supertype.types) {
+        subtotal += Number(type.amounts?.[sectorId] || 0);
+      }
+
+      rawSupertypeTotals.push({
+        label: supertype.name,
+        value: Number(subtotal.toFixed(3)),
+        color: {
+          Biodegradable: '#4CAF50',
+          Recyclable: '#2196F3',
+          Residual: '#ff9800',
+          'Special/Hazardous': '#F44336'
+        }[supertype.name] || '#9E9E9E'
+      });
+    }
+
+    // Step 2: Sort from highest to lowest
+    rawSupertypeTotals.sort((a, b) => b.value - a.value);
+
+    // Step 3: Build chart data from sorted list
+    const labels = rawSupertypeTotals.map(entry => entry.label);
+    const data = rawSupertypeTotals.map(entry => entry.value);
+    const backgroundColor = rawSupertypeTotals.map(entry => entry.color);
+
+    sectorPieData[sectorName] = { labels, data, backgroundColor };
+  }
+
   /* -------- RENDER PAGE -------- */
 
   res.render('dashboard/view-data-entry', {
@@ -1432,7 +1284,8 @@ app.get('/dashboard/data/:id', async (req, res) => {
     detailedPieData: JSON.stringify(detailedData),
     legendData,
     latestEdit,
-    sectorBarData: JSON.stringify(sectorBarData)
+    sectorBarData: JSON.stringify(sectorBarData),
+    sectorPieData: JSON.stringify(sectorPieData)
   })
 })
 

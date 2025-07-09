@@ -124,6 +124,20 @@
     <br><hr><br>
     <center><h2>Top Sectors by Waste Output</h2></center>
     <div id="sector-chart-container"></div>
+
+    <!-- Pie chart per sector -->
+    <br><hr><br>
+    <center><h2>Waste Categories per Sector</h2></center>
+    <div class="sector-tab">
+        <button class="sector-tablinks" onclick="openPieTab(event, 'Residential')" id="firstSector">RESIDENTIAL</button>
+        <button class="sector-tablinks" onclick="openPieTab(event, 'Commercial')">COMMERCIAL</button>
+        <button class="sector-tablinks" onclick="openPieTab(event, 'Institutional')">INSTITUTIONAL</button>
+        <button class="sector-tablinks" onclick="openPieTab(event, 'Industrial')">INDUSTRIAL</button>
+        <button class="sector-tablinks" onclick="openPieTab(event, 'Health')">HEALTH</button>
+        <button class="sector-tablinks" onclick="openPieTab(event, 'AgricultureandLivestock')">AGRICULTURE AND LIVESTOCK</button>
+    </div>
+
+    <div id="sector-pies-container"></div>
 </div>
 
 <!-- Display B: Raw Data -->
@@ -252,7 +266,7 @@ dropdown.addEventListener('change', filterTable);
 
 </script>
 
-<!-- Pie chart script -->
+<!-- Chart script -->
 <script>
 
 /* --------- PIE CHART --------- */
@@ -517,6 +531,105 @@ const tsLegendWrapper = document.createElement('div');
 tsLegendWrapper.appendChild(tsLegendDiv);
 tsWrapper.appendChild(tsLegendWrapper);
 
+/* --------- SECTOR PIE CHART --------- */
+
+const sectorPieData = {{{sectorPieData}}}; // Already passed from server
+const sectorContainer = document.getElementById('sector-pies-container');
+
+for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
+  // Create the wrapper tabcontent div
+  const tabContentDiv = document.createElement('div');
+  tabContentDiv.id = sectorName.replace(/\s+/g, '');
+  tabContentDiv.classList.add('sector-tabcontent');
+
+  // Create canvas
+  const pieCanvas = document.createElement('canvas');
+  pieCanvas.id = `pieChart-${sectorName.replace(/\s+/g, '-')}`;
+  pieCanvas.style.maxWidth = '600px';
+  pieCanvas.style.maxHeight = '600px';
+  pieCanvas.style.marginBottom = '20px';
+
+  // Create chart wrapper
+  const chartWrapper = document.createElement('div');
+  chartWrapper.classList.add('chart-wrapper');
+  chartWrapper.style.display = 'flex';
+  chartWrapper.style.gap = '24px';
+  chartWrapper.style.alignItems = 'flex-start';
+
+  chartWrapper.appendChild(pieCanvas);
+
+  // Create legend div
+  const legendDiv = document.createElement('div');
+  legendDiv.classList.add('bar-legend');
+
+  // Create title <h2>
+  const legendTitle = document.createElement('h2');
+  legendTitle.classList.add('bar-legend-title');
+  legendTitle.textContent = `${sectorName} Sector`;
+  legendDiv.appendChild(legendTitle);
+
+  // Compute total
+  const total = pieData.data.reduce((sum, val) => sum + val, 0);
+
+  // Generate legend HTML
+  legendDiv.innerHTML += pieData.labels
+    .map((label, i) => {
+      const val = pieData.data[i];
+      const percent = total ? ((val / total) * 100).toFixed(3).replace(/\.?0+$/, '') : '0';
+      if (val === 0) return '';
+      return `<span class="legend-item" style="background-color: ${pieData.backgroundColor[i]}">
+          <span class="bar-legend-name">
+              ${label}
+              <span class="bar-legend-perc">${percent}%</span>
+          </span>
+          <span class="bar-legend-kg">
+              ${val.toFixed(3)} kg
+          </span>
+      </span>`;
+    }).join('');
+
+  // Append title and legend to wrapper
+  chartWrapper.appendChild(legendDiv);
+
+  // Append wrapper to tab content
+  tabContentDiv.appendChild(chartWrapper);
+
+  // Append to main container
+  sectorContainer.appendChild(tabContentDiv);
+
+  // Chart.js setup
+  new Chart(pieCanvas.getContext('2d'), {
+    type: 'pie',
+    data: {
+      labels: pieData.labels,
+      datasets: [{
+        data: pieData.data,
+        backgroundColor: pieData.backgroundColor
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const val = context.raw;
+              const pct = total ? ((val / total) * 100).toFixed(3).replace(/\.?0+$/, '') : '0';
+              return `${val.toFixed(3)} kg (${pct}%)`;
+            }
+          }
+        },
+        legend: {
+            position: 'right'
+        }
+      }
+    }
+  });
+}
+
 </script>
 
 <!-- File export script -->
@@ -561,6 +674,7 @@ function exportTableToExcel() {
 <!-- JS behind the tabs -->
 <script src="/js/tabs.js"></script>
 <script src="/js/tabs-bar.js"></script>
+<script src="/js/tabs-sector-pie.js"></script>
 
 <style>
 
@@ -674,6 +788,13 @@ function exportTableToExcel() {
   border: 1px solid #ccc;
   border-radius: 6px;
   font-size: 1rem;
+}
+
+.pie-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
 }
 
 </style>
