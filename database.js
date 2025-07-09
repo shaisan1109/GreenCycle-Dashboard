@@ -898,7 +898,7 @@ export async function getLatestDataEntry() {
 }
 
 /* ---------------------------------------
-    DATA AGGREGATION BY LOCATION
+    DATA AGGREGATION BY LOCATION (OLD VERSION)
 --------------------------------------- */
 export async function getAvgInfo(locationCode) {
     const [result] = await sql.query(`
@@ -936,6 +936,117 @@ export async function getAvgWasteComposition(locationCode) {
         GROUP BY dwc.sector_id, dwc.type_id
     `)
     return result // important, to not return an array
+}
+
+/* ---------------------------------------
+    DATA AGGREGATION (NEW VERSION)
+--------------------------------------- */
+export async function getAvgInfoWithFilters(title, locationCode, name, companyName, startDate, endDate) {
+    let query = `
+        SELECT
+            AVG(dat.per_capita) AS avg_per_capita,
+            AVG(dat.annual) AS avg_annual,
+            MIN(dat.collection_start) AS earliest_collection_start,
+            MAX(dat.collection_end) AS latest_collection_end
+        FROM data_entry dat
+        JOIN user u ON u.user_id = dat.user_id
+        WHERE dat.status = 'Approved'`;
+
+    const conditions = [];
+    const params = [];
+
+    if (title) {
+        conditions.push(`dat.title LIKE ?`);
+        params.push(`%${title}%`);
+    }
+
+    if (locationCode) {
+        conditions.push(`(dat.region_id = ? OR dat.province_id = ? OR dat.municipality_id = ?)`);
+        params.push(locationCode, locationCode, locationCode);
+    }
+
+    if (name) {
+        conditions.push(`(u.lastname LIKE ? OR u.firstname LIKE ?)`);
+        params.push(`%${name}%`, `%${name}%`);
+    }
+
+    if (companyName) {
+        conditions.push(`u.company_name LIKE ?`);
+        params.push(`%${companyName}%`);
+    }
+
+    if (startDate && endDate) {
+        conditions.push(`(dat.collection_start >= ? AND dat.collection_end <= ?)`);
+        params.push(startDate, endDate);
+    } else if (startDate) {
+        conditions.push(`dat.collection_start >= ?`);
+        params.push(startDate);
+    } else if (endDate) {
+        conditions.push(`dat.collection_end <= ?`);
+        params.push(endDate);
+    }
+
+    if (conditions.length > 0) {
+        query += ` AND ` + conditions.join(' AND ');
+    }
+
+    const [result] = await sql.query(query, params);
+    return result; // important: single object, not array
+}
+
+export async function getAvgWasteCompositionWithFilters(title, locationCode, name, companyName, startDate, endDate) {
+    let query = `
+        SELECT
+            dwc.sector_id,
+            dwc.type_id,
+            AVG(dwc.waste_amount) AS avg_waste_amount
+        FROM data_entry dat
+        JOIN data_waste_composition dwc ON dat.data_entry_id = dwc.data_entry_id
+        WHERE dat.status = 'Approved'`;
+
+    const conditions = [];
+    const params = [];
+
+    if (title) {
+        conditions.push(`dat.title LIKE ?`);
+        params.push(`%${title}%`);
+    }
+
+    if (locationCode) {
+        conditions.push(`(dat.region_id = ? OR dat.province_id = ? OR dat.municipality_id = ?)`);
+        params.push(locationCode, locationCode, locationCode);
+    }
+
+    if (name) {
+        conditions.push(`(u.lastname LIKE ? OR u.firstname LIKE ?)`);
+        params.push(`%${name}%`, `%${name}%`);
+    }
+
+    if (companyName) {
+        conditions.push(`u.company_name LIKE ?`);
+        params.push(`%${companyName}%`);
+    }
+
+    if (startDate && endDate) {
+        conditions.push(`(dat.collection_start >= ? AND dat.collection_end <= ?)`);
+        params.push(startDate, endDate);
+    } else if (startDate) {
+        conditions.push(`dat.collection_start >= ?`);
+        params.push(startDate);
+    } else if (endDate) {
+        conditions.push(`dat.collection_end <= ?`);
+        params.push(endDate);
+    }
+
+    if (conditions.length > 0) {
+        query += ` AND ` + conditions.join(' AND ');
+    }
+
+    // Add GROUP BY condition (for aggregation)
+    query += ` GROUP BY dwc.sector_id, dwc.type_id`
+
+    const [result] = await sql.query(query, params);
+    return result; // important: single object, not array
 }
 
 /* ---------------------------------------

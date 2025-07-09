@@ -43,7 +43,9 @@ import {
   getTopContributors,
   getLatestSubmissions,
   getTopReportingRegions,
-  getMonthlySubmissions
+  getMonthlySubmissions,
+  getAvgWasteCompositionWithFilters,
+  getAvgInfoWithFilters
 } from './database.js'
 
 // File Upload
@@ -583,12 +585,206 @@ app.get('/dashboard/guide', (req, res) => {
 })
 
 // Map display
+/*
 app.get('/dashboard/data/map', (req, res) => {
   res.render('dashboard/test-chart', {
     layout: 'dashboard',
     title: 'Test Dashboard',
     current_test: true
   })
+})
+*/
+
+app.get('/dashboard/data/summary', async (req, res, next) => {
+  // Clean query before proceeding
+  const cleanedQuery = {};
+  for (const [key, value] of Object.entries(req.query)) {
+    if (value !== '') cleanedQuery[key] = value;
+  }
+
+  if (Object.keys(cleanedQuery).length !== Object.keys(req.query).length) {
+    // Redirect to cleaned URL if any empty values were found
+    const queryString = new URLSearchParams(cleanedQuery).toString();
+    return res.redirect(`/dashboard/data/summary?${queryString}`);
+  }
+
+  next();
+}, async (req, res) => {
+  const { title, region, province, municipality, author, company, startDate, endDate } = req.query
+
+  try {
+      /* ------ LOCATION NAME ------ */
+      // Use the most specific locationCode available
+      const locationCode = municipality || province || region || null;
+
+      // Prepare PSGC data for location names
+      const psgcRegions = await PSGCResource.getRegions()
+      const psgcProvinces = await PSGCResource.getProvinces()
+      const psgcMunicipalities = await PSGCResource.getMunicipalities()
+      const psgcCities = await PSGCResource.getCities()
+
+      // Get location names
+      const regionName = getPsgcName(psgcRegions, region)
+      const provinceName = getPsgcName(psgcProvinces, province) || null
+      const municipalityName = getPsgcName(psgcMunicipalities, municipality) || getPsgcName(psgcCities, municipality) || null
+
+      // Set full location name
+      const parts = [municipalityName, provinceName, regionName].filter(Boolean)
+      const fullLocation = parts.join(', ')
+
+      /* ------ AVERAGE DATA ------ */
+      // Retrieve summary data of given location
+      const avgInfo = await getAvgInfoWithFilters(title, locationCode, author, company, startDate, endDate)
+
+      // Initialize waste comp
+      //const sectors = await getSectors()
+      const supertypes = await getAllTypes()
+      const avgData = await getAvgWasteCompositionWithFilters(title, locationCode, author, company, startDate, endDate)
+
+      /* ------ RAW DATA ENTRY COUNT ------ */
+      const count = await getFilteredDataCount(title, locationCode, author, company, startDate, endDate)
+
+      /* -------- PIE CHART -------- */
+      // Create a lookup map for waste amounts
+      const wasteMap = {};
+      for (const row of avgData) {
+          if (!wasteMap[row.type_id]) wasteMap[row.type_id] = {};
+          wasteMap[row.type_id][row.sector_id] = row.avg_waste_amount;
+      }
+
+      // Group types under supertypes
+      const supertypeMap = {};
+      for (const row of supertypes) {
+          if (!supertypeMap[row.supertype_id]) {
+              supertypeMap[row.supertype_id] = {
+                  id: row.supertype_id,
+                  name: row.supertype_name,
+                  types: []
+              };
+          }
+          supertypeMap[row.supertype_id].types.push({
+              id: row.type_id,
+              name: row.type_name,
+              amounts: wasteMap[row.type_id] || {}
+          });
+      }
+
+      // Generate summary pie
+      const summaryData = {
+        labels: [],
+        data: [],
+        backgroundColor: []
+      };
+
+      // Generate detailed pie
+      const detailedData = {
+        labels: [],
+        data: [],
+        backgroundColor: []
+      };
+
+      const supertypeTotals = Object.values(supertypeMap).map(supertype => {
+      const total = supertype.types.reduce((sum, t) => {
+        return sum + Object.values(t.amounts || {}).reduce((a, b) => a + Number(b), 0);
+      }, 0);
+        return { supertype, total };
+      });
+
+      // Sort descending by total
+      supertypeTotals.sort((a, b) => b.total - a.total);
+
+      for (const { supertype, total } of supertypeTotals) {
+        const supertypeName = supertype.name;
+        const baseColor = baseHexMap[supertypeName];
+
+        // Summary pie entry
+        summaryData.labels.push(supertypeName);
+        summaryData.data.push(Number(total.toFixed(3)));
+        summaryData.backgroundColor.push(baseColor);
+
+        // Detailed entries (types under this supertype)
+        // Calculate total weight per type
+        const typeWeights = supertype.types.map(type => {
+          const weight = Object.values(type.amounts || {}).reduce((a, b) => a + Number(b), 0);
+          return { name: type.name, weight };
+        });
+
+        // Sort types descending by weight
+        typeWeights.sort((a, b) => b.weight - a.weight);
+
+        // Add sorted types to chart data
+        typeWeights.forEach((type, i) => {
+          if (type.weight > 0) {
+            detailedData.labels.push(type.name);
+            detailedData.data.push(Number(type.weight.toFixed(3)));
+            detailedData.backgroundColor.push(shadeColor(baseColor, -0.17 + 0.15 * i));
+          }
+        });
+      }
+
+      // Combine them for easier rendering
+      const legendData = summaryData.labels.map((label, i) => ({
+        label,
+        value: summaryData.data[i],
+        color: summaryData.backgroundColor[i]
+      }));
+
+      /* -------- BAR CHART -------- */
+
+      const barChartData = {}; // keyed by supertype name or ID
+
+      for (const supertype of Object.values(supertypeMap)) {
+        const baseColor = baseHexMap[supertype.name] || '#9e9e9e';
+        const legend = [];
+
+        // Collect and sort types by weight
+        const sortedTypes = supertype.types.map(type => {
+          const weight = Object.values(type.amounts || {}).reduce((a, b) => a + Number(b), 0);
+          return {
+            label: type.name,
+            value: Number(weight.toFixed(3))
+          };
+        }).sort((a, b) => b.value - a.value);
+
+        // Assign shaded color to each
+        const total = sortedTypes.length;
+        sortedTypes.forEach((item, i) => {
+          item.color = shadeBarColor(baseColor, i, total); // example: lighter/darker shades per index
+        });
+
+        barChartData[supertype.name] = {
+          labels: sortedTypes.map(item => item.label),
+          data: sortedTypes.map(item => item.value),
+          legend: sortedTypes
+        };
+      }
+
+      // If location query is given and results do exist
+      if(count > 0) {
+        res.render('dashboard/view-data-summary', {
+          layout: 'dashboard',
+          title: 'Data Summary | GC Dashboard',
+          current_all: true,
+          query: req.query, // Pass current query so you can preserve form values
+          fullLocation,
+          avgInfo: avgInfo[0],
+          barChartData: JSON.stringify(barChartData),
+          summaryPieData: JSON.stringify(summaryData),
+          detailedPieData: JSON.stringify(detailedData),
+          legendData
+        })
+      } else { // If location query is given, but there are no results
+        res.render('dashboard/view-data-none', {
+          layout: 'dashboard',
+          title: 'Data Summary | GC Dashboard',
+          current_all: true,
+          fullLocation
+        });
+      }
+    } catch (err) {
+      console.error('Summary Error:', err);  // Log the actual error
+      res.status(500).send('Error loading search results');
+    }
 })
 
 // Data search

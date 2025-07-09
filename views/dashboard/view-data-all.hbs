@@ -71,7 +71,7 @@
       Showing <b>{{startEntry}}–{{endEntry}}</b> of <b>{{totalCount}}</b> entries
     </p>
 
-    <button class="summary-btn">
+    <button class="summary-btn" id="summaryBtn">
       <i class="fa-solid fa-chart-simple"></i> View Data Summary
     </button>
   </div>
@@ -184,6 +184,17 @@ document.getElementById('data-search').addEventListener('submit', function (e) {
 // Reset filters when reset button is clicked
 document.getElementById('reset-filters').addEventListener('click', () => {
     window.location.href = window.location.pathname;
+  });
+
+document.getElementById('summaryBtn').addEventListener('click', function () {
+    // Get current URL's query string (e.g., ?author=thei&company=it)
+    const query = window.location.search;
+
+    // Construct the new URL
+    const summaryUrl = '/dashboard/data/summary' + query;
+
+    // Open the new URL in a new tab
+    window.open(summaryUrl, '_blank');
   });
 
 </script>
