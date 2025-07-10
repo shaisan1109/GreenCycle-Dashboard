@@ -85,7 +85,7 @@
 
         <div id="summary-legend">
             <h2 style="margin-bottom: 0">Top Waste Categories in This Area</h2>
-            <p style="font-size: large;">Mouse over the pie slices to see more details.</p>
+            <p style="font-size: large;">This pie chart shows the distribution of waste by supertype. Each slice represents the total weight (in kilograms) of waste classified as Biodegradable, Recyclable, Residual, or Special/Hazardous. Hover over a slice to view its percentage and absolute weight.</p>
 
             {{#each legendData}}
                 {{#if (gt value 0)}}
@@ -109,7 +109,10 @@
     <hr>
 
     <!-- Summary pie -->
-    <br><center><h2>Top Waste Types by Category</h2></center>
+    <br><center>
+      <h2>Top Waste Types by Category</h2>
+      <p style="font-size: large;">Each bar chart below focuses on one waste category. The bars represent different types under that category, showing how much each contributed to the total weight.</p>
+    </center>
     <div class="bar-tab">
         <button class="bar-tablinks" onclick="openBarTab(event, 'Biodegradable')" id="firstBar">BIODEGRADABLE</button>
         <button class="bar-tablinks" onclick="openBarTab(event, 'Recyclable')">RECYCLABLE</button>
@@ -122,12 +125,19 @@
 
     <!-- Top sectors producing waste -->
     <br><hr><br>
-    <center><h2>Top Sectors by Waste Output</h2></center>
+    <center>
+      <h2>Top Sectors by Waste Output</h2>
+      <p style="font-size: large;">This chart shows which economic sectors contribute the most to total waste generation. Use this insight to target waste reduction initiatives by sector.</p>
+    </center>
     <div id="sector-chart-container"></div>
 
     <!-- Pie chart per sector -->
     <br><hr><br>
-    <center><h2>Waste Categories per Sector</h2></center>
+    <center>
+      <h2>Top Waste Categories per Sector</h2>
+      <p style="font-size: large;">Each pie chart below shows the waste composition for a specific economic sector.</p>
+    </center>
+
     <div class="sector-tab">
         <button class="sector-tablinks" onclick="openPieTab(event, 'Residential')" id="firstSector">RESIDENTIAL</button>
         <button class="sector-tablinks" onclick="openPieTab(event, 'Commercial')">COMMERCIAL</button>
