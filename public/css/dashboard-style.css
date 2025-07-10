@@ -781,7 +781,7 @@ select {
   color: white;
   border-radius: 6px;
   font-weight: 500;
-  width: 100%;
+  width: 500px;
   display: flex;
   flex-direction: column;
 }
@@ -903,7 +903,7 @@ select {
     padding: 14px 16px;
     transition: 0.3s;
     font-size: 17px;
-    width: 15.5%;
+    width: 15.9%;
     margin: 5px;
     border-radius: 10px;
 }

@@ -604,7 +604,8 @@ for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
       labels: pieData.labels,
       datasets: [{
         data: pieData.data,
-        backgroundColor: pieData.backgroundColor
+        backgroundColor: pieData.backgroundColor,
+        hoverOffset: 20
       }]
     },
     options: {
@@ -762,7 +763,6 @@ function exportTableToExcel() {
   font-size: 1.25rem;
   margin-bottom: 1rem;
   color: #2c3e50;
-  
   align-items: center;
 }
 
