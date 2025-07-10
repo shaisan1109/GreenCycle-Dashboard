@@ -372,6 +372,11 @@ Handlebars.registerHelper('queryString', function (query, overrides) {
   return params ? `?${params}` : '';
 });
 
+// Check if current route has query
+Handlebars.registerHelper('hasQuery', function(query) {
+  return Object.values(query).some(val => val);
+});
+
 /* ---------------------------------------
     ROUTES (PUBLIC)
 --------------------------------------- */
@@ -581,17 +586,6 @@ app.get('/dashboard/guide', (req, res) => {
     current_guide: true
   })
 })
-
-// Map display
-/*
-app.get('/dashboard/data/map', (req, res) => {
-  res.render('dashboard/test-chart', {
-    layout: 'dashboard',
-    title: 'Test Dashboard',
-    current_test: true
-  })
-})
-*/
 
 app.get('/dashboard/data/summary', async (req, res, next) => {
   // Clean query before proceeding

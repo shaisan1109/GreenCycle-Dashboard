@@ -1,49 +1,52 @@
-<!-- Display search parameters -->    
-<div id="filter-section" class="filter-section">
-    <center>
-        <h2 style="margin: 0;">Search Parameters</h2>
-    </center>
-    <div class="filter-columns">
-        <h3>{{query.title}}</h3>
+<!-- Display search parameters if current route has query -->    
+{{#if (hasQuery query)}}
+  <div id="filter-section" class="filter-section">
+      <center>
+          <h2 style="margin: 0;">Search Parameters</h2>
+      </center>
+      <div class="filter-columns">
+          <h3>{{query.title}}</h3>
 
-        <!-- Location Filters -->
-        <div class="filter-column">
-            <label for="region">Region</label>
-            {{query.region}}
+          <!-- Location Filters -->
+          <div class="filter-column">
+              <label for="region">Region</label>
+              {{query.region}}
 
-            <label for="province">Province</label>
-            {{query.province}}
+              <label for="province">Province</label>
+              {{query.province}}
 
-            <label for="municipality">City/Municipality</label>
-            {{query.municipality}}
+              <label for="municipality">City/Municipality</label>
+              {{query.municipality}}
 
-            <label for="barangay">Barangay</label>
-            --
-        </div>
+              <label for="barangay">Barangay</label>
+              --
+          </div>
 
-        <!-- Author & Date Filters -->
-        <div class="filter-column">
-            <label for="filter-author">Author</label>
-            {{query.author}}
+          <!-- Author & Date Filters -->
+          <div class="filter-column">
+              <label for="filter-author">Author</label>
+              {{query.author}}
 
-            <label for="filter-org">Organization Name</label>
-            {{query.company}}
+              <label for="filter-org">Organization Name</label>
+              {{query.company}}
 
-            <label>Collection Date Range</label>
-            <div class="date-range">
-                {{query.startDate}} to
-                {{query.endDate}}
-            </div>
-        </div>
-    </div>
-</div>
+              <label>Collection Date Range</label>
+              <div class="date-range">
+                  {{query.startDate}} to
+                  {{query.endDate}}
+              </div>
+          </div>
+      </div>
+  </div>
+{{/if}}
 
 <!-- Display charts for aggregated data (UPDATE UI FOR THIS) -->
 <!-- Title Card -->
 <div class="form-section title-card" style="text-align: center;">
     <h1 style="margin-bottom: 0.25rem;">
-        GreenCycle Dashboard – Data Summary
+      GreenCycle Dashboard – Data Summary
     </h1>
+    <p style="font-size: large;">Average data for the requested entries.</p>
 </div>
 
 <!-- Initial Summary -->
@@ -53,11 +56,11 @@
         <h3><i class="fas fa-dumpster"></i> Waste Generation</h3>
         <table class="user-profile">
         <tr>
-            <td class="label">Waste Generation per Capita (Kg/cap-day)</td>
+            <td class="label">Average Waste Generation per Capita (Kg/cap-day)</td>
             <td>{{commaNumber avgInfo.avg_per_capita}}</td>
         </tr>
         <tr>
-            <td class="label">Annual Waste Generation (kg/year)</td>
+            <td class="label">Average Annual Waste Generation (kg/year)</td>
             <td>{{commaNumber avgInfo.avg_annual}}</td>
         </tr>
         </table>
@@ -68,11 +71,11 @@
         <h3><i class="fas fa-calendar-alt"></i> Overall Collection Period</h3>
         <table class="user-profile">
         <tr>
-            <td class="label">Start Date</td>
+            <td class="label">Earliest Start Date</td>
             <td>{{textDate avgInfo.earliest_collection_start}}</td>
         </tr>
         <tr>
-            <td class="label">End Date</td>
+            <td class="label">Latest End Date</td>
             <td>{{textDate avgInfo.latest_collection_end}}</td>
         </tr>
         </table>

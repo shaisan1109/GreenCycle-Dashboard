@@ -961,6 +961,7 @@ export async function getAvgWasteCompositionWithFilters(title, locationCode, nam
             AVG(dwc.waste_amount) AS avg_waste_amount
         FROM data_entry dat
         JOIN data_waste_composition dwc ON dat.data_entry_id = dwc.data_entry_id
+        JOIN user u ON dat.user_id = u.user_id
         WHERE dat.status = 'Approved'`;
 
     const conditions = [];
