@@ -735,7 +735,7 @@ export async function getTotalDataCountByStatus(status) {
 
 // Get all data for review EXCEPT for current user
 // Current user cannot review their own reports
-export async function getDataForReview(currentUser) {
+export async function getDataForReview(currentUser, limit, offset) {
     const [result] = await sql.query(`
         SELECT
             dat.data_entry_id, dat.user_id, dat.title, dat.location_name,
@@ -747,6 +747,7 @@ export async function getDataForReview(currentUser) {
         JOIN user u ON u.user_id = dat.user_id
         WHERE dat.status = 'Pending Review' AND NOT dat.user_id = ${currentUser}
         ORDER BY dat.data_entry_id DESC
+        LIMIT ${limit} OFFSET ${offset}
     `)
 
     return result

@@ -808,7 +808,7 @@ app.get('/dashboard/data/all', async (req, res, next) => {
   const startEntry = totalCount === 0 ? 0 : offset + 1;
   const endEntry = Math.min(offset + limit, totalCount);
 
-  res.render('dashboard/view-data-all', {
+  res.render('dashboard/list-data-all', {
     layout: 'dashboard',
     title: 'All Data Entries | GC Dashboard',
     data,
@@ -823,15 +823,35 @@ app.get('/dashboard/data/all', async (req, res, next) => {
 });
 
 // View data submissions
-app.get('/dashboard/data/submissions', async (req, res) => {
-  const currentUser = req.session.user.id
-  const data = await getDataForReview(currentUser)
+app.get('/dashboard/data/submissions/pending', async (req, res) => {
+  // Current user cannot review their own works
+  const omitUser = req.session.user.id
 
-  res.render('dashboard/view-data-all', {
+  // Pagination
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const offset = (page - 1) * limit;
+
+  const [data, totalCount] = await Promise.all([
+    getDataForReview(omitUser, limit, offset),
+    getDataForReviewCount(omitUser)
+  ]);
+
+  // Pagination offset
+  const totalPages = Math.ceil(totalCount / limit);
+  const startEntry = totalCount === 0 ? 0 : offset + 1;
+  const endEntry = Math.min(offset + limit, totalCount);
+
+  res.render('dashboard/list-data-all', {
     layout: 'dashboard',
     title: 'Data Submissions for Review | GC Dashboard',
     data,
-    current_datasubs: true
+    current_datasubs: true,
+    totalPages,
+    totalCount,
+    startEntry,
+    endEntry,
+    currentPage: page
   })
 })
 
@@ -855,7 +875,7 @@ app.get('/dashboard/data/user/:id', async (req, res) => {
   const startEntry = totalCount === 0 ? 0 : offset + 1;
   const endEntry = Math.min(offset + limit, totalCount);
 
-  res.render('dashboard/view-data-all', {
+  res.render('dashboard/list-data-all', {
     layout: 'dashboard',
     title: 'Your Reports | GC Dashboard',
     data,
