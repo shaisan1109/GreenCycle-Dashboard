@@ -70,11 +70,21 @@
 {{#if current_datasubs}}
 <div class="tab">
   <a href="/dashboard/data/submissions/pending">
-    <button class="tablinks {{#if pending}}active{{/if}}">PENDING</button>
+    <button class="tablinks {{#if pending}}active{{/if}}">
+      PENDING
+      {{#ifNotEquals pendingCount 0}}
+        &nbsp;<span class="notif-badge">{{pendingCount}}</span>
+      {{/ifNotEquals}}
+    </button>
   </a>
   
   <a href="/dashboard/data/submissions/revision">
-    <button class="tablinks {{#if revision}}active{{/if}}">NEEDS REVISION</button>
+    <button class="tablinks {{#if revision}}active{{/if}}">
+      NEEDS REVISION
+      {{#ifNotEquals revisionCount 0}}
+        &nbsp;<span class="notif-badge">{{revisionCount}}</span>
+      {{/ifNotEquals}}
+    </button>
   </a>
 </div>
 {{/if}}

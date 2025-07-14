@@ -214,7 +214,7 @@ const loginSetup = async (req, res, next) => {
     } else if (req.session && req.session.user) {
       // Retrieve data from DB (replace with your DB query)
       const pendingApplications = await getPendingApplicationCount()
-      const pendingData = await getDataForReviewCount(req.session.user.id)
+      const pendingData = await getDataForReviewCount(req.session.user.id, 'Pending Review')
 
       // Make it available to views and routes
       res.locals.pendingApplications = pendingApplications
@@ -832,9 +832,10 @@ app.get('/dashboard/data/submissions/pending', async (req, res) => {
   const limit = 10;
   const offset = (page - 1) * limit;
 
-  const [data, totalCount] = await Promise.all([
-    getDataForReview(omitUser, limit, offset),
-    getDataForReviewCount(omitUser)
+  const [data, totalCount, revisionCount] = await Promise.all([
+    getDataForReview(omitUser, 'Pending Review', limit, offset),
+    getDataForReviewCount(omitUser, 'Pending Review'),
+    getDataForReviewCount(omitUser, 'Needs Revision')
   ]);
 
   // Pagination offset
@@ -850,6 +851,45 @@ app.get('/dashboard/data/submissions/pending', async (req, res) => {
     pending: true,
     totalPages,
     totalCount,
+    pendingCount: totalCount,
+    revisionCount,
+    startEntry,
+    endEntry,
+    currentPage: page
+  })
+})
+
+// View data entries needing revision
+app.get('/dashboard/data/submissions/revision', async (req, res) => {
+  // Current user cannot review their own works
+  const omitUser = req.session.user.id
+
+  // Pagination
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const offset = (page - 1) * limit;
+
+  const [data, totalCount, pendingCount] = await Promise.all([
+    getDataForReview(omitUser, 'Needs Revision', limit, offset),
+    getDataForReviewCount(omitUser, 'Needs Revision'),
+    getDataForReviewCount(omitUser, 'Pending Review')
+  ]);
+
+  // Pagination offset
+  const totalPages = Math.ceil(totalCount / limit);
+  const startEntry = totalCount === 0 ? 0 : offset + 1;
+  const endEntry = Math.min(offset + limit, totalCount);
+
+  res.render('dashboard/list-data-all', {
+    layout: 'dashboard',
+    title: 'Data Submissions for Revision | GC Dashboard',
+    data,
+    current_datasubs: true,
+    revision: true,
+    totalPages,
+    totalCount,
+    revisionCount: totalCount,
+    pendingCount,
     startEntry,
     endEntry,
     currentPage: page

@@ -735,7 +735,7 @@ export async function getTotalDataCountByStatus(status) {
 
 // Get all data for review EXCEPT for current user
 // Current user cannot review their own reports
-export async function getDataForReview(currentUser, limit, offset) {
+export async function getDataForReview(currentUser, status, limit, offset) {
     const [result] = await sql.query(`
         SELECT
             dat.data_entry_id, dat.user_id, dat.title, dat.location_name,
@@ -745,7 +745,7 @@ export async function getDataForReview(currentUser, limit, offset) {
             dat.status
         FROM data_entry dat
         JOIN user u ON u.user_id = dat.user_id
-        WHERE dat.status = 'Pending Review' AND NOT dat.user_id = ${currentUser}
+        WHERE dat.status = '${status}' AND NOT dat.user_id = ${currentUser}
         ORDER BY dat.data_entry_id DESC
         LIMIT ${limit} OFFSET ${offset}
     `)
@@ -754,11 +754,11 @@ export async function getDataForReview(currentUser, limit, offset) {
 }
 
 // Get *number* of entries to review (for notifications)
-export async function getDataForReviewCount(currentUser) {
+export async function getDataForReviewCount(currentUser, status) {
     const [result] = await sql.query(`
         SELECT COUNT(data_entry_id)
         FROM greencycle.data_entry
-        WHERE status = 'Pending Review' AND NOT user_id = ${currentUser}
+        WHERE status = '${status}' AND NOT user_id = ${currentUser}
     `)
     return result[0]['COUNT(data_entry_id)']
 }
