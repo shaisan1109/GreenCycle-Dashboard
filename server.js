@@ -16,7 +16,6 @@ import {
   updateApplicationStatus, createApplication, resetApplicationStatus,
   lastLogin,
   getSectors, submitForm,
-  getDataByLocation,
   getWasteGenById, getWasteCompById, getDataByStatus,
   getWasteSupertypes,
   getWasteTypes,
@@ -486,13 +485,9 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
       const psgcCities = await PSGCResource.getCities()
 
       // Get location names
-      const regionName = getPsgcName(psgcRegions, region)
-      const provinceName = getPsgcName(psgcProvinces, province) || null
-      const municipalityName = getPsgcName(psgcMunicipalities, municipality) || getPsgcName(psgcCities, municipality) || null
-
-      // Set full location name
-      const parts = [municipalityName, provinceName, regionName].filter(Boolean)
-      const fullLocation = parts.join(', ')
+      const regionName = getPsgcName(psgcRegions, region) || 'ALL'
+      const provinceName = getPsgcName(psgcProvinces, province) || 'ALL'
+      const municipalityName = getPsgcName(psgcMunicipalities, municipality) || getPsgcName(psgcCities, municipality) || 'ALL'
 
       /* ------ AVERAGE DATA ------ */
       // Retrieve summary data of given location
@@ -626,14 +621,14 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
         title: 'Data Summary | GC Dashboard',
         current_all: true,
         query: req.query, // Pass current query
-        fullLocation,
         avgInfo: avgInfo[0],
         barChartData: JSON.stringify(barChartData),
         summaryPieData: JSON.stringify(summaryData),
         detailedPieData: JSON.stringify(detailedData),
         legendData,
         sectorBarData: JSON.stringify(sectorBarData),
-        sectorPieData: JSON.stringify(sectorPieData)
+        sectorPieData: JSON.stringify(sectorPieData),
+        regionName, provinceName, municipalityName
       })
     } catch (err) {
       console.error('Summary Error:', err);  // Log the actual error
@@ -1689,23 +1684,6 @@ app.put('/api/applications/:id/notes', async (req, res) => {
       success: false,
       message: 'Error updating notes' 
     })
-  }
-})
-
-// Get waste data from a location
-app.get('/api/waste-data/:location', async (req, res) => {
-  try {
-    const location = req.params.location
-    const dataEntries = await getDataByLocation(location)
-    
-    if (!dataEntries || dataEntries.length === 0) {
-      return res.status(404).json({ success: false, message: 'Data not found' })
-    }
-    
-    res.json(dataEntries)
-  } catch (error) {
-    console.error('Error fetching data:', error)
-    res.status(500).json({ success: false, message: 'Error fetching data' })
   }
 })
 

@@ -56,10 +56,17 @@
                   <input type="date" id="filter-date-end" name="endDate" value="{{query.endDate}}">
               </div>
 
-              <!-- Reset button -->
-              <button type="button" id="reset-filters" class="reset-btn">
-                <i class="fa-solid fa-rotate-left"></i> Reset Filters
-              </button>
+              <div style="margin-left: auto;">
+                <!-- Apply filters -->
+                <button type="submit" class="apply-btn">
+                  <i class="fa-solid fa-filter"></i> Apply Filters
+                </button>
+
+                <!-- Reset button -->
+                <button type="button" id="reset-filters" class="reset-btn">
+                  <i class="fa-solid fa-rotate-left"></i> Reset Filters
+                </button>
+              </div>
             </div>
         </div>
     </div>
@@ -375,14 +382,30 @@ document.getElementById('summaryBtn').addEventListener('click', function () {
   cursor: pointer;
   width: fit-content;
   transition: background-color 0.3s ease;
-  display: block;
-  margin-left: auto;
   margin-top: 2rem;
+  margin-left: 5px;
   font-size: medium;
 }
 
 .reset-btn:hover {
   background-color: darkorange;
+}
+
+.apply-btn {
+  margin-left: 0.75rem;
+  padding: 0.6rem 1rem;
+  background-color: #28a745;
+  border: none;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: medium;
+  width: fit-content;
+}
+
+.apply-btn:hover {
+  background-color: #34b452;
 }
 
 .entry-count-text {
