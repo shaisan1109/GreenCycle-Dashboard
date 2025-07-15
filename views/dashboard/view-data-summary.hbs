@@ -50,7 +50,8 @@
 </div>
 
 <!-- Initial Summary -->
-<div class="info-grid">
+<div style="display: flex;">
+  <div style="width: 50%">
     <!-- Waste Generation Info -->
     <div class="form-section">
         <h3><i class="fas fa-dumpster"></i> Waste Generation</h3>
@@ -80,6 +81,10 @@
         </tr>
         </table>
     </div>
+  </div>
+
+  <!-- Map view -->
+  <div id="map" style="width: 50%;"></div>
 </div>
 
 <!-- Data Tabs -->
@@ -410,8 +415,46 @@ for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
 
 </script>
 
+<!-- Map view script -->
+<script>
+  // Parse from server
+  const locations = {{{locations}}}; // coords
+
+  // If no valid points, show alert or center at a default
+  if (locations.length === 0) {
+    alert("No coordinates available for the selected filters.");
+  } else {
+    const map = L.map('map').setView([locations[0].latitude, locations[0].longitude], 0); // Initial center
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const bounds = [];
+
+    locations.forEach(loc => {
+      if (loc.latitude && loc.longitude) {
+        const marker = L.marker([loc.latitude, loc.longitude]).addTo(map);
+        bounds.push([loc.latitude, loc.longitude]);
+      }
+    });
+
+    // Auto-zoom to fit all pins
+    if (bounds.length > 0) {
+      map.fitBounds(bounds, {
+        padding: [50, 50] // Adds padding around the edges (in pixels)
+      });
+    }
+  }
+</script>
+
 <!-- Access to chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Leaflet.js (for map view) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <!-- JS behind the tabs -->
 <script src="/js/tabs.js"></script>

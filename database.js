@@ -724,6 +724,58 @@ export async function getFilteredDataCount(title, locationCode, name, companyNam
   return result[0].count;
 }
 
+// Get coordinates of filtered data
+export async function getFilteredDataCoords(title, locationCode, name, companyName, startDate, endDate) {
+    let query = `
+        SELECT
+            c.latitude, c.longitude
+        FROM data_entry dat
+        JOIN user u ON u.user_id = dat.user_id
+        LEFT JOIN greencycle.coordinate c ON dat.location_name = c.location_name
+        WHERE dat.status = 'Approved'`;
+
+    const conditions = [];
+    const params = [];
+
+    if (title) {
+        conditions.push(`dat.title LIKE ?`);
+        params.push(`%${title}%`);
+    }
+
+    if (locationCode) {
+        conditions.push(`(dat.region_id = ? OR dat.province_id = ? OR dat.municipality_id = ?)`);
+        params.push(locationCode, locationCode, locationCode);
+    }
+
+    if (name) {
+        conditions.push(`(u.lastname LIKE ? OR u.firstname LIKE ?)`);
+        params.push(`%${name}%`, `%${name}%`);
+    }
+
+    if (companyName) {
+        conditions.push(`u.company_name LIKE ?`);
+        params.push(`%${companyName}%`);
+    }
+
+    if (startDate && endDate) {
+        conditions.push(`(dat.collection_start >= ? AND dat.collection_end <= ?)`);
+        params.push(startDate, endDate);
+    } else if (startDate) {
+        conditions.push(`dat.collection_start >= ?`);
+        params.push(startDate);
+    } else if (endDate) {
+        conditions.push(`dat.collection_end <= ?`);
+        params.push(endDate);
+    }
+
+    if (conditions.length > 0) {
+        query += ' AND ' + conditions.join(' AND ');
+    }
+
+    const [result] = await sql.query(query, params);
+    return result;
+}
+
 // Get count of data entries (for pagination)
 export async function getTotalDataCountByStatus(status) {
     const [[{ count }]] = await sql.query(`

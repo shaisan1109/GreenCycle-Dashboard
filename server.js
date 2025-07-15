@@ -43,7 +43,8 @@ import {
   getAvgWasteCompositionWithFilters,
   getAvgInfoWithFilters,
   getDataByUserCount,
-  getCoordinates
+  getCoordinates,
+  getFilteredDataCoords
 } from './database.js'
 
 // File Upload
@@ -498,6 +499,12 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
       const supertypes = await getAllTypes()
       const avgData = await getAvgWasteCompositionWithFilters(title, locationCode, author, company, startDate, endDate)
 
+      /* ------ DATA COORDS ------ */
+      const coords = await getFilteredDataCoords(title, locationCode, author, company, startDate, endDate)
+      
+      // Filter out null values
+      const validCoords = coords.filter(loc => loc.latitude && loc.longitude);
+
       /* -------- CHART BUILDER -------- */
       // Create a lookup map for waste amounts
       const wasteMap = {}; // type_id -> { sector_id -> avg_waste_amount }
@@ -628,7 +635,8 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
         legendData,
         sectorBarData: JSON.stringify(sectorBarData),
         sectorPieData: JSON.stringify(sectorPieData),
-        regionName, provinceName, municipalityName
+        regionName, provinceName, municipalityName,
+        locations: JSON.stringify(validCoords) // map coords
       })
     } catch (err) {
       console.error('Summary Error:', err);  // Log the actual error
