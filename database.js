@@ -948,14 +948,18 @@ export async function getAvgWasteCompositionWithFilters(title, locationCode, nam
 /* ---------------------------------------
     CONTROL PANEL
 --------------------------------------- */
+
+// Get users with the most data submissions
 export async function getTopContributors(limit) {
+    // Includes users with a count of 0
     let query = `
         SELECT 
             u.user_id, u.lastname, u.firstname,
             COUNT(dat.data_entry_id) AS entry_count
-        FROM greencycle.data_entry AS dat
-        JOIN greencycle.user AS u ON dat.user_id = u.user_id
-        GROUP BY u.user_id, u.firstname, u.lastname
+        FROM greencycle.user AS u
+        LEFT JOIN greencycle.data_entry AS dat 
+            ON dat.user_id = u.user_id
+        GROUP BY u.user_id, u.lastname, u.firstname
         ORDER BY entry_count DESC
     `;
 
@@ -967,6 +971,7 @@ export async function getTopContributors(limit) {
     }
 
     const [result] = await sql.query(query, values);
+    console.log(result)
     return result;
 }
 
@@ -993,32 +998,43 @@ export async function getLatestSubmissions(limit) {
 
 // Get top reporting regions
 export async function getTopReportingRegions(limit) {
-    let query = `
+    // Get all PSGC regions
+    const psgcRegions = await PSGCResource.getRegions();
+
+    // Get region entry counts from the database
+    const [dbCounts] = await sql.query(`
         SELECT region_id, COUNT(data_entry_id) AS entry_count
         FROM greencycle.data_entry
         GROUP BY region_id
-        ORDER BY entry_count DESC
-    `;
+    `);
 
-    const values = [];
-    if (limit && Number.isInteger(limit)) {
-        query += ` LIMIT ?`;
-        values.push(limit);
-    }
+    // Create a lookup for quick access to entry counts
+    const countMap = {};
+    dbCounts.forEach(row => {
+        countMap[row.region_id] = row.entry_count;
+    });
 
-    const [result] = await sql.query(query, values);
-
-    // Get PSGC data once
-    const psgcRegions = await PSGCResource.getRegions();
-
-    // Add region name to each entry
-    const resultWithNames = result.map(row => ({
-        region_id: row.region_id,
-        region_name: getPsgcName(psgcRegions, row.region_id),
-        entry_count: row.entry_count
+    // Combine PSGC data with entry counts
+    let fullList = psgcRegions.map(region => ({
+        region_id: region.code,
+        region_name: region.name,
+        entry_count: countMap[region.code] || 0
     }));
 
-    return resultWithNames;
+    // Sort by entry count DESC, then by region name ASC
+    fullList.sort((a, b) => {
+        if (b.entry_count !== a.entry_count) {
+        return b.entry_count - a.entry_count;
+        }
+        return a.region_name.localeCompare(b.region_name);
+    });
+
+    // Apply limit if given and valid
+    if (limit && Number.isInteger(limit) && limit > 0) {
+        fullList = fullList.slice(0, limit);
+    }
+
+    return fullList;
 }
 
 // Get monthly submissions and convert to Chart.js format

@@ -1502,6 +1502,18 @@ app.get('/control-panel/entry-statistics', async (req, res) => {
   })
 })
 
+// Fetch top contributors (entry stats)
+app.get('/api/control-panel/top-contributors', async (req, res) => {
+  const contributors = await getTopContributors(); // full list, no limit
+  res.json(contributors);
+});
+
+// Fetch top regions (entry stats)
+app.get('/api/control-panel/top-regions', async (req, res) => {
+  const regions = await getTopReportingRegions();
+  res.json(regions);
+});
+
 // User routes
 // Get all users
 app.get('/control-panel/users', async (req, res) => {

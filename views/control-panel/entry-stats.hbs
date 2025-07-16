@@ -38,11 +38,12 @@
             {{#ifEquals status 'Approved'}}stat-approved{{/ifEquals}} 
             {{#ifEquals status 'Needs Revision'}}stat-revision{{/ifEquals}}">
             {{status}}
-          </span><br>
+          </span><br><br>
           <i>{{textDate date_submitted}}</i>
         </div>
       </div>
     {{/each}}
+    <br>
     <button class="btn-submit">See all submissions</button>
   </div>
 
@@ -55,10 +56,12 @@
         <span class="ranked-count">{{entry_count}}</span>
       </div>
     {{/each}}
-    <button class="btn-submit">See all top contributors</button>
+    <br>
+    <button id="top-contribs" class="btn-submit">See all top contributors</button>
 
     <hr style="margin: 1rem 0;">
 
+    <br>
     <h3><i class="fas fa-map-marker-alt"></i> Top Reporting Regions</h3>
     {{#each topRegions}}
       <div class="ranked-item">
@@ -66,7 +69,8 @@
         <span class="ranked-count">{{entry_count}}</span>
       </div>
     {{/each}}
-    <button class="btn-submit">See all top reporting regions</button>
+    <br>
+    <button class="btn-submit" onclick="openRegionModal()">See all top reporting regions</button>
   </div>
 </div>
 
@@ -74,6 +78,31 @@
 <div class="form-section">
   <h3><i class="fas fa-chart-line"></i> Submission History</h3>
   <canvas id="monthlySubmissionsChart" width="600" height="300"></canvas>
+</div>
+
+<!-- Top Contributors Modal -->
+<div id="topContributorsModal" class="modal hidden">
+  <div class="modal-content">
+    <span class="close-button" onclick="closeModal()">&times;</span>
+    <h3><i class="fas fa-users"></i> All Top Contributors</h3>
+    <div id="contributorsList" class="ranked-list"></div>
+
+    <!-- Pagination Controls -->
+    <div class="pagination">
+      <button id="prevPage" onclick="changePage(-1)">← Prev</button>
+      <span id="pageIndicator">Page 1</span>
+      <button id="nextPage" onclick="changePage(1)">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Top Regions Modal -->
+<div id="topRegionsModal" class="modal hidden">
+  <div class="modal-content">
+    <span class="close-button" onclick="closeRegionModal()">&times;</span>
+    <h3><i class="fas fa-map-marker-alt"></i> All Top Reporting Regions</h3>
+    <div id="regionList" class="ranked-list"></div>
+  </div>
 </div>
 
 <!-- Script for monthly submissions -->
@@ -114,6 +143,81 @@ const ctx = document.getElementById('monthlySubmissionsChart').getContext('2d');
   }
 });
 
+</script>
+
+<!-- Script: Top Contributors Modal -->
+<script>
+
+let contributors = []; // populated on button click
+let currentPage = 1;
+const pageSize = 20;
+
+document.getElementById('top-contribs').addEventListener('click', async () => {
+  const res = await fetch('/api/control-panel/top-contributors'); // You’ll create this route
+  contributors = await res.json();
+  currentPage = 1;
+  showContributors();
+  openModal();
+});
+
+function showContributors() {
+  const start = (currentPage - 1) * pageSize;
+  const end = start + pageSize;
+  const pageItems = contributors.slice(start, end);
+
+  const container = document.getElementById('contributorsList');
+  container.innerHTML = '';
+
+  pageItems.forEach(user => {
+    const div = document.createElement('div');
+    div.className = 'ranked-item';
+    div.innerHTML = `<strong>${user.lastname.toUpperCase()}, ${user.firstname}</strong><span class="ranked-count">${user.entry_count}</span>`;
+    container.appendChild(div);
+  });
+
+  document.getElementById('pageIndicator').textContent = `Page ${currentPage}`;
+}
+
+function changePage(delta) {
+  const maxPage = Math.ceil(contributors.length / pageSize);
+  if ((currentPage + delta) < 1 || (currentPage + delta) > maxPage) return;
+  currentPage += delta;
+  showContributors();
+}
+
+function openModal() {
+  document.getElementById('topContributorsModal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('topContributorsModal').classList.add('hidden');
+}
+
+</script>
+
+<!-- Script: Top Regions Modal -->
+<script>
+
+async function openRegionModal() {
+  const res = await fetch('/api/control-panel/top-regions');
+  const regions = await res.json();
+
+  const container = document.getElementById('regionList');
+  container.innerHTML = '';
+
+  regions.forEach(region => {
+    const div = document.createElement('div');
+    div.className = 'ranked-item';
+    div.innerHTML = `${region.region_name}<span class="ranked-count">${region.entry_count}</span>`;
+    container.appendChild(div);
+  });
+
+  document.getElementById('topRegionsModal').classList.remove('hidden');
+}
+
+function closeRegionModal() {
+  document.getElementById('topRegionsModal').classList.add('hidden');
+}
 </script>
 
 <style>
@@ -204,6 +308,52 @@ const ctx = document.getElementById('monthlySubmissionsChart').getContext('2d');
   display: flex;
   flex-wrap: wrap;
   gap: 1.5rem;
+}
+
+.modal {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  z-index: 999;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(0,0,0,0.4);
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background-color: #fff;
+  padding: 20px;
+  width: 80%;
+  max-height: 80%;
+  overflow-y: auto;
+  border-radius: 10px;
+  position: relative;
+}
+
+.close-button {
+  position: absolute;
+  right: 20px;
+  top: 15px;
+  cursor: pointer;
+  font-size: 1.5rem;
+}
+
+.ranked-list .ranked-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 15px;
 }
 
 </style>
