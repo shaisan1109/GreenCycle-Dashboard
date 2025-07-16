@@ -183,178 +183,6 @@ export async function submitForm(user_id, title, region_id, province_id, municip
    }
 }
 
-// Fetch regions, provinces, municipalities, and cities dynamically
-async function fetchPSGCData() {
-    try {
-        const [municipalities, cities] = await Promise.all([
-            PSGCResource.getMunicipalities(),
-            PSGCResource.getCities()
-        ]);
-
-        return { municipalities, cities };
-    } catch (error) {
-        console.error("Error fetching PSGC data:", error);
-        return null;
-    }
-}
-
-async function getLocationName(regionCode, provinceCode, municipalityCode, existingMunicipalityName) {
-    try {
-        // 🟢 Use existing municipality or city name if it's already in the database
-        if (existingMunicipalityName && existingMunicipalityName.trim() !== "") {
-            console.log(`Using existing municipality/city name: ${existingMunicipalityName}`);
-            return existingMunicipalityName;
-        }
-
-        console.log(`Searching for region code: ${regionCode}`);
-
-        const psgcRegions = await PSGCResource.getRegions();
-
-        // 🔹 Find the region name using the regionEquivalence mapping
-        const regionName = psgcRegions?.find(r => r.code === regionCode)?.name ||
-                             `Unknown Region (${regionCode})`;
-        if (!regionName) {
-            console.error(`Region not found for code: ${regionCode}`);
-            return `Unknown Region (${regionCode})`;
-        }
-
-        // 🔹 Find the province name if applicable
-        const psgcProvinces = await PSGCResource.getProvinces()
-
-        const provinceName = psgcProvinces?.find(p => p.code === provinceCode)?.name ||
-                             `Unknown Province (${provinceCode})`;
-        if (!provinceName) {
-            console.error(`Region not found for code: ${provinceCode}`);
-            return `Unknown Region (${provinceCode})`;
-        }
-
-        
-        // 🔹 Fetch municipality or city name from PSGC data
-        const psgcData = await fetchPSGCData();
-
-        const locationName = psgcData?.municipalities?.find(m => m.code === municipalityCode)?.name ||
-                             psgcData?.cities?.find(c => c.code === municipalityCode)?.name ||
-                             `Unknown Municipality/City (${municipalityCode})`;
-
-        // 🔹 Format the full location name correctly
-        const fullLocationName = [regionName, provinceName, locationName]
-            .filter(Boolean) // Remove empty values
-            .join(", ");
-
-        console.log(`Resolved Location Name: ${fullLocationName}`);
-        return fullLocationName;
-    } catch (error) {
-        console.error("Error fetching location:", error);
-        return null;
-    }
-}
-
-// Function to fetch coordinates using OpenStreetMap API
-/*
-async function getCoordinates(locationName) {
-    const locationParts = locationName.split(",").map(part => part.trim());
-
-    let formattedLocation = "Philippines"; // Default country
-
-    // Extract location values safely
-    const region = locationParts[0] || null;
-    const province = locationParts[1] || null;
-    const municipality = locationParts[2] || null;
-    
-    // Check what data is available and format accordingly
-    if (municipality) {
-        formattedLocation = `${municipality}, Philippines`; // Municipality/City
-    } else if (province) {
-        formattedLocation = `${province}, Philippines`; // Province
-    } else if (region) {
-        formattedLocation = `${region}, Philippines`; // Region
-    }
-
-    const apiUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formattedLocation)}`;
-
-    try {
-        console.log(`Fetching coordinates for: ${formattedLocation}`); // Debugging output
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-
-        if (data.length > 0) {
-            return { latitude: data[0].lat, longitude: data[0].lon };
-        } else {
-            console.error("Location not found:", formattedLocation);
-            return null;
-        }
-    } catch (error) {
-        console.error("Error fetching coordinates:", error);
-        return null;
-    }
-}
-*/
-
-export async function getWasteDataWithCoordinates() {
-    const [rows] = await sql.query(`
-        SELECT 
-            l.location_id, 
-            l.region, l.region_name, 
-            l.province, l.province_name, 
-            l.municipality, l.municipality_name, 
-            l.barangay, 
-            l.latitude, l.longitude,
-            wc.id AS waste_id, wc.waste_gen_id, wc.material_id, wc.origin_id, wc.waste_amount, wc.subtype_remarks,
-            wg.waste_gen_id, wg.client_id, wg.population, wg.per_capita, wg.annual, wg.date_submitted, wg.year_collected
-        FROM locations l
-        LEFT JOIN waste_generation wg ON l.location_id = wg.location_id
-        LEFT JOIN waste_composition wc ON wg.location_id = wc.waste_gen_id;
-            `);
-
-
-    for (let row of rows) {
-        const locationName = await getLocationName(row.region, row.province, row.municipality);
-        console.log(`Fetched Name for Location ID ${row.location_id}: ${locationName}`);
-
-        if (!row.latitude || !row.longitude) {
-            const coords = await getCoordinates(locationName);
-            if (coords) {
-                row.latitude = coords.latitude;
-                row.longitude = coords.longitude;
-
-                console.log(`Updated Coordinates for ${locationName}: ${coords.latitude}, ${coords.longitude}`);
-
-                const locationParts = locationName.split(",").map(part => part.trim());
-
-                let regionName = locationParts[0] || null;
-                const provinceCode = row.province ? row.province : null;
-                const municipalityCode = row.municipality ? row.municipality : null;
-
-
-            // Ensure proper formatting of province and municipality names
-                let provinceName = provinceCode ? locationParts[1] || null : null;
-                let municipalityName = municipalityCode 
-                    ? locationParts[2] || locationParts[1] || null  // Ensure the correct assignment
-                    : (!provinceCode && locationParts[1]) ? locationParts[1] : null;
-
-                // Special handling for NCR: No province, but ensure municipality is assigned
-                if (row.region === "0" && municipalityCode) {
-                    provinceName = null;  // NCR has no province
-                    municipalityName = locationParts[1] || null;  // Assign city/municipality correctly
-                }
-
-                await sql.query(
-                    `UPDATE locations SET latitude = ?, longitude = ?, region_name = ?, province_name = ?, municipality_name = ? WHERE location_id = ?`,
-                    [coords.latitude, coords.longitude, regionName, provinceName, municipalityName, row.location_id]
-                );
- 
-                
-                await sql.query(
-                    `UPDATE locations SET latitude = ?, longitude = ?, region_name = ?, province_name = ?, municipality_name = ? WHERE location_id = ?`,
-                    [coords.latitude, coords.longitude, regionName, provinceName, municipalityName, row.location_id]
-                );
-
-            }
-        }
-    }
-    return rows;
-}
-
 /* ---------------------------------------
     PARTNERS
 --------------------------------------- */
@@ -898,6 +726,55 @@ export async function updateDataStatus(dataId, status, rejectionReason, reviewed
         if (err) throw err;
         console.log(result.affectedRows + " record(s) updated");
     })
+}
+
+// Retrieve location name of entry being reviewed
+export async function getEntryLocationName(id) {
+    const [rows] = await sql.query(`
+        SELECT location_name 
+        FROM greencycle.data_entry
+        WHERE data_entry_id = ?`, [id]);
+    return rows[0]?.location_name || null; // Only one match since ID is unique
+}
+
+// Retrieve location via Nominatim
+export async function fetchCoordinates(locationName) {
+    let parts = locationName.split(',').map(p => p.trim());
+
+    // Remove region if location has at least 2 commas (3 parts)
+    if (parts.length >= 3) {
+        parts = parts.slice(0, 2); // Keep only City and Province, or just Province
+    }
+
+    const formattedLocation = `${parts.join(', ')}, Philippines`;
+    const apiUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formattedLocation)}`;
+
+    try {
+        console.log(`Fetching coordinates for: ${formattedLocation}`); // Debugging output
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (data.length > 0) {
+            return { latitude: data[0].lat, longitude: data[0].lon };
+        } else {
+            console.error("Location not found:", formattedLocation);
+            return null;
+        }
+    } catch (error) {
+        console.error("Error fetching coordinates:", error);
+        return null;
+    }
+}
+
+// Insert location entry
+export async function createLocationEntry(locationName, lat, lon) {
+    const result = await sql.query(`
+        INSERT INTO greencycle.coordinate (location_name, latitude, longitude)
+        VALUES (?, ?, ?)
+    `, [locationName, lat, lon])
+    
+    // Return new object if successful
+    return result[0].insertId
 }
 
 /* ---------------------------------------

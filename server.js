@@ -44,7 +44,10 @@ import {
   getAvgInfoWithFilters,
   getDataByUserCount,
   getCoordinates,
-  getFilteredDataCoords
+  getFilteredDataCoords,
+  getEntryLocationName,
+  fetchCoordinates,
+  createLocationEntry
 } from './database.js'
 
 // File Upload
@@ -1726,9 +1729,25 @@ app.patch('/api/data/:id/status', async (req, res) => {
     
     if(status === 'Approved') {
       await createEditEntry(id, reviewedBy, 'Approved data entry')
+
+      // Retrieve entry location name
+      const locationName = await getEntryLocationName(id)
+
+      // First, make sure entry's location exists in db
+      const coords = await getCoordinates(locationName)
+
+      // If coords do not exist, find coords for entry's location and insert into db
+      if(!coords) {
+        const fetchCoords = await fetchCoordinates(locationName)
+
+        if(fetchCoords)
+          await createLocationEntry(locationName, fetchCoords.latitude, fetchCoords.longitude)
+      }
+
     }
-    else if(status === 'Needs Revision')
+    else if(status === 'Needs Revision') {
       await createEditEntry(id, reviewedBy, `Needs Revision: ${rejectionReason}`)
+    }
 
     res.json({ 
       success: true,
