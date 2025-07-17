@@ -89,6 +89,9 @@
             <button type="submit" class="upload-btn">
                 <i class="fas fa-upload"></i> Upload and Submit Form
             </button>
+
+            <!-- Show error if spreadsheet has incorrect formats -->
+            <div id="xlsx-errors" class="form-errors" style="color: red; margin-top: 10px;"></div>
         </div>
     </div>
 
@@ -119,6 +122,133 @@
       endDateInput.value = '';
     }
   });
+</script>
+
+<!-- Spreadsheet checker -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+document.getElementById("fileElem").addEventListener("change", async function (e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const errorDiv = document.getElementById("xlsx-errors");
+  errorDiv.innerHTML = ""; // Reset errors
+
+  const reader = new FileReader();
+
+  reader.onload = function (e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: "array" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+    const errors = [];
+
+    // --- Validate Manual Data ---
+    const population = json[0]?.[1];
+    const perCapita = json[1]?.[1];
+    const annual = json[2]?.[1];
+
+    if (population === undefined || population === null || population.toString().trim() === '') {
+      errors.push("Population is required.");
+    } else if (!/^\d+$/.test(population)) {
+      errors.push("Population must be a whole number.");
+    }
+
+    if (perCapita === undefined || perCapita === null || perCapita.toString().trim() === '') {
+      errors.push("Per Capita is required.");
+    } else if (isNaN(perCapita)) {
+      errors.push("Per Capita must be a number.");
+    }
+
+    if (annual === undefined || annual === null || annual.toString().trim() === '') {
+      errors.push("Annual Total is required.");
+    } else if (isNaN(annual)) {
+      errors.push("Annual Total must be a number.");
+    }
+
+    // --- Matrix Validations ---
+    const sectorHeaderRow = 6;
+    const matrixStartRow = 7;
+    const sectors = json[sectorHeaderRow]?.slice(2) || [];
+    const columnCount = 2 + sectors.length;
+
+    for (let i = matrixStartRow; i < json.length; i++) {
+      const row = json[i];
+      if (!row || !row[1]) continue; // skip empty or invalid rows
+
+      const rowLabel = row[1] || `row ${i + 1}`;
+
+      for (let j = 2; j < columnCount; j++) {
+        const cell = row[j];
+        const colIndex = j - 2;
+        const sectorName = sectors[colIndex] || `Sector ${colIndex + 1}`;
+
+        if (cell === undefined || cell === null || cell.toString().trim() === '') {
+          errors.push(`Blank cell in "${rowLabel}" under "${sectorName}".`);
+        } else if (isNaN(cell)) {
+          errors.push(`Invalid number in "${rowLabel}" under "${sectorName}": "${cell}"`);
+        }
+      }
+    }
+
+    // Show or hide the error box
+    if (errors.length > 0) {
+      errorDiv.innerHTML = `<ul>${errors.map(e => `<li>${e}</li>`).join("")}</ul>`;
+      document.querySelector(".upload-btn").disabled = true;
+    } else {
+      errorDiv.innerHTML = "";
+      document.querySelector(".upload-btn").disabled = false;
+    }
+  };
+
+  reader.readAsArrayBuffer(file);
+});
+
+// Block form submission if upload button is disabled
+document.querySelector("form").addEventListener("submit", function (e) {
+  if (document.querySelector(".upload-btn").disabled) {
+    e.preventDefault();
+    document.getElementById("xlsx-errors").scrollIntoView({ behavior: "smooth" });
+  }
+});
+
+// 
+document.addEventListener("DOMContentLoaded", function () {
+  const requiredFields = [
+    "#title",
+    "#regions",
+    "#date_start",
+    "#date_end",
+    "#fileElem"
+  ];
+
+  const submitBtn = document.querySelector(".upload-btn");
+
+  function checkRequirements() {
+    const allFilled = requiredFields.every(selector => {
+      const el = document.querySelector(selector);
+      if (!el) return false;
+      if (el.type === "file") return el.files.length > 0;
+      return el.value.trim() !== "";
+    });
+
+    submitBtn.disabled = !allFilled;
+  }
+
+  // Run on page load
+  checkRequirements();
+
+  // Recheck on every change
+  requiredFields.forEach(selector => {
+    const el = document.querySelector(selector);
+    if (el) {
+      el.addEventListener("input", checkRequirements);
+      el.addEventListener("change", checkRequirements);
+    }
+  });
+});
+
 </script>
 
 <style>
@@ -241,6 +371,15 @@
 
 .upload-btn i {
   margin-right: 0.5rem;
+}
+
+.upload-btn:disabled {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+  opacity: 0.7;
+  pointer-events: none;
+  border: 1px solid #aaa;
 }
 
 .drop-area {
