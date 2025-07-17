@@ -72,8 +72,38 @@
 </div>
 
 <center>
+  <button class="upload-btn" id="cancel-btn" style="background-color: gray;" onclick="showCancel()">Cancel</button>
   <button type="submit" id="submitBtn" class="upload-btn">Confirm Submission</button>
 </center>
+
+<!-- Cancel modal -->
+<div id="cancel-modal" class="modal">
+    <div class="modal-content">
+        <span id="cancel-close" class="close">&times;</span>
+        <h3>Cancel Submission</h3>
+        <h3 style="font-weight: normal;">Return to form?</h3>
+
+        <button type="button" id="cancel-no" class="review-cancel">
+          No
+        </button>&emsp;
+
+        <button type="submit" id="cancel-yes" class="review-approve">
+          Yes
+        </button>
+    </div>
+</div>
+
+<!-- Prefill data (if user cancels submission) -->
+<form id="return-to-form" method="POST" action="/dashboard/submit-report/upload">
+  <input type="hidden" name="return" value="true">
+  <input type="hidden" name="title" value="{{formDataRaw.title}}">
+  <input type="hidden" name="region" value="{{formDataRaw.region}}">
+  <input type="hidden" name="province" value="{{formDataRaw.province}}">
+  <input type="hidden" name="municipality" value="{{formDataRaw.municipality}}">
+  <input type="hidden" name="barangay" value="{{formDataRaw.barangay}}">
+  <input type="hidden" name="date_start" value="{{formDataRaw.date_start}}">
+  <input type="hidden" name="date_end" value="{{formDataRaw.date_end}}">
+</form>
 
 <!-- POST request script -->
 <script>
@@ -124,6 +154,49 @@ document.addEventListener("DOMContentLoaded", function () {
   })
 
 })
+
+</script>
+
+<!-- Cancel modal script -->
+<script>
+
+// Wait for the DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Modal functionality
+    const cancelModal = document.getElementById('cancel-modal');
+    const cancelClose = document.getElementById('cancel-close');
+    const cancelNo = document.getElementById('cancel-no');
+
+    /* APPROVE MODAL */
+    // Hide modal if close btn is clicked
+    if (cancelClose) {
+        cancelClose.onclick = function() {
+            cancelModal.style.display = "none";
+        }
+    }
+
+    // Hide modal if Cancel button is clicked
+    if (cancelNo) {
+        cancelNo.onclick = function() {
+            cancelModal.style.display = "none";
+        }
+    }
+    
+    // Hide modal if user clicks outside content
+    window.onclick = function(event) {
+        if (event.target == cancelModal) {
+            cancelModal.style.display = "none";
+        }
+    }
+
+    document.getElementById('cancel-yes').addEventListener('click', function () {
+      document.getElementById('return-to-form').submit();
+    });
+})
+
+function showCancel() {
+    document.getElementById('cancel-modal').style.display = 'block';
+}
 
 </script>
 
@@ -229,4 +302,46 @@ document.addEventListener("DOMContentLoaded", function () {
   margin-right: 0.5rem;
 }
 
+</style>
+
+<!-- Modal style -->
+<style>
+    /* Modal styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.4);
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 20% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 900px;
+        border-radius: 5px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+    }
 </style>

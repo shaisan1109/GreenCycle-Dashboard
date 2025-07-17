@@ -12,6 +12,33 @@ fetch('/locations')
     .then((data) => {
         jsonData = data
         getRegions(jsonData)
+
+        // If prefill values exist, apply them
+        const prefill = {
+            region: form.dataset.prefillRegion,
+            province: form.dataset.prefillProvince,
+            municipality: form.dataset.prefillMunicipality
+        };
+
+        if (prefill.region) {
+            // Select region
+            regionsDropdown.value = prefill.region;
+            regionsDropdown.dispatchEvent(new Event('change')); // Load provinces
+
+            // Small timeout to wait for provinces to populate
+            setTimeout(() => {
+                if (prefill.province) {
+                    provincesDropdown.value = prefill.province;
+                    provincesDropdown.dispatchEvent(new Event('change')); // Load municipalities
+                }
+
+                setTimeout(() => {
+                    if (prefill.municipality) {
+                        municipalitiesDropdown.value = prefill.municipality;
+                    }
+                }, 100); // wait for municipalities to load
+            }, 100); // wait for provinces to load
+        }
     })
 
 // Get all regions upon loading

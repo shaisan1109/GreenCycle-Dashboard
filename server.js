@@ -79,6 +79,7 @@ app.use(cors({ credentials: true }))
 
 // Use JSON for data format
 app.use(express.json())
+app.use(express.urlencoded({ extended: true }));
 
 // Set favicon
 app.use(favicon('./favicon.ico'))
@@ -1238,6 +1239,8 @@ app.post("/dashboard/submit-report/upload/confirm", xlsxUpload.single('spreadshe
 
     fs.unlinkSync(req.file.path) // Delete uploaded file after parsing
 
+    console.log(formData)
+
     res.render('dashboard/data-upload-confirm', {
       layout: 'dashboard',
       fullLocation,
@@ -1258,13 +1261,27 @@ app.post("/dashboard/submit-report/upload/confirm", xlsxUpload.single('spreadshe
 })
 
 // Submit data by uploading a spreadsheet
-app.get('/dashboard/submit-report/upload', async (req, res) => {
-  res.render('dashboard/data-upload', {
-    layout: 'dashboard',
-    title: 'Upload Data Spreadsheet | GC Dashboard',
-    current_report: true
+app.route('/dashboard/submit-report/upload')
+  .get((req, res) => { // User is filling up for the first time
+    res.render('dashboard/data-upload', {
+      layout: 'dashboard',
+      title: 'Upload Data Spreadsheet | GC Dashboard',
+      current_report: true,
+      prefill: {},
+      reopenStep1: false
+    })
+  }) 
+  .post((req, res) => { // User has canceled submission and is returning to form
+    const prefill = req.body
+
+    res.render('dashboard/data-upload', {
+      layout: 'dashboard',
+      title: 'Upload Data Spreadsheet | GC Dashboard',
+      current_report: true,
+      prefill,
+      reopenStep1: true // so JS reopens Step 1
+    })
   })
-})
 
 app.post("/api/data/submit-report/manual", async (req, res) => {
   // Request body

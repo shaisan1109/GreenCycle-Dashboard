@@ -1,6 +1,7 @@
 {{!-- <h2>Data Submission Form</h2> --}}
 
-<form action="/dashboard/submit-report/upload/confirm" method="POST" enctype="multipart/form-data">
+<form action="/dashboard/submit-report/upload/confirm" method="POST" enctype="multipart/form-data"
+data-prefill-region="{{prefill.region}}" data-prefill-province="{{prefill.province}}" data-prefill-municipality="{{prefill.municipality}}">
 
     <div class="step active" data-step="0">
         <div class="instructions-tab">
@@ -29,7 +30,8 @@
         <h3><i class="fas fa-heading"></i> Submission Title</h3>
         <label for="title">Title</label>
         <input type="text" name="title" id="title"
-          placeholder="Provide a meaningful title (up to 100 characters only)" required>
+          placeholder="Provide a meaningful title (up to 100 characters only)"
+          value="{{prefill.title}}" required>
         </div>
 
         <!-- Personal Information -->
@@ -68,10 +70,10 @@
             <h3><i class="fas fa-calendar-alt"></i> Location Information</h3>
 
             <label for="date_start">Data Collection Start Date</label>
-            <input type="date" id="date_start" name="date_start" required>
+            <input type="date" id="date_start" name="date_start" value="{{prefill.date_start}}" required>
 
             <label for="date_end">Data Collection End Date</label>
-            <input type="date" id="date_end" name="date_end" required disabled>
+            <input type="date" id="date_end" name="date_end" value="{{prefill.date_end}}" required disabled>
         </div>
 
         <!-- File Upload -->
@@ -127,6 +129,16 @@
 <!-- Spreadsheet checker -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+
+// If form is on prefill mode, open step 1
+document.addEventListener('DOMContentLoaded', function () {
+  let reopen = '{{reopenStep1}}' === 'true';
+  if (reopen) {
+    currentStep = 1;
+    showStep(currentStep);
+  }
+});
+
 document.getElementById("fileElem").addEventListener("change", async function (e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -213,7 +225,7 @@ document.querySelector("form").addEventListener("submit", function (e) {
   }
 });
 
-// 
+// Disable upload btn while required fields are incomplete
 document.addEventListener("DOMContentLoaded", function () {
   const requiredFields = [
     "#title",
