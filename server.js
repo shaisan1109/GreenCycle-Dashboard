@@ -680,6 +680,14 @@ app.get('/dashboard/data/all', async (req, res, next) => {
     getFilteredDataCount(title, locationCode, author, company, startDate, endDate)
   ]);
 
+  // Prefill location dropdowns
+  let prefill = {}
+
+  if(region) prefill.region = region
+  if(province) prefill.province = province
+  if(municipality) prefill.municipality = municipality
+
+  // Page handler
   const totalPages = Math.ceil(totalCount / limit);
   const startEntry = totalCount === 0 ? 0 : offset + 1;
   const endEntry = Math.min(offset + limit, totalCount);
@@ -694,7 +702,8 @@ app.get('/dashboard/data/all', async (req, res, next) => {
     startEntry,
     endEntry,
     current_all: true,
-    query: req.query // Pass current query so you can preserve form values
+    query: req.query, // Pass current query so you can preserve form values
+    prefill
   });
 });
 

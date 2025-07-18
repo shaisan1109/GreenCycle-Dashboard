@@ -1,6 +1,7 @@
 <!-- Show search form if current page is data search -->
 {{#if current_all}}
-<form id="data-search" method="GET" action="/dashboard/data/all">
+<form id="data-search" method="GET" action="/dashboard/data/all"
+data-prefill-region="{{prefill.region}}" data-prefill-province="{{prefill.province}}" data-prefill-municipality="{{prefill.municipality}}">
     <!-- Search Bar and Filter Toggle -->
     <div class="search-bar-container">
         <input type="text" name="title" value="{{query.title}}" class="search-input-main" placeholder="Search data entry title...">
@@ -189,7 +190,7 @@
 </div>
 
 <!-- Location search script -->
-<script src="../../js/locations-search.js"></script>
+<script src="../../js/locations.js"></script>
 
 <!-- Javascript -->
 <script>
