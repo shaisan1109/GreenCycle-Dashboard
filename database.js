@@ -224,6 +224,19 @@ export async function removeUserRole(userId) {
   const [result] = await sql.query('UPDATE user SET role_id = 9 WHERE user_id = ?', [userId]);
   return result;
 }
+export async function updateUserRole(userId, newRoleId) {
+    try {
+        const [result] = await sql.query(
+            'UPDATE user SET role_id = ? WHERE user_id = ?',
+            [newRoleId, userId]
+        );
+        return result;
+    } catch (err) {
+        console.error('❌ SQL Error in updateUserRole:', err);
+        throw err;
+    }
+}
+
 
 // Get role by ID
 export async function getRoleById(id) {

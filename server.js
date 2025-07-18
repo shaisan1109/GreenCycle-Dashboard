@@ -48,7 +48,8 @@ import {
   getEntryLocationName,
   fetchCoordinates,
   createLocationEntry,
-  removeUserRole
+  removeUserRole,
+  updateUserRole
 } from './database.js'
 
 // File Upload
@@ -1709,6 +1710,36 @@ app.get('/control-panel/user-applications', async (req, res) => {
     applications
   })
 })
+app.put('/users/update-role', async (req, res) => {
+    const { userId, newRoleId } = req.body;
+
+    console.log(`Received role update request: userId=${userId}, newRoleId=${newRoleId}`);
+
+    // Input validation
+    if (!userId || !newRoleId) {
+        return res.status(400).json({ error: 'Missing userId or newRoleId' });
+    }
+
+    if (isNaN(userId) || isNaN(newRoleId)) {
+        return res.status(400).json({ error: 'Invalid userId or newRoleId format' });
+    }
+
+    try {
+        const result = await updateUserRole(userId, newRoleId);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'User not found or already assigned to this role' });
+        }
+
+        console.log(`Successfully updated user ${userId} to role ${newRoleId}`);
+        res.status(200).json({ message: 'Role updated successfully' });
+
+    } catch (error) {
+        console.error('Error updating user role:', error);
+        res.status(500).json({ error: 'Database error occurred while updating role' });
+    }
+});
+
 
 app.get('/control-panel/partners', async (req, res) => {
   const partners = await getPartners()

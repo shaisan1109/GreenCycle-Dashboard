@@ -27,7 +27,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Set role name in modal title
             document.getElementById('modal-role-name').textContent = roleName;
-            
+            let selectedRoleId = roleId; // save globally for later use in add-user-btn
+            let usersOfRole;
+
+
             // Fetch users with role ID from server
             fetch(`/users/role/${roleId}`)
                 .then(response => response.json())
@@ -39,6 +42,54 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Show modal
             userManagementModal.style.display = 'flex';
+
+            const addUserButton = document.querySelector('.add-user-btn');
+if (addUserButton) {
+    addUserButton.addEventListener('click', async function () {
+        // Prompt user for User ID
+        const userId = prompt("Enter the User ID to add to this role:");
+
+        if (!userId || isNaN(userId)) {
+            alert("❌ Invalid User ID. Please enter a valid number.");
+            return;
+        }
+
+        if (!selectedRoleId) {
+            alert("❌ No role selected. Cannot proceed.");
+            return;
+        }
+
+        const confirmed = confirm(`Are you sure you want to assign User ID ${userId} to this role? This will replace their current role.`);
+
+        if (!confirmed) return;
+
+        try {
+            const response = await fetch(`/users/update-role`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    userId: parseInt(userId),
+                    newRoleId: parseInt(selectedRoleId)
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`❌ Failed to update role. Server responded with: ${errorData.error || 'Unknown error'}`);
+            }
+
+            alert(`✅ User ${userId} has been added to this role.`);
+            location.reload();
+
+        } catch (error) {
+            console.error('Add User Error:', error);
+            alert(error.message);
+        }
+    });
+}
+
         });
     });
     
