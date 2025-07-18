@@ -236,6 +236,45 @@ export async function updateUserRole(userId, newRoleId) {
         throw err;
     }
 }
+app.delete('/roles/:id', async (req, res) => {
+    const roleId = req.params.id;
+    try {
+        const [result] = await sql.query(`DELETE FROM user_roles WHERE role_id = ?`, [roleId]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Role not found." });
+        }
+
+        res.status(200).json({ message: "Role deleted successfully." });
+    } catch (err) {
+        console.error("Error deleting role:", err);
+        res.status(500).json({ error: "Internal server error." });
+    }
+});
+app.put('/roles/:id', async (req, res) => {
+    const roleId = req.params.id;
+    const { newName } = req.body;
+
+    if (!newName || newName.trim() === "") {
+        return res.status(400).json({ error: "New role name is required." });
+    }
+
+    try {
+        const [result] = await sql.query(
+            `UPDATE user_roles SET role_name = ? WHERE role_id = ?`,
+            [newName.trim(), roleId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Role not found." });
+        }
+
+        res.status(200).json({ message: "Role name updated successfully." });
+    } catch (err) {
+        console.error("Error updating role:", err);
+        res.status(500).json({ error: "Internal server error." });
+    }
+});
 
 
 // Get role by ID

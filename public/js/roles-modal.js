@@ -17,6 +17,62 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Get users of role table
     const tblUsersOfRole = document.getElementById('users-table-body');
+document.querySelectorAll(".tb-button-action.delete").forEach(button => {
+        button.addEventListener("click", async function () {
+            const row = this.closest("tr");
+            const roleId = row.children[1].innerText;
+            const roleName = row.children[2].innerText;
+
+            const confirmDelete = confirm(`Are you sure you want to delete the role "${roleName}" (ID: ${roleId})?`);
+            if (!confirmDelete) return;
+
+            try {
+                const res = await fetch(`/roles/${roleId}`, { method: 'DELETE' });
+                const result = await res.json();
+
+                if (res.ok) {
+                    alert(`Role "${roleName}" deleted successfully.`);
+                    location.reload();
+                } else {
+                    alert(`Failed to delete role: ${result.error || 'Unknown error'}`);
+                }
+            } catch (err) {
+                console.error('Error deleting role:', err);
+                alert('Server error occurred.');
+            }
+        });
+    });
+
+    // EDIT ROLE NAME
+    document.querySelectorAll(".tb-button-action.edit").forEach(button => {
+        button.addEventListener("click", async function () {
+            const row = this.closest("tr");
+            const roleId = row.children[1].innerText;
+            const oldName = row.children[2].innerText;
+
+            const newName = prompt(`Enter new name for Role ID ${roleId}:`, oldName);
+            if (!newName || newName.trim() === oldName) return;
+
+            try {
+                const res = await fetch(`/roles/${roleId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ newName })
+                });
+                const result = await res.json();
+
+                if (res.ok) {
+                    alert(`Role renamed to "${newName}" successfully.`);
+                    location.reload();
+                } else {
+                    alert(`Failed to rename role: ${result.error || 'Unknown error'}`);
+                }
+            } catch (err) {
+                console.error('Error updating role:', err);
+                alert('Server error occurred.');
+            }
+        });
+    });
 
     // Add click event to all manage user buttons
     manageUserButtons.forEach(button => {
