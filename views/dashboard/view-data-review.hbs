@@ -133,11 +133,11 @@
                 </thead>
                 <tbody>
                     {{#each supertypes}}
-                        <tr>
+                        <tr supertype="{{name}}">
                             <td colspan="{{add ../sectors.length 3}}" class="tb-supertype"><strong>{{uppercase name}}</strong></td>
                         </tr>
                         {{#each types}}
-                            <tr>
+                            <tr supertype="{{../name}}">
                             <td>{{name}}</td>
                             {{#with amounts as |a|}} <!-- Set alias for amounts -->
                                 {{#each ../../../sectors}}
@@ -148,7 +148,7 @@
                             {{/with}}
                             </tr>
                         {{/each}}
-                        <tr class="tb-subtotal">
+                        <tr class="tb-subtotal" supertype="{{name}}">
                             <td style="text-align: left;"><strong>{{name}} Subtotal</strong></td>
                             {{#each ../sectors}}
                                 <td><strong>{{toFixed (lookup ../this.sectorTotals this.id) 3}}</strong></td>
