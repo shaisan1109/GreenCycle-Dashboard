@@ -28,6 +28,7 @@
             <label for="title">Title<span class="required">*</span></label>
             <input type="text" name="title" id="title"
                     placeholder="Provide a meaningful title (up to 100 characters only)" maxlength="100">
+            <div class="error-msg" id="error-title"></div>
         </div>
 
         <!-- Personal Information -->
@@ -47,6 +48,7 @@
             <option value="">Select a region</option>
                 <!-- Populated by locations.js -->
             </select>
+            <div class="error-msg" id="error-regions"></div>
 
             <label for="provinces">Province</label>
             <select name="province" id="provinces" disabled>
@@ -70,18 +72,23 @@
 
             <label for="population">Population (based on Census)<span class="required">*</span></label>
             <input type="number" id="population" name="population" min="0">
+            <div class="error-msg" id="error-population"></div>
 
             <label for="per_capita">Waste Generation per Capita (Kg/cap-day)<span class="required">*</span></label>
             <input type="number" id="per_capita" name="per_capita" min="0" step="0.001">
+            <div class="error-msg" id="error-per_capita"></div>
 
             <label for="annual">Annual Waste Generation (kg/year)<span class="required">*</span></label>
             <input type="number" id="annual" name="annual" min="0" step="0.001">
+            <div class="error-msg" id="error-annual"></div>
 
             <label for="date_start">Data Collection Start Date<span class="required">*</span></label>
             <input type="date" id="date_start" name="date_start">
+            <div class="error-msg" id="error-date_start"></div>
 
             <label for="date_end">Data Collection End Date<span class="required">*</span></label>
             <input type="date" id="date_end" name="date_end" disabled>
+            <div class="error-msg" id="error-date_end"></div>
         </div>
     </div>
 
@@ -209,28 +216,78 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   // Check for any null values on first step
+  // Also check if the syntax is correct
   const requiredFields = ['#title', '#regions', '#population', '#per_capita', '#annual', '#date_start', '#date_end'];
 
   function validateStep1Fields() {
-    const isValid = requiredFields.every(selector => {
+    let allValid = true;
+
+    requiredFields.forEach(selector => {
       const el = document.querySelector(selector);
       const val = el.value.trim();
-      if (selector === '#population') return /^\d+$/.test(val); // Only whole numbers
-      return val !== '';
+      const errorEl = document.getElementById('error-' + el.id);
+      const touched = el.dataset.touched === 'true';
+      let error = '';
+
+      switch (selector) {
+        case '#title':
+          if (!val) error = 'Title is required.';
+          break;
+
+        case '#regions':
+          if (!val) error = 'Please select a region.';
+          break;
+
+        case '#population':
+          if (!val) error = 'Population is required.';
+          else if (!/^\d+$/.test(val)) error = 'Population must be a positive whole number.';
+          else if (parseInt(val) <= 0) error = 'Population must be greater than zero.';
+          break;
+
+        case '#per_capita':
+        case '#annual':
+          if (!val) error = 'This field is required.';
+          else if (isNaN(val)) error = 'Please enter a valid number.';
+          else if (parseFloat(val) <= 0) error = 'Value must be a positive number.';
+          break;
+
+        case '#date_start':
+          if (!val) error = 'Start Date is required.';
+          break;
+
+        case '#date_end':
+          const startVal = document.querySelector('#date_start').value;
+          if (!val) error = 'End Date is required.';
+          else if (startVal && val < startVal) error = 'End date cannot be before start date.';
+          break;
+      }
+
+      // Show or hide error message based on touch status
+      if (errorEl) {
+        errorEl.textContent = touched ? error : '';
+      }
+
+      if (error !== '') allValid = false;
     });
 
-    nextBtn.disabled = !isValid;
-    nextBtn.classList.toggle('disabled', !isValid);
+    nextBtn.disabled = !allValid;
+    nextBtn.classList.toggle('disabled', !allValid);
   }
 
-  // Attach listeners
+  // Add event listeners
   requiredFields.forEach(selector => {
     const el = document.querySelector(selector);
     el.addEventListener('input', validateStep1Fields);
     el.addEventListener('change', validateStep1Fields);
+    el.addEventListener('blur', () => {
+      el.dataset.touched = 'true';
+      validateStep1Fields();
+    });
   });
 
-  validateStep1Fields(); // Initial state check
+  // Initial state
+  validateStep1Fields();
+
 });
 </script>
 
@@ -239,6 +296,12 @@ document.addEventListener("DOMContentLoaded", function () {
 .required {
   color: red;
   margin-left: 4px;
+}
+
+.error-msg {
+  color: red;
+  font-size: 0.9em;
+  margin-top: 4px;
 }
 
 .upload-btn:disabled {
