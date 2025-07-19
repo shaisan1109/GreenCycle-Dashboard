@@ -33,6 +33,7 @@
                     <td>{{uppercase lastname}}, {{firstname}}</td>
                     <td>{{email}}</td>
                     <td>{{textDate submission_date}}</td>
+                    <td>{{role_name}}</td>
                     <td>
                         <span class="status-badge {{#ifEquals status 'Pending Review'}}pending{{/ifEquals}} {{#ifEquals status 'Approved'}}approved{{/ifEquals}} {{#ifEquals status 'Rejected'}}rejected{{/ifEquals}}">
                             {{status}}
@@ -75,6 +76,10 @@
                 <div class="info-row">
                     <div class="info-label">Submission Date:</div>
                     <div id="appDate" class="info-value"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Organization ID:</div>
+                    <div id="appRole" class="info-value"></div>
                 </div>
                 <div class="info-row">
                     <div class="info-label">Status:</div>
@@ -388,7 +393,7 @@ function viewApplication(appId) {
             document.getElementById('appEmail').textContent = app.email;
             document.getElementById('appContact').textContent = app.contact_no || 'Not provided';
             document.getElementById('appCompany').textContent = app.company_name;
-            
+            document.getElementById('appRole').textContent = app.role_id;
             // Format the date properly
             const submissionDate = new Date(app.submission_date);
             const options = { year: 'numeric', month: 'short', day: 'numeric' };

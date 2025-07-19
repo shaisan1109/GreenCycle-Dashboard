@@ -9,7 +9,7 @@ const store = new session.MemoryStore();
 // Import database functions
 import {
   getUsers, getUserByEmail, createUser, getUsersOfRole, getUserById,
-  getPartners,
+  getPartners, getOrgRoles,
   getRolesOfSupertype, createClientRole,
   getApplications, getApplicationById, getApplicationsByEmail,
   approveApplication, rejectApplication, reconsiderApplication, revokeApproval,
@@ -395,12 +395,13 @@ app.get('/apply', async (req, res) => {
   try {
     const clientRoles = await getRolesOfSupertype(2)
     const partners = await getPartners()
-    
+    const orgRoles = await getOrgRoles();
     res.render('application-form', {
       layout: 'public',
       title: 'Apply for Access | GreenCycle',
       current_apply: true,
       clientRoles,
+      orgRoles,
       partners
     });
   } catch (error) {
@@ -1781,7 +1782,17 @@ app.get('/control-panel/partners', async (req, res) => {
 // API: Submit new application
 app.post('/api/applications', upload.single('verificationDoc'), async (req, res) => {
   try {
-    const { firstName, lastName, email, contactNo, companyName } = req.body
+    const {role_id, lastName, firstName, email, contactNo, companyName} = req.body;
+// Also validate that role_id is not empty
+
+console.log("=== Received Form Data ===");
+console.log("First Name:", firstName);
+console.log("Last Name:", lastName);
+console.log("Email:", email);
+console.log("Contact No:", contactNo);
+console.log("Company Name:", companyName);
+console.log("Role ID:", role_id);
+console.log("==========================");
     
     // Basic validation
     if (!firstName || !lastName || !email) {
@@ -1808,7 +1819,7 @@ app.post('/api/applications', upload.single('verificationDoc'), async (req, res)
     
     // Create the application
     const result = await createApplication(
-      firstName, lastName, email, contactNo, companyName, verificationDoc
+      role_id, lastName, firstName, email, contactNo, companyName, verificationDoc
     )
     
     res.status(201).json({ 

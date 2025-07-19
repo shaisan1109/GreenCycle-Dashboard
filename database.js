@@ -290,20 +290,26 @@ export async function revokeApproval(appId, adminNotes) {
     
     return result
 }
+export async function getOrgRoles() {
+    const [rows] = await sql.query(`
+        SELECT role_id, role_name FROM user_roles WHERE supertype = 2
+    `);
+    return rows;
+}
 
 // Create new application (no application_id needed as trigger handles it)
-export async function createApplication(firstName, lastName, email, contactNo, companyName, verificationDoc) {
+export async function createApplication(role_id, lastName, firstName, email, contactNo, companyName, verificationDoc) {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     
     // Insert new application with pending status
     // application_id is auto-generated via trigger
     const result = await sql.query(`
         INSERT INTO user_applications (
-            lastname, firstname, email, contact_no, company_name,
+            role_id, lastname, firstname, email, contact_no, company_name,
             verification_doc, status, submission_date
         )
-        VALUES (?, ?, ?, ?, ?, ?, 'Pending Review', ?)
-    `, [lastName, firstName, email, contactNo, companyName, verificationDoc, today])
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending Review', ?)
+    `, [role_id, lastName, firstName, email, contactNo, companyName, verificationDoc, today])
     
     // Get the last inserted ID (using the auto-increment trigger logic)
     const [idResult] = await sql.query(`
@@ -379,7 +385,7 @@ export async function approveApplication(appId, adminNotes) {
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, 1)
         `, [
-            4, // Default role for client applications (Government)
+            application.role_id, // Default role for client applications (Government)
             application.lastname,
             application.firstname,
             application.email,
