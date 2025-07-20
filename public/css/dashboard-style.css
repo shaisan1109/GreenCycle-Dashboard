@@ -338,6 +338,7 @@ table {
     font-size: 14px;
     overflow: auto;
     width: 100%;
+    background-color: #fff;
 }
 
 table tr:nth-child(even) {
