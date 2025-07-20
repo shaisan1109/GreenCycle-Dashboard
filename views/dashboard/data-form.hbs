@@ -12,12 +12,10 @@
         Waste Composition<br>{{name}}
       </span>
     {{/each}}
-
-    <span class="label">Confirm Submission</span>
   </div>
 </div>
 
-<form id="waste-form" novalidate>
+<form id="waste-form" method="POST" action="/dashboard/submit-report/form/confirm" novalidate>
 
     <!-- Step 1 -->
     <div class="step active" data-step="0">
@@ -99,55 +97,45 @@
             <h3 style="font-weight: normal;">NOTE: Values must be the weight in&nbsp; <b>kilograms (kg)</b>.</h3>
 
             <div class="waste-table-wrapper">
-            <table class="waste-table">
-                <thead>
-                <tr>
-                    <th>Type of Waste</th>
-                    {{#each ../sectors}}
-                    <th>{{name}}</th>
-                    {{/each}}
-                </tr>
-                </thead>
-                <tbody>
-                {{#each types}}
-                    <tr>
-                    <td>{{name}}</td>
-                    {{#each ../../sectors}}
-                        <td>
-                        <input
-                            type="number"
-                            sectorId="{{id}}"
-                            typeId="{{../id}}"
-                            class="waste-entry"
-                            min="0"
-                            step="0.01"
-                            value="0"
-                        >
-                        </td>
-                    {{/each}}
-                    </tr>
-                {{/each}}
-                </tbody>
-            </table>
+              <table class="waste-table">
+                  <thead>
+                  <tr>
+                      <th>Type of Waste</th>
+                      {{#each ../sectors}}
+                      <th>{{name}}</th>
+                      {{/each}}
+                  </tr>
+                  </thead>
+                  <tbody>
+                  {{#each types}}
+                      <tr>
+                      <td>{{name}}</td>
+                      {{#each ../../sectors}}
+                          <td>
+                          <input
+                              type="number"
+                              sectorId="{{id}}"
+                              typeId="{{../id}}"
+                              class="waste-entry"
+                              min="0"
+                              step="0.01"
+                              value="0"
+                          >
+                          </td>
+                      {{/each}}
+                      </tr>
+                  {{/each}}
+                  </tbody>
+              </table>
             </div>
         </div>
-        {{/each}}
-
-    <div class="step waste-supertype" data-step="5">
-        <h3>Confirm Your Info</h3>
-        <p>
-            <strong>Name:</strong> <span id="confirmName"></span>
-        </p>
-        <p>
-            <strong>Email:</strong> <span id="confirmEmail"></span>
-        </p>
-    </div>
+      {{/each}}
 
     <div>
         <center>
             <button type="button" id="prevBtn" class="disabled upload-btn">Previous</button>
             <button type="button" id="nextBtn" class="disabled upload-btn">Next</button>
-            <button class="upload-btn" type="submit" id="submitBtn">Submit</button>
+            <button class="upload-btn" type="submit" id="submitBtn">Proceed to Confirmation</button>
         </center>
     </div>
 </form>
