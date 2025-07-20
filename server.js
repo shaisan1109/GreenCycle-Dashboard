@@ -50,7 +50,9 @@ import {
   removeUserRole,
   updateUserRole,
   createRevisionEntry,
-  updateCurrentLog
+  updateCurrentLog,
+  getRevisionEntryCount,
+  getRevisionEntries
 } from './database.js'
 
 // File Upload
@@ -899,104 +901,88 @@ app.get('/dashboard/data/user/:id', async (req, res) => {
 app.get('/dashboard/data/review/:id', async (req, res) => {
   const entryId = req.params.id
   const reviewer = req.session.user.id
-  const wasteGen = await getWasteGenById(entryId)
 
-  // Initialize waste comp
-  const sectors = await getSectors()
-  const supertypes = await getAllTypes()
-  const wasteComp = await getWasteCompById(entryId)
+  const [wasteGen, sectors, supertypes, wasteComp, revisionEntryCount] = await Promise.all([
+    getWasteGenById(entryId),
+    getSectors(),
+    getAllTypes(),
+    getWasteCompById(entryId),
+    getRevisionEntryCount(entryId)
+  ]);
 
-  // Create a lookup map for waste amounts
+  // If revision log count is greater than 0, retrieve entries
+  let revisionLogs = {}
+  if(revisionEntryCount > 0) revisionLogs = await getRevisionEntries(entryId)
+
+  // Create lookup: { [type_id]: { [sector_id]: amount } }
   const wasteMap = {};
-  for (const row of wasteComp) {
-      if (!wasteMap[row.type_id]) wasteMap[row.type_id] = {};
-      wasteMap[row.type_id][row.sector_id] = row.waste_amount;
+  for (const { type_id, sector_id, waste_amount } of wasteComp) {
+    wasteMap[type_id] ??= {};
+    wasteMap[type_id][sector_id] = waste_amount;
   }
 
-  /* -------- TABLE INITIALIZATION -------- */
-
-  // Group types under supertypes
+  // Build supertypes + types + waste amounts
   const supertypeMap = {};
   for (const row of supertypes) {
-      if (!supertypeMap[row.supertype_id]) {
-          supertypeMap[row.supertype_id] = {
-              id: row.supertype_id,
-              name: row.supertype_name,
-              types: []
-          };
-      }
-      supertypeMap[row.supertype_id].types.push({
-          id: row.type_id,
-          name: row.type_name,
-          amounts: wasteMap[row.type_id] || {}
-      });
+    const { supertype_id, supertype_name, type_id, type_name } = row;
+    supertypeMap[supertype_id] ??= { id: supertype_id, name: supertype_name, types: [] };
+    supertypeMap[supertype_id].types.push({
+      id: type_id,
+      name: type_name,
+      amounts: wasteMap[type_id] || {},
+    });
   }
 
-  // Grand total (for "percentage" column) for each type
+  // Compute total weight per type and grand total
   let grandTotal = 0;
-
   for (const supertype of Object.values(supertypeMap)) {
     for (const type of supertype.types) {
-      const amounts = type.amounts || {};
-      const total = Object.values(amounts).reduce((a, b) => a + Number(b), 0);
+      const total = Object.values(type.amounts).reduce((sum, val) => sum + Number(val), 0);
       type.totalWeight = total.toFixed(3);
       grandTotal += total;
     }
   }
 
-  // Compute percentage for each type's total weight
+  // Compute % of total for each type
   for (const supertype of Object.values(supertypeMap)) {
     for (const type of supertype.types) {
-      type.percentage = grandTotal > 0
+      type.percentage = grandTotal
         ? ((type.totalWeight / grandTotal) * 100).toFixed(3)
         : '0.000';
     }
   }
 
-  // Grand total of all sectors
-  // -- Initialize sector totals
-  const sectorTotals = {}; // { sector_id: total }
-  for (const sector of sectors) {
-    sectorTotals[sector.id] = 0;
-  }
-
-  // -- Sum up sector values
+  // Sector totals (grand total per sector across all types)
+  const sectorTotals = Object.fromEntries(sectors.map(s => [s.id, 0]));
   for (const supertype of Object.values(supertypeMap)) {
     for (const type of supertype.types) {
-      for (const [sectorIdStr, value] of Object.entries(type.amounts || {})) {
-        const sectorId = Number(sectorIdStr);
+      for (const [sectorId, value] of Object.entries(type.amounts)) {
         sectorTotals[sectorId] += Number(value);
       }
     }
   }
 
-  // Set up subtotal rows
+  // Compute subtotal per supertype (per sector) and its percentage
   for (const supertype of Object.values(supertypeMap)) {
-    const sectorTotals = {};
-    let totalWeight = 0;
-
-    for (const sector of sectors) {
-      sectorTotals[sector.id] = 0;
-    }
+    const subTotals = Object.fromEntries(sectors.map(s => [s.id, 0]));
+    let subtotalWeight = 0;
 
     for (const type of supertype.types) {
-      for (const [sectorIdStr, val] of Object.entries(type.amounts || {})) {
-        const sectorId = Number(sectorIdStr);
-        const amount = Number(val);
-        sectorTotals[sectorId] += amount;
-        totalWeight += amount;
+      for (const [sectorId, val] of Object.entries(type.amounts)) {
+        subTotals[sectorId] += Number(val);
+        subtotalWeight += Number(val);
       }
     }
 
-    // Format each value to 3 decimal places
-    for (const id in sectorTotals) {
-      sectorTotals[id] = sectorTotals[id].toFixed(3);
+    // Format
+    for (const id in subTotals) {
+      subTotals[id] = subTotals[id].toFixed(3);
     }
 
-    supertype.sectorTotals = sectorTotals;      // { sector_id: subtotal }
-    supertype.totalWeight = totalWeight.toFixed(3);        // e.g., 250
-    supertype.percentage = grandTotal > 0
-      ? ((totalWeight / grandTotal) * 100).toFixed(3)
+    supertype.sectorTotals = subTotals;
+    supertype.totalWeight = subtotalWeight.toFixed(3);
+    supertype.percentage = grandTotal
+      ? ((subtotalWeight / grandTotal) * 100).toFixed(3)
       : '0.000';
   }
 
@@ -1010,7 +996,9 @@ app.get('/dashboard/data/review/:id', async (req, res) => {
     sectorTotals,
     grandTotal: grandTotal.toFixed(3),
     entryId,
-    reviewer
+    reviewer,
+    revisionEntryCount,
+    revisionLogs
   })
 })
 

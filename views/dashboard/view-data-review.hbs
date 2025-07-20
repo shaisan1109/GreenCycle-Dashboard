@@ -10,6 +10,23 @@
         <button type="button" class="review-reject" onclick="showReject()">
             <i class="fa-solid fa-pencil"></i>&nbsp; Suggest Edits
         </button>
+
+        <!-- If revision entry counts exist, then show revision log -->
+        {{#if (gt revisionEntryCount 0)}}
+        <br><br><h3>EDIT HISTORY</h3>
+            <div class="form-section revision-window">
+                <table>
+                    {{#each revisionLogs}}
+                    <tr>
+                        <td>{{uppercase lastname}}, {{firstname}} </td>
+                        <td>{{textDateTime created_at}} </td>
+                        <td>{{action}} </td>
+                        <td>{{comment}} </td>
+                    </tr>
+                    {{/each}}
+                </table>
+            </div>
+        {{/if}}
     </center>
 </div>
 
@@ -453,6 +470,12 @@ dropdown.addEventListener('change', filterTable);
 
 <!-- General style -->
 <style>
+
+.revision-window {
+    background-color: lightgoldenrodyellow !important;
+    max-height: 150px;
+    overflow: auto;
+}
 
 .info-grid {
   display: flex;

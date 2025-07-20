@@ -870,6 +870,30 @@ export async function updateCurrentLog(dataId, newLogId) {
     })
 }
 
+// Get revision log count
+export async function getRevisionEntryCount(entryId) {
+    const [result] = await sql.query(`
+        SELECT COUNT(log_id)
+        FROM greencycle.data_entry_revision_log
+        WHERE data_entry_id = ${entryId}    
+    `)
+    return result[0]['COUNT(log_id)']
+}
+
+// Get revision logs for a specific data entry
+// And sort from latest to oldest
+export async function getRevisionEntries(entryId) {
+    const [result] = await sql.query(`
+        SELECT dl.action, dl.comment, dl.created_at, u.lastname, u.firstname
+        FROM greencycle.data_entry_revision_log dl
+        JOIN greencycle.user u ON dl.user_id = u.user_id
+        WHERE data_entry_id = ${entryId}
+        ORDER BY created_at DESC
+    `)
+
+    return result
+}
+
 /* ---------------------------------------
     DATA AGGREGATION (NEW VERSION)
 --------------------------------------- */
