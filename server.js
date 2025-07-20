@@ -1288,26 +1288,65 @@ app.get('/dashboard/submit-report', async (req, res) => {
   })
 })
 
-// Submit data by manual form
-app.get('/dashboard/submit-report/form', async (req, res) => {
-  const sectors = await getSectors()
-  const supertypes = await getWasteSupertypes()
-  const types = await getWasteTypes()
+// Manual form confirmation
+app.post('/dashboard/submit-report/form/confirm', async (req, res) => {
+  const rawData = req.body.jsonData
+  const formData = JSON.parse(rawData) // convert string to object
 
-  // Map types to supertypes
-  for (const supertype of supertypes) {
-    supertype.types = types.filter(t => t.supertype_id === supertype.id)
-  }
+  console.log(formData)
 
-  res.render('dashboard/data-form', {
+  res.render('dashboard/data-form-confirm', {
     layout: 'dashboard',
-    title: 'Data Submission Form | GC Dashboard',
+    title: 'Confirm Details | GC Dashboard',
     current_report: true,
-    sectors,
-    supertypes,
-    types
+    formData: JSON.stringify(formData) // or just pass as is
   })
 })
+
+// Submit data by manual form
+app.route('/dashboard/submit-report/form')
+  .get(async (req, res) => { // User is filling up for the first time
+    const sectors = await getSectors()
+    const supertypes = await getWasteSupertypes()
+    const types = await getWasteTypes()
+
+    // Map types to supertypes
+    for (const supertype of supertypes) {
+      supertype.types = types.filter(t => t.supertype_id === supertype.id)
+    }
+
+    res.render('dashboard/data-form', {
+      layout: 'dashboard',
+      title: 'Data Submission Form | GC Dashboard',
+      current_report: true,
+      sectors,
+      supertypes,
+      types,
+      prefill: {}
+    })
+  })
+  .post(async (req, res) => { // User has canceled submission and is returning to form
+    const prefill = req.body
+
+    const sectors = await getSectors()
+    const supertypes = await getWasteSupertypes()
+    const types = await getWasteTypes()
+
+    // Map types to supertypes
+    for (const supertype of supertypes) {
+      supertype.types = types.filter(t => t.supertype_id === supertype.id)
+    }
+
+    res.render('dashboard/data-form', {
+      layout: 'dashboard',
+      title: 'Data Submission Form | GC Dashboard',
+      current_report: true,
+      sectors,
+      supertypes,
+      types,
+      prefill
+    })
+  })
 
 // API path after user uploads filled spreadsheet
 app.post("/dashboard/submit-report/upload/confirm", xlsxUpload.single('spreadsheet'), async (req, res) => {
@@ -1373,6 +1412,7 @@ app.post("/dashboard/submit-report/upload/confirm", xlsxUpload.single('spreadshe
 
     res.render('dashboard/data-upload-confirm', {
       layout: 'dashboard',
+      title: 'Confirm Details | GC Dashboard',
       fullLocation,
       population,
       perCapita,

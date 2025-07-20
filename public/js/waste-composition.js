@@ -16,34 +16,25 @@ document.addEventListener("DOMContentLoaded", function () {
 
         document.querySelectorAll(".waste-supertype").forEach(entryDiv => {
             entryDiv.querySelectorAll(".waste-entry").forEach(entry => {
-                // Get type attributes
-                const sectorId = entry.getAttribute('sectorId')
-                const typeId = entry.getAttribute('typeId')
-                const amt = entry.value
+                const sectorId = entry.getAttribute('sectorId');
+                const typeId = entry.getAttribute('typeId');
+                const amt = entry.value;
 
-                wasteComposition.push({ sector_id: sectorId, type_id: typeId, waste_amount: amt })
+                wasteComposition.push({ sector_id: sectorId, type_id: typeId, waste_amount: amt });
             });
         });
 
         jsonObject.wasteComposition = wasteComposition;
 
-        try {
-            const response = await fetch("/api/data/submit-report/manual", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(jsonObject)
-            });
+        // Create a hidden input to hold the full JSON string
+        let hiddenInput = document.createElement("input");
+        hiddenInput.type = "hidden";
+        hiddenInput.name = "jsonData";
+        hiddenInput.value = JSON.stringify(jsonObject);
 
-            const result = await response.json();
-            if (response.ok) {
-                alert("Report submitted successfully!");
-            } else {
-                alert(result.error || "Submission failed.");
-            }
-        } catch (error) {
-            console.error("Error:", error);
-            alert("Something went wrong.");
-        }
+        // Append and submit
+        submissionForm.appendChild(hiddenInput);
+        submissionForm.submit(); // standard form POST to render confirmation page
     });
 
     
