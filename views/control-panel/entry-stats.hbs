@@ -118,11 +118,15 @@
     <div id="contributorsList" class="ranked-list"></div>
 
     <!-- Pagination Controls -->
-    <div class="pagination">
-      <button id="prevPage" onclick="changePage(-1)">← Prev</button>
-      <span id="pageIndicator">Page 1</span>
-      <button id="nextPage" onclick="changePage(1)">Next →</button>
-    </div>
+    <!-- Enhanced Pagination Controls -->
+<div class="pagination">
+  <button class="pagination-btn" onclick="goToFirstPage()">«</button>
+  <button class="pagination-btn" onclick="changePage(-1)">‹</button>
+  <div id="pageNumbers" class="pagination-numbers"></div>
+  <button class="pagination-btn" onclick="changePage(1)">›</button>
+  <button class="pagination-btn" onclick="goToLastPage()">»</button>
+</div>
+
   </div>
 </div>
 
@@ -177,13 +181,12 @@ const ctx = document.getElementById('monthlySubmissionsChart').getContext('2d');
 
 <!-- Script: Top Contributors Modal -->
 <script>
-
-let contributors = []; // populated on button click
+let contributors = [];
 let currentPage = 1;
 const pageSize = 20;
 
 document.getElementById('top-contribs').addEventListener('click', async () => {
-  const res = await fetch('/api/control-panel/top-contributors'); // You’ll create this route
+  const res = await fetch('/api/control-panel/top-contributors');
   contributors = await res.json();
   currentPage = 1;
   showContributors();
@@ -205,13 +208,44 @@ function showContributors() {
     container.appendChild(div);
   });
 
-  document.getElementById('pageIndicator').textContent = `Page ${currentPage}`;
+  renderPageNumbers();
+}
+
+function renderPageNumbers() {
+  const totalPages = Math.ceil(contributors.length / pageSize);
+  const pageContainer = document.getElementById('pageNumbers');
+  pageContainer.innerHTML = '';
+
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement('button');
+    btn.textContent = i;
+    btn.className = 'pagination-square';
+    if (i === currentPage) {
+      btn.classList.add('active');
+    }
+    btn.onclick = () => {
+      currentPage = i;
+      showContributors();
+    };
+    pageContainer.appendChild(btn);
+  }
 }
 
 function changePage(delta) {
-  const maxPage = Math.ceil(contributors.length / pageSize);
-  if ((currentPage + delta) < 1 || (currentPage + delta) > maxPage) return;
-  currentPage += delta;
+  const totalPages = Math.ceil(contributors.length / pageSize);
+  const newPage = currentPage + delta;
+  if (newPage < 1 || newPage > totalPages) return;
+  currentPage = newPage;
+  showContributors();
+}
+
+function goToFirstPage() {
+  currentPage = 1;
+  showContributors();
+}
+
+function goToLastPage() {
+  currentPage = Math.ceil(contributors.length / pageSize);
   showContributors();
 }
 
@@ -222,8 +256,8 @@ function openModal() {
 function closeModal() {
   document.getElementById('topContributorsModal').classList.add('hidden');
 }
-
 </script>
+
 
 <!-- Script: Top Regions Modal -->
 <script>
@@ -388,6 +422,35 @@ function closeRegionModal() {
   justify-content: center;
   gap: 10px;
   margin-top: 15px;
+}
+
+.pagination-numbers {
+  display: flex;
+  gap: 5px;
+}
+
+.pagination-square,
+.pagination-btn {
+  width: 32px;
+  height: 32px;
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.pagination-square.active {
+  background-color: #127009;
+  color: white;
+  font-weight: bold;
+}
+
+.pagination-square:hover,
+.pagination-btn:hover {
+  background-color: #d6d6d6;
 }
 
 </style>

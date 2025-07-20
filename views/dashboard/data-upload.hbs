@@ -1,3 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Submission Form</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
 {{!-- <h2>Data Submission Form</h2> --}}
 
 <form action="/dashboard/submit-report/upload/confirm" method="POST" enctype="multipart/form-data"
@@ -92,8 +102,8 @@ data-prefill-region="{{prefill.region}}" data-prefill-province="{{prefill.provin
                 <i class="fas fa-upload"></i> Upload and Submit Form
             </button>
 
-            <!-- Show error if spreadsheet has incorrect formats -->
-            <div id="xlsx-errors" class="form-errors" style="color: red; margin-top: 10px;"></div>
+            <!-- Enhanced error display container -->
+            <div id="xlsx-errors" class="form-errors"></div>
         </div>
     </div>
 
@@ -132,6 +142,92 @@ data-prefill-region="{{prefill.region}}" data-prefill-province="{{prefill.provin
 <!-- Other js stuff -->
 <script>
 
+// Enhanced error display function
+function displayEnhancedErrors(errors) {
+    const errorDiv = document.getElementById("xlsx-errors");
+    
+    if (!errors || errors.length === 0) {
+        errorDiv.innerHTML = "";
+        errorDiv.classList.remove("show");
+        return;
+    }
+
+    // Categorize errors
+    const categories = {
+        manual: {
+            title: "Required Information",
+            icon: "fas fa-user-edit",
+            errors: []
+        },
+        matrix: {
+            title: "Spreadsheet Data", 
+            icon: "fas fa-table",
+            errors: []
+        }
+    };
+
+    // Categorize each error
+    errors.forEach(error => {
+        if (error.includes("Population") || error.includes("Per Capita") || error.includes("Annual Total")) {
+            categories.manual.errors.push(error);
+        } else {
+            categories.matrix.errors.push(error);
+        }
+    });
+
+    // Build the enhanced error display
+    let html = `
+        <div class="error-header">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h4>Please Fix These Issues Before Submitting</h4>
+        </div>
+        
+        <div class="error-summary">
+            <span class="error-count">${errors.length} error${errors.length !== 1 ? 's' : ''} found</span>
+        </div>
+        
+        <div class="error-categories">
+    `;
+
+    // Add categories with errors
+    Object.entries(categories).forEach(([key, category]) => {
+        if (category.errors.length > 0) {
+            html += `
+                <div class="error-category">
+                    <h5><i class="${category.icon}"></i> ${category.title}</h5>
+                    <ul class="error-list">
+            `;
+            
+            category.errors.forEach(error => {
+                html += `
+                    <li class="error-item">
+                        <i class="fas fa-times-circle"></i>
+                        <span class="error-item-text">${error}</span>
+                    </li>
+                `;
+            });
+            
+            html += `
+                    </ul>
+                </div>
+            `;
+        }
+    });
+
+    html += `</div>`;
+
+    errorDiv.innerHTML = html;
+    errorDiv.classList.add("show");
+    
+    // Smooth scroll to errors
+    setTimeout(() => {
+        errorDiv.scrollIntoView({ 
+            behavior: "smooth", 
+            block: "center" 
+        });
+    }, 100);
+}
+
 // If form is on prefill mode, open step 1
 document.addEventListener('DOMContentLoaded', function () {
   let reopen = '{{reopenStep1}}' === 'true';
@@ -147,73 +243,89 @@ document.getElementById("fileElem").addEventListener("change", async function (e
 
   const errorDiv = document.getElementById("xlsx-errors");
   errorDiv.innerHTML = ""; // Reset errors
+  errorDiv.classList.remove("show");
+
+  // Show file name
+  document.getElementById("file-name-display").textContent = `Selected: ${file.name}`;
 
   const reader = new FileReader();
 
   reader.onload = function (e) {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-    const errors = [];
+      const errors = [];
 
-    // --- Validate Manual Data ---
-    const population = json[0]?.[1];
-    const perCapita = json[1]?.[1];
-    const annual = json[2]?.[1];
+      // --- Validate Manual Data ---
+      const population = json[0]?.[1];
+      const perCapita = json[1]?.[1];
+      const annual = json[2]?.[1];
 
-    if (population === undefined || population === null || population.toString().trim() === '') {
-      errors.push("Population is required.");
-    } else if (!/^\d+$/.test(population)) {
-      errors.push("Population must be a whole number.");
-    }
+      if (population === undefined || population === null || population.toString().trim() === '') {
+        errors.push("Population is required.");
+      } else if (!/^\d+$/.test(population.toString())) {
+        errors.push("Population must be a whole number.");
+      }
 
-    if (perCapita === undefined || perCapita === null || perCapita.toString().trim() === '') {
-      errors.push("Per Capita is required.");
-    } else if (isNaN(perCapita)) {
-      errors.push("Per Capita must be a number.");
-    }
+      if (perCapita === undefined || perCapita === null || perCapita.toString().trim() === '') {
+        errors.push("Per Capita is required.");
+      } else if (isNaN(perCapita)) {
+        errors.push("Per Capita must be a number.");
+      }
 
-    if (annual === undefined || annual === null || annual.toString().trim() === '') {
-      errors.push("Annual Total is required.");
-    } else if (isNaN(annual)) {
-      errors.push("Annual Total must be a number.");
-    }
+      if (annual === undefined || annual === null || annual.toString().trim() === '') {
+        errors.push("Annual Total is required.");
+      } else if (isNaN(annual)) {
+        errors.push("Annual Total must be a number.");
+      }
 
-    // --- Matrix Validations ---
-    const sectorHeaderRow = 6;
-    const matrixStartRow = 7;
-    const sectors = json[sectorHeaderRow]?.slice(2) || [];
-    const columnCount = 2 + sectors.length;
+      // --- Matrix Validations ---
+      const sectorHeaderRow = 6;
+      const matrixStartRow = 7;
+      const sectors = json[sectorHeaderRow]?.slice(2) || [];
+      const columnCount = 2 + sectors.length;
 
-    for (let i = matrixStartRow; i < json.length; i++) {
-      const row = json[i];
-      if (!row || !row[1]) continue; // skip empty or invalid rows
+      for (let i = matrixStartRow; i < json.length; i++) {
+        const row = json[i];
+        if (!row || !row[1]) continue; // skip empty or invalid rows
 
-      const rowLabel = row[1] || `row ${i + 1}`;
+        const rowLabel = row[1] || `row ${i + 1}`;
 
-      for (let j = 2; j < columnCount; j++) {
-        const cell = row[j];
-        const colIndex = j - 2;
-        const sectorName = sectors[colIndex] || `Sector ${colIndex + 1}`;
+        for (let j = 2; j < columnCount; j++) {
+          const cell = row[j];
+          const colIndex = j - 2;
+          const sectorName = sectors[colIndex] || `Sector ${colIndex + 1}`;
 
-        if (cell === undefined || cell === null || cell.toString().trim() === '') {
-          errors.push(`Blank cell in "${rowLabel}" under "${sectorName}".`);
-        } else if (isNaN(cell)) {
-          errors.push(`Invalid number in "${rowLabel}" under "${sectorName}": "${cell}"`);
+          if (cell === undefined || cell === null || cell.toString().trim() === '') {
+            errors.push(`Blank cell in "${rowLabel}" under "${sectorName}".`);
+          } else if (isNaN(cell)) {
+            errors.push(`Invalid number in "${rowLabel}" under "${sectorName}": "${cell}"`);
+          }
         }
       }
-    }
 
-    // Show or hide the error box
-    if (errors.length > 0) {
-      errorDiv.innerHTML = `<ul>${errors.map(e => `<li>${e}</li>`).join("")}</ul>`;
+      // Show or hide the error box using enhanced display
+      if (errors.length > 0) {
+        displayEnhancedErrors(errors);
+        document.querySelector(".upload-btn").disabled = true;
+      } else {
+        displayEnhancedErrors([]);
+        document.querySelector(".upload-btn").disabled = false;
+      }
+
+    } catch (error) {
+      console.error('Error processing file:', error);
+      displayEnhancedErrors(['Error processing file: ' + error.message]);
       document.querySelector(".upload-btn").disabled = true;
-    } else {
-      errorDiv.innerHTML = "";
-      document.querySelector(".upload-btn").disabled = false;
     }
+  };
+
+  reader.onerror = function(error) {
+    console.error('FileReader error:', error);
+    displayEnhancedErrors(['Error reading file: ' + error.message]);
   };
 
   reader.readAsArrayBuffer(file);
@@ -264,6 +376,8 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 </script>
+</body>
+</html>
 
 <style>
 .required {
@@ -474,6 +588,124 @@ input[type="date"] {
   transform: translateY(-50%);
   color: #888;
   pointer-events: none;
+}
+
+/* Enhanced Error Styling */
+.form-errors {
+    background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+    border: 2px solid #fc8181;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    box-shadow: 0 4px 6px rgba(252, 129, 129, 0.1);
+    display: none;
+    animation: slideIn 0.3s ease-out;
+}
+
+.form-errors.show {
+    display: block;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.error-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #fc8181;
+}
+
+.error-header i {
+    font-size: 1.5rem;
+    color: #e53e3e;
+    margin-right: 0.75rem;
+}
+
+.error-header h4 {
+    color: #742a2a;
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.error-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.error-category {
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    padding: 1rem;
+    border-left: 4px solid #e53e3e;
+}
+
+.error-category h5 {
+    color: #742a2a;
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.error-category h5 i {
+    margin-right: 0.5rem;
+    color: #e53e3e;
+}
+
+.error-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.error-item {
+    background: #fff;
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+    border-radius: 6px;
+    border-left: 3px solid #fc8181;
+    display: flex;
+    align-items: flex-start;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.error-item i {
+    color: #e53e3e;
+    margin-right: 0.75rem;
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+}
+
+.error-item-text {
+    color: #2d3748;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.error-summary {
+    background: rgba(229, 62, 62, 0.1);
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.error-count {
+    font-weight: 600;
+    color: #742a2a;
 }
 
 </style>
