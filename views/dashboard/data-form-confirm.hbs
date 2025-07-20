@@ -1,0 +1,340 @@
+<!-- Confirm window -->
+<section class="welcome-card">
+  <h1>Confirm Submission</h1>
+</section>
+
+<!-- Title Card -->
+<div class="form-section title-card" style="text-align: center;">
+  <h1 style="margin-bottom: 0.25rem;">{{formDataRaw.title}}</h1>
+  <center>
+    <h3 style="margin: 0; font-weight: normal; color: #555;">
+        <i class="fa-solid fa-location-dot" style="color: #127009;"></i>&nbsp; {{fullLocation}}
+    </h3>
+  </center>
+</div>
+
+<!-- Info Blocks -->
+<div class="info-grid">
+  <!-- Collection Info -->
+  <div class="form-section">
+    <h3><i class="fas fa-calendar-alt"></i> Collection Info</h3>
+    <table class="user-profile">
+      <tr>
+        <td class="label">Start Date</td>
+        <td>{{formDataRaw.date_start}}</td>
+      </tr>
+      <tr>
+        <td class="label">End Date</td>
+        <td>{{formDataRaw.date_end}}</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Waste Generation Info -->
+  <div class="form-section">
+    <h3><i class="fas fa-dumpster"></i> Waste Generation</h3>
+    <table class="user-profile">
+      <tr>
+        <td class="label">Population (based on Census)</td>
+        <td>{{commaInt formDataRaw.population}}</td>
+      </tr>
+      <tr>
+        <td class="label">Waste Generation per Capita (Kg/cap-day)</td>
+        <td>{{commaNumber formDataRaw.per_capita}}</td>
+      </tr>
+      <tr>
+        <td class="label">Annual Waste Generation (kg/year)</td>
+        <td>{{commaNumber formDataRaw.annual}}</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- Data tabs -->
+<div class="tab">
+  <button class="tablinks" onclick="openTab(event, 'Table')" id="defaultOpen">RAW DATA</button>
+</div>
+
+<div id="Table" class="tabcontent">
+    <div style="display: flex;">
+        <div id="data-table-container">
+
+            <!-- Waste Composition -->
+            <table class="data-table" id="waste-comp-table">
+                <thead>
+                    <tr class="tb-header">
+                        <th>Waste Type</th>
+                        {{#each sectors}}
+                            <th style="width: 100px;">{{name}}</th>
+                        {{/each}}
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each supertypes}}
+                        <tr supertype="{{name}}">
+                            <td colspan="{{add ../sectors.length 1}}" class="tb-supertype"><strong>{{uppercase name}}</strong></td>
+                        </tr>
+                        {{#each types}}
+                            <tr supertype="{{../name}}">
+                            <td>{{name}}</td>
+                            {{#with amounts as |a|}} <!-- Set alias for amounts -->
+                                {{#each ../../../sectors}}
+                                    <td style="text-align: center;">{{lookup a this.id}}</td>
+                                {{/each}}
+                            {{/with}}
+                            </tr>
+                        {{/each}}
+                    {{/each}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<center>
+  <button class="upload-btn" id="cancel-btn" style="background-color: gray;" onclick="showCancel()">Cancel</button>
+  <button type="submit" id="submitBtn" class="upload-btn">Confirm Submission</button>
+</center>
+
+<!-- Cancel modal -->
+<div id="cancel-modal" class="modal">
+    <div class="modal-content">
+        <span id="cancel-close" class="close">&times;</span>
+        <h3>Cancel Submission</h3>
+        <h3 style="font-weight: normal;">Return to form?</h3>
+
+        <button type="button" id="cancel-no" class="review-cancel">
+          No
+        </button>&emsp;
+
+        <button type="submit" id="cancel-yes" class="review-approve">
+          Yes
+        </button>
+    </div>
+</div>
+
+<!-- Cancel modal script -->
+<script>
+
+// Wait for the DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Modal functionality
+    const cancelModal = document.getElementById('cancel-modal');
+    const cancelClose = document.getElementById('cancel-close');
+    const cancelNo = document.getElementById('cancel-no');
+
+    /* APPROVE MODAL */
+    // Hide modal if close btn is clicked
+    if (cancelClose) {
+        cancelClose.onclick = function() {
+            cancelModal.style.display = "none";
+        }
+    }
+
+    // Hide modal if Cancel button is clicked
+    if (cancelNo) {
+        cancelNo.onclick = function() {
+            cancelModal.style.display = "none";
+        }
+    }
+    
+    // Hide modal if user clicks outside content
+    window.onclick = function(event) {
+        if (event.target == cancelModal) {
+            cancelModal.style.display = "none";
+        }
+    }
+})
+
+function showCancel() {
+    document.getElementById('cancel-modal').style.display = 'block';
+}
+
+</script>
+
+<!-- POST request script -->
+<script>
+
+// Pass req.body from previous form to this
+const formData = {{{formData}}}
+
+// Submit button
+const submitBtn = document.getElementById("submitBtn")
+
+document.addEventListener("DOMContentLoaded", function () {
+
+  // Once submit is clicked, begin pushing to db
+  submitBtn.addEventListener("click", async function (event) {
+    event.preventDefault()
+
+    try {
+      const response = await fetch("/api/data/submit-report/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        alert("Report submitted successfully!");
+      } else {
+        alert(result.error || "Submission failed.");
+      } 
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Something went wrong.");
+    }
+  })
+
+})
+
+</script>
+
+<style>
+
+.form-section {
+  background-color: #fdfdfd;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  margin: 1.5rem auto;
+  font-family: 'Segoe UI', sans-serif;
+  color: #333;
+}
+
+.form-section h3 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  color: #2c3e50;
+  align-items: center;
+}
+
+.form-section h3 i {
+  margin-right: 0.6rem;
+  color: #127009;;
+}
+
+.form-section label {
+  display: block;
+  margin-top: 1rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.title-card h1 {
+  font-size: 1.75rem;
+}
+
+/* Welcome Card */
+.welcome-card {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+.welcome-card h1 {
+  font-size: 2rem;
+  margin: 0;
+}
+
+.info-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.info-grid .form-section {
+  flex: 1 1 280px;
+  min-width: 280px;
+}
+
+.user-profile {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+.user-profile td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #eee;
+}
+
+.user-profile .label {
+  font-weight: 600;
+  color: #444;
+  width: 50%;
+}
+
+.upload-btn {
+  display: inline-block;
+  margin-top: 1rem;
+  background-color: #28a745;
+  color: white;
+  padding: 0.6rem 1.2rem;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.upload-btn:hover {
+  background-color: #218838;
+}
+
+.upload-btn i {
+  margin-right: 0.5rem;
+}
+
+</style>
+
+<!-- Modal style -->
+<style>
+    /* Modal styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.4);
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 20% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 900px;
+        border-radius: 5px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+    }
+</style>
+
+<!-- JS behind the tabs -->
+<script src="/js/tabs.js"></script>

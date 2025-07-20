@@ -326,47 +326,6 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Login success (called when user is ALREADY validated)
-/*
-app.post('/api/login/success', async (req, res) => {
-  const user = req.body;
-
-  // Mark user as authenticated
-  req.session.authenticated = true
-
-  // Set session variables
-  req.session.user = {
-    id: user.user_id,
-    role_id: user.role_id,
-    lastname: user.lastname,
-    firstname: user.firstname,
-    email: user.email,
-    contact_no: user.contact_no,
-    org_id: user.partner_org_id,
-    role_name: user.role_name,
-    supertype: user.supertype,
-    company: user.company_name
-  }
-
-  // Update user's last login date
-  lastLogin(user.user_id)
-
-  // Save session
-  req.session.save(err => {
-    if (err) {
-      console.error("Session save error:", err)
-    }
-    res.json({ success: true, message: "Login successful" });
-  })
-});
-
-// Login failed (when the email is right but the password isn't)
-app.post('/api/login/wrong-pass', async (req, res) => {
-  const userId = Number(req.body.userId)
-  wrongPassword(userId) // Adds to count of failed logins for this user
-  res.json({ success: true, message: "Wrong password" })
-}) */
-
 // Log out current user
 app.delete('/logout', (req, res) => {
   req.session.destroy(err => {
@@ -1292,14 +1251,78 @@ app.get('/dashboard/submit-report', async (req, res) => {
 app.post('/dashboard/submit-report/form/confirm', async (req, res) => {
   const rawData = req.body.jsonData
   const formData = JSON.parse(rawData) // convert string to object
+  const wasteData = formData.wasteComposition
 
-  console.log(formData)
+  // Sector and type metadata
+  const sectors = await getSectors()
+  const allTypes = await getAllTypes()
+
+  // Structure form data into table
+  // Group types under supertypes
+  const supertypeMap = new Map();
+
+  for (const row of allTypes) {
+    const {
+      supertype_id,
+      supertype_name,
+      type_id,
+      type_name
+    } = row;
+
+    // Initialize supertype if not already in map
+    if (!supertypeMap.has(supertype_id)) {
+      supertypeMap.set(supertype_id, {
+        name: supertype_name,
+        types: []
+      });
+    }
+
+    // Find waste amounts per sector for this type
+    const amounts = {};
+    for (const sector of sectors) {
+      const match = wasteData.find(
+        entry =>
+          entry.type_id === String(type_id) &&
+          entry.sector_id === String(sector.id)
+      );
+      amounts[sector.id] = match ? match.waste_amount : "0";
+    }
+
+    // Add this type to the supertype's types array
+    supertypeMap.get(supertype_id).types.push({
+      name: type_name,
+      amounts
+    });
+  }
+
+  // Convert map to array
+  const supertypes = Array.from(supertypeMap.values());
+
+  /* ------- LOCATION NAME ------- */
+  // Prepare PSGC data for location names
+  const psgcRegions = await PSGCResource.getRegions()
+  const psgcProvinces = await PSGCResource.getProvinces()
+  const psgcMunicipalities = await PSGCResource.getMunicipalities()
+  const psgcCities = await PSGCResource.getCities()
+
+  // Get location names
+  const regionName = getPsgcName(psgcRegions, formData.region)
+  const provinceName = getPsgcName(psgcProvinces, formData.province) || null
+  const municipalityName = getPsgcName(psgcMunicipalities, formData.municipality) || getPsgcName(psgcCities, formData.municipality) || null
+
+  // Set full location name
+  const parts = [municipalityName, provinceName, regionName].filter(Boolean)
+  const fullLocation = parts.join(', ')
 
   res.render('dashboard/data-form-confirm', {
     layout: 'dashboard',
     title: 'Confirm Details | GC Dashboard',
     current_report: true,
-    formData: JSON.stringify(formData) // or just pass as is
+    formDataRaw: formData,
+    formData: JSON.stringify(formData),
+    fullLocation,
+    supertypes, // structured table data
+    sectors
   })
 })
 
@@ -1407,8 +1430,6 @@ app.post("/dashboard/submit-report/upload/confirm", xlsxUpload.single('spreadshe
     }
 
     fs.unlinkSync(req.file.path) // Delete uploaded file after parsing
-
-    console.log(formData)
 
     res.render('dashboard/data-upload-confirm', {
       layout: 'dashboard',
