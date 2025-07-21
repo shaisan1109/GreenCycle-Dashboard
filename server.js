@@ -1266,8 +1266,6 @@ app.get('/dashboard/edit-report/:id', async (req, res) => {
     wasteMap[key] = entry.waste_amount;
   }
 
-  console.log(wasteMap)
-
   res.render('dashboard/data-edit', {
     layout: 'dashboard',
     title: 'Edit Data Entry | GC Dashboard',

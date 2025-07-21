@@ -485,6 +485,9 @@ select {
 .stat-pending {
     background-color: rgb(255, 106, 0);
 }
+.stat-revised {
+    background-color: #d7fc03;
+}
 
 .data-entry-header {
   display: flex;
