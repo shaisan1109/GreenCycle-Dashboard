@@ -59,7 +59,8 @@ import {
   getNotifications,
   getUnreadNotifCount,
   getNotifStatus,
-  updateNotifRead
+  updateNotifRead,
+  createNotification
 } from './database.js'
 
 // File Upload
@@ -1051,6 +1052,8 @@ app.get('/dashboard/data/review/:id', async (req, res) => {
     layout: 'dashboard',
     title: `${wasteGen.title} | GC Dashboard`,
     wasteGen,
+    submitter: wasteGen.user_id,
+    title: wasteGen.title,
     current_datasubs: true,
     sectors,
     supertypes: Object.values(supertypeMap),
@@ -2191,7 +2194,7 @@ app.put('/api/applications/:id/notes', async (req, res) => {
 app.patch('/api/data/:id/status', async (req, res) => {
   try {
     const entryId = req.params.id
-    const { status, reviewedBy, comment } = req.body
+    const { status, reviewedBy, comment, submitter, title } = req.body
     
     // Basic validation
     if (!status) {
@@ -2218,6 +2221,9 @@ app.patch('/api/data/:id/status', async (req, res) => {
         if(fetchCoords)
           await createLocationEntry(locationName, fetchCoords.latitude, fetchCoords.longitude)
       }
+
+      // Send notification to user that the entry has been approved
+      await createNotification(submitter, `Your data entry, <b>${title}</b>, has been Approved.`, `/dashboard/data/${entryId}`)
 
     }
     else if(status === 'Needs Revision') {

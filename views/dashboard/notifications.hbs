@@ -1,33 +1,31 @@
 <h1 class="notif-title">Notifications</h1>
 
-<div class="form-section">
-    {{#if notifications.length}}
-        <ul class="notif-list">
-            {{#each notifications}}
-            <li class="notif-item {{#unless is_read}}unread{{/unless}}">
-                <div class="notif-content">
-                <p class="notif-message">{{message}}</p>
-                {{#if link}}
-                    <a href="{{link}}" class="notif-link">View Details</a>
-                {{/if}}
-                </div>
+{{#if notifications.length}}
+    <ul class="notif-list">
+        {{#each notifications}}
+        <li class="notif-item {{#unless is_read}}unread{{/unless}}">
+            <div class="notif-content">
+            <p class="notif-message">{{{message}}}</p>
+            {{#if link}}
+                <a href="{{link}}" class="notif-link">View Details</a>
+            {{/if}}
+            </div>
 
-                <!-- Toggle read/unread -->
-                <button type="button"
-                    class="mark-read-btn"
-                    data-notif-id="{{id}}"
-                    data-is-read="{{#if is_read}}true{{else}}false{{/if}}">
-                {{#if is_read}}Mark as Unread{{else}}Mark as Read{{/if}}
-                </button>
+            <!-- Toggle read/unread -->
+            <button type="button"
+                class="mark-read-btn"
+                data-notif-id="{{id}}"
+                data-is-read="{{#if is_read}}true{{else}}false{{/if}}">
+            {{#if is_read}}Mark as Unread{{else}}Mark as Read{{/if}}
+            </button>
 
-                <span class="notif-date" datetime="{{created_at}}">{{created_at}}</span>
-            </li>
-            {{/each}}
-        </ul>
-    {{else}}
-        <p class="notif-empty">You have no notifications.</p>
-    {{/if}}
-</div>
+            <span class="notif-date" datetime="{{created_at}}">{{created_at}}</span>
+        </li>
+        {{/each}}
+    </ul>
+{{else}}
+    <p class="notif-empty">You have no notifications.</p>
+{{/if}}
 
 <!-- Time ago JS (for displaying relative time) -->
 <script src="https://unpkg.com/timeago.js@4.0.2/dist/timeago.min.js"></script>
