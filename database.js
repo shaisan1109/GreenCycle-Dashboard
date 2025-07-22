@@ -1327,3 +1327,10 @@ export async function updateNotifRead(notifId, isRead) {
         console.log(result.affectedRows + " record(s) updated");
     })
 }
+
+// Get notif status
+export async function getNotifStatus(notifId) {
+    const [result] = await sql.query(`
+        SELECT is_read FROM greencycle.notifications WHERE id = ?`, [notifId])
+    return result
+}

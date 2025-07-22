@@ -11,13 +11,15 @@
                     <a href="{{link}}" class="notif-link">View Details</a>
                 {{/if}}
                 </div>
-                <form action="/notifications/read/{{id}}" method="POST" class="mark-read-form">
-                {{#unless is_read}}
-                    <button type="submit" class="mark-read-btn">Mark as Read</button>
-                {{else}}
-                    <span class="notif-read-label">Read</span>
-                {{/unless}}
-                </form>
+
+                <!-- Toggle read/unread -->
+                <button type="button"
+                    class="mark-read-btn"
+                    data-notif-id="{{id}}"
+                    data-is-read="{{#if is_read}}true{{else}}false{{/if}}">
+                {{#if is_read}}Mark as Unread{{else}}Mark as Read{{/if}}
+                </button>
+
                 <span class="notif-date" datetime="{{created_at}}">{{created_at}}</span>
             </li>
             {{/each}}
@@ -33,6 +35,41 @@
   document.addEventListener("DOMContentLoaded", () => {
     timeago.render(document.querySelectorAll('.notif-date'));
   });
+</script>
+
+<!-- Toggle read/unread -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.mark-read-btn').forEach(button => {
+    button.addEventListener('click', async () => {
+      const notifId = button.dataset.notifId;
+      const isCurrentlyRead = button.dataset.isRead === 'true';
+      const newIsRead = !isCurrentlyRead;
+
+      console.log('Toggling notif:', notifId, 'New status:', newIsRead);
+
+      try {
+        const res = await fetch(`/notifications/toggle/${notifId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isRead: newIsRead })
+        });
+
+        if (!res.ok) throw new Error('Failed to toggle');
+
+        button.dataset.isRead = String(newIsRead);
+        button.textContent = newIsRead ? 'Mark as Unread' : 'Mark as Read';
+
+        const item = button.closest('.notif-item');
+        if (item) item.classList.toggle('unread', !newIsRead);
+
+      } catch (err) {
+        console.error('Toggle error:', err);
+        alert('Something went wrong.');
+      }
+    });
+  });
+});
 </script>
 
 <!-- Notif styles -->
@@ -119,6 +156,7 @@
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.9rem;
+  width: fit-content;
 }
 
 .mark-read-btn:hover {

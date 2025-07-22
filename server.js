@@ -57,7 +57,9 @@ import {
   updateForm,
   getPendingData,
   getNotifications,
-  getUnreadNotifCount
+  getUnreadNotifCount,
+  getNotifStatus,
+  updateNotifRead
 } from './database.js'
 
 // File Upload
@@ -450,6 +452,20 @@ app.get('/dashboard/notifications/:id', async (req, res) => {
     current_notifs: true,
     notifications
   })
+})
+
+// Toggle notif
+app.post('/notifications/toggle/:notifId', async (req, res) => {
+  const notifId = parseInt(req.params.notifId);
+  const isRead = req.body.isRead ? 1 : 0;
+
+  try {
+    await updateNotifRead(notifId, isRead);
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
 })
 
 // Display data summary
