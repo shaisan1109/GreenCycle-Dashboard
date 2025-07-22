@@ -1,3 +1,33 @@
+<!-- Window if data is for revision -->
+{{#ifEquals wasteGen.status 'Needs Revision'}}
+<div class="form-section">
+  <a href="/dashboard/edit-report/{{wasteGen.data_entry_id}}">
+    <center>
+      <button class="review-reject">
+        <i class="fa-solid fa-pencil"></i>&nbsp; Edit Report
+      </button>
+    </center>
+  </a>
+
+  <!-- If revision entry counts exist, then show revision log -->
+  {{#if (gt revisionCount 0)}}
+  <br><br><center><h3>EDIT HISTORY</h3></center>
+      <div class="form-section revision-window">
+          <table>
+              {{#each revisionLogs}}
+              <tr>
+                  <td>{{uppercase lastname}}, {{firstname}} </td>
+                  <td>{{textDateTime created_at}} </td>
+                  <td>{{action}} </td>
+                  <td>{{comment}} </td>
+              </tr>
+              {{/each}}
+          </table>
+      </div>
+  {{/if}}
+</div>
+{{/ifEquals}}
+
 <!-- Actual Data Display -->
 <!-- Title Card -->
 <div class="form-section title-card" style="text-align: center;">
@@ -160,6 +190,12 @@
 
 <!-- General style -->
 <style>
+
+.revision-window {
+    background-color: lightgoldenrodyellow !important;
+    max-height: 150px;
+    overflow: auto;
+}
 
 .info-grid {
   display: flex;

@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", function () {
         jsonObject.wasteComposition = wasteComposition;
 
         try {
-            const response = await fetch("/api/data/submit-report/manual", {
+            const response = await fetch("/api/data/edit-report", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(jsonObject)

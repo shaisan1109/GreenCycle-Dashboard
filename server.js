@@ -27,10 +27,6 @@ import {
   getDataForReview,
   getAllTypes,
   wrongPassword,
-  getEditHistory,
-  getLatestEdit,
-  createEditEntry,
-  getLatestDataEntry,
   getPendingApplicationCount,
   getDataForReviewCount,
   hashPassword,
@@ -53,7 +49,13 @@ import {
   removeUserRole,
   updateUserRole,
   getWasteComplianceStatus,
-  getWasteComplianceStatusFromSummary
+  getWasteComplianceStatusFromSummary,
+  createRevisionEntry,
+  updateCurrentLog,
+  getRevisionEntryCount,
+  getRevisionEntries,
+  updateForm,
+  getPendingData
 } from './database.js'
 
 // File Upload
@@ -224,7 +226,11 @@ const loginSetup = async (req, res, next) => {
     } else if (req.session && req.session.user) {
       // Retrieve data from DB (replace with your DB query)
       const pendingApplications = await getPendingApplicationCount()
-      const pendingData = await getDataForReviewCount(req.session.user.id, 'Pending Review')
+
+      // Pending data count = total of 'Pending Review' and 'Revised' entries
+      const pendingCount = await getDataForReviewCount(req.session.user.id, 'Pending Review')
+      const revisedCount = await getDataForReviewCount(req.session.user.id, 'Revised')
+      const pendingData = pendingCount + revisedCount
 
       // Make it available to views and routes
       res.locals.pendingApplications = pendingApplications
@@ -684,11 +690,14 @@ app.get('/dashboard/data/submissions/pending', async (req, res) => {
   const limit = 10;
   const offset = (page - 1) * limit;
 
-  const [data, totalCount, revisionCount] = await Promise.all([
-    getDataForReview(omitUser, 'Pending Review', limit, offset),
-    getDataForReviewCount(omitUser, 'Pending Review'),
-    getDataForReviewCount(omitUser, 'Needs Revision')
-  ]);
+  // Get data and counts
+  const data = await getPendingData(omitUser, limit, offset)
+  let pendingCount = await getDataForReviewCount(omitUser, 'Pending Review')
+  const revisionCount = await getDataForReviewCount(omitUser, 'Needs Revision')
+  const revisedCount = await getDataForReviewCount(omitUser, 'Revised')
+
+  pendingCount += revisedCount
+  const totalCount = pendingCount
 
   // Pagination offset
   const totalPages = Math.ceil(totalCount / limit);
@@ -721,11 +730,14 @@ app.get('/dashboard/data/submissions/revision', async (req, res) => {
   const limit = 10;
   const offset = (page - 1) * limit;
 
-  const [data, totalCount, pendingCount] = await Promise.all([
-    getDataForReview(omitUser, 'Needs Revision', limit, offset),
-    getDataForReviewCount(omitUser, 'Needs Revision'),
-    getDataForReviewCount(omitUser, 'Pending Review')
-  ]);
+  // Get data and counts
+  const data = await getDataForReview(omitUser, 'Needs Revision', limit, offset)
+  let pendingCount = await getDataForReviewCount(omitUser, 'Pending Review')
+  const revisionCount = await getDataForReviewCount(omitUser, 'Needs Revision')
+  const revisedCount = await getDataForReviewCount(omitUser, 'Revised')
+
+  pendingCount += revisedCount
+  const totalCount = revisionCount
 
   // Pagination offset
   const totalPages = Math.ceil(totalCount / limit);
@@ -764,6 +776,15 @@ app.get('/dashboard/data/wip/:id', async (req, res) => {
   for (const row of wasteComp) {
       if (!wasteMap[row.type_id]) wasteMap[row.type_id] = {};
       wasteMap[row.type_id][row.sector_id] = row.waste_amount;
+  }
+
+  // If status is 'Needs Revision', get revision logs and count
+  let revisionLogs = {}
+  let revisionCount = 0
+
+  if(wasteGen.status === 'Needs Revision') {
+    revisionLogs = await getRevisionEntries(entryId)
+    revisionCount = await getRevisionEntryCount(entryId)
   }
 
   /* -------- TABLE INITIALIZATION -------- */
@@ -862,7 +883,9 @@ app.get('/dashboard/data/wip/:id', async (req, res) => {
     supertypes: Object.values(supertypeMap),
     sectorTotals,
     grandTotal: grandTotal.toFixed(3),
-    entryId
+    entryId,
+    revisionCount,
+    revisionLogs
   })
 })
 
@@ -903,104 +926,88 @@ app.get('/dashboard/data/user/:id', async (req, res) => {
 app.get('/dashboard/data/review/:id', async (req, res) => {
   const entryId = req.params.id
   const reviewer = req.session.user.id
-  const wasteGen = await getWasteGenById(entryId)
 
-  // Initialize waste comp
-  const sectors = await getSectors()
-  const supertypes = await getAllTypes()
-  const wasteComp = await getWasteCompById(entryId)
+  const [wasteGen, sectors, supertypes, wasteComp, revisionEntryCount] = await Promise.all([
+    getWasteGenById(entryId),
+    getSectors(),
+    getAllTypes(),
+    getWasteCompById(entryId),
+    getRevisionEntryCount(entryId)
+  ]);
 
-  // Create a lookup map for waste amounts
+  // If revision log count is greater than 0, retrieve entries
+  let revisionLogs = {}
+  if(revisionEntryCount > 0) revisionLogs = await getRevisionEntries(entryId)
+
+  // Create lookup: { [type_id]: { [sector_id]: amount } }
   const wasteMap = {};
-  for (const row of wasteComp) {
-      if (!wasteMap[row.type_id]) wasteMap[row.type_id] = {};
-      wasteMap[row.type_id][row.sector_id] = row.waste_amount;
+  for (const { type_id, sector_id, waste_amount } of wasteComp) {
+    wasteMap[type_id] ??= {};
+    wasteMap[type_id][sector_id] = waste_amount;
   }
 
-  /* -------- TABLE INITIALIZATION -------- */
-
-  // Group types under supertypes
+  // Build supertypes + types + waste amounts
   const supertypeMap = {};
   for (const row of supertypes) {
-      if (!supertypeMap[row.supertype_id]) {
-          supertypeMap[row.supertype_id] = {
-              id: row.supertype_id,
-              name: row.supertype_name,
-              types: []
-          };
-      }
-      supertypeMap[row.supertype_id].types.push({
-          id: row.type_id,
-          name: row.type_name,
-          amounts: wasteMap[row.type_id] || {}
-      });
+    const { supertype_id, supertype_name, type_id, type_name } = row;
+    supertypeMap[supertype_id] ??= { id: supertype_id, name: supertype_name, types: [] };
+    supertypeMap[supertype_id].types.push({
+      id: type_id,
+      name: type_name,
+      amounts: wasteMap[type_id] || {},
+    });
   }
 
-  // Grand total (for "percentage" column) for each type
+  // Compute total weight per type and grand total
   let grandTotal = 0;
-
   for (const supertype of Object.values(supertypeMap)) {
     for (const type of supertype.types) {
-      const amounts = type.amounts || {};
-      const total = Object.values(amounts).reduce((a, b) => a + Number(b), 0);
+      const total = Object.values(type.amounts).reduce((sum, val) => sum + Number(val), 0);
       type.totalWeight = total.toFixed(3);
       grandTotal += total;
     }
   }
 
-  // Compute percentage for each type's total weight
+  // Compute % of total for each type
   for (const supertype of Object.values(supertypeMap)) {
     for (const type of supertype.types) {
-      type.percentage = grandTotal > 0
+      type.percentage = grandTotal
         ? ((type.totalWeight / grandTotal) * 100).toFixed(3)
         : '0.000';
     }
   }
 
-  // Grand total of all sectors
-  // -- Initialize sector totals
-  const sectorTotals = {}; // { sector_id: total }
-  for (const sector of sectors) {
-    sectorTotals[sector.id] = 0;
-  }
-
-  // -- Sum up sector values
+  // Sector totals (grand total per sector across all types)
+  const sectorTotals = Object.fromEntries(sectors.map(s => [s.id, 0]));
   for (const supertype of Object.values(supertypeMap)) {
     for (const type of supertype.types) {
-      for (const [sectorIdStr, value] of Object.entries(type.amounts || {})) {
-        const sectorId = Number(sectorIdStr);
+      for (const [sectorId, value] of Object.entries(type.amounts)) {
         sectorTotals[sectorId] += Number(value);
       }
     }
   }
 
-  // Set up subtotal rows
+  // Compute subtotal per supertype (per sector) and its percentage
   for (const supertype of Object.values(supertypeMap)) {
-    const sectorTotals = {};
-    let totalWeight = 0;
-
-    for (const sector of sectors) {
-      sectorTotals[sector.id] = 0;
-    }
+    const subTotals = Object.fromEntries(sectors.map(s => [s.id, 0]));
+    let subtotalWeight = 0;
 
     for (const type of supertype.types) {
-      for (const [sectorIdStr, val] of Object.entries(type.amounts || {})) {
-        const sectorId = Number(sectorIdStr);
-        const amount = Number(val);
-        sectorTotals[sectorId] += amount;
-        totalWeight += amount;
+      for (const [sectorId, val] of Object.entries(type.amounts)) {
+        subTotals[sectorId] += Number(val);
+        subtotalWeight += Number(val);
       }
     }
 
-    // Format each value to 3 decimal places
-    for (const id in sectorTotals) {
-      sectorTotals[id] = sectorTotals[id].toFixed(3);
+    // Format
+    for (const id in subTotals) {
+      subTotals[id] = subTotals[id].toFixed(3);
     }
 
-    supertype.sectorTotals = sectorTotals;      // { sector_id: subtotal }
-    supertype.totalWeight = totalWeight.toFixed(3);        // e.g., 250
-    supertype.percentage = grandTotal > 0
-      ? ((totalWeight / grandTotal) * 100).toFixed(3)
+    supertype.sectorTotals = subTotals;
+    supertype.totalWeight = subtotalWeight.toFixed(3);
+    supertype.percentage = grandTotal
+      ? ((subtotalWeight / grandTotal) * 100).toFixed(3)
       : '0.000';
   }
 
@@ -1014,21 +1021,9 @@ app.get('/dashboard/data/review/:id', async (req, res) => {
     sectorTotals,
     grandTotal: grandTotal.toFixed(3),
     entryId,
-    reviewer
-  })
-})
-
-// View data entry edit history
-app.get('/dashboard/data/:id/history', async (req, res) => {
-  const entryId = req.params.id
-  const wasteGen = await getWasteGenById(entryId)
-  const editPointers = await getEditHistory(entryId)
-
-  res.render('dashboard/view-edit-history', {
-    layout: 'dashboard',
-    title: `${wasteGen.title} (Edit History) | GC Dashboard`,
-    wasteGen,
-    editPointers
+    reviewer,
+    revisionEntryCount,
+    revisionLogs
   })
 })
 
@@ -1046,10 +1041,6 @@ app.get('/dashboard/data/:id', async (req, res) => {
   if (!coords) {
     console.log('ERROR: Location not found.');
   }
-
-  // Latest edit entry
-  let latestEdit = await getLatestEdit(id);
-  latestEdit = latestEdit.length > 0 ? latestEdit[0].datetime : '';
 
   // Create waste map
   const wasteMap = {};
@@ -1254,6 +1245,57 @@ app.get('/dashboard/submit-report', async (req, res) => {
   })
 })
 
+// Data editing form
+app.get('/dashboard/edit-report/:id', async (req, res) => {
+  const sectors = await getSectors()
+  const supertypes = await getWasteSupertypes()
+  const types = await getWasteTypes()
+
+  // Map types to supertypes
+  for (const supertype of supertypes) {
+    supertype.types = types.filter(t => t.supertype_id === supertype.id)
+  }
+
+  const id = req.params.id
+  const wasteGen = await getWasteGenById(id)
+  const wasteComp = await getWasteCompById(id)
+
+  // Location dropdown prefill
+  const prefill = {
+    region: wasteGen.region_id,
+    province: wasteGen.province_id,
+    municipality: wasteGen.municipality_id
+  }
+
+  // Format to 'YYYY-MM-DD'
+  function formatDateOnly(isoString) {
+    return isoString ? new Date(isoString).toISOString().slice(0, 10) : '';
+  }
+
+  wasteGen.collection_start = formatDateOnly(wasteGen.collection_start)
+  wasteGen.collection_end = formatDateOnly(wasteGen.collection_end)
+
+  // Map waste comp values for table prefill
+  const wasteMap = {};
+  for (const entry of wasteComp) {
+    const key = `${entry.sector_id}-${entry.type_id}`;
+    wasteMap[key] = entry.waste_amount;
+  }
+
+  res.render('dashboard/data-edit', {
+    layout: 'dashboard',
+    title: 'Edit Data Entry | GC Dashboard',
+    current_user_report: true,
+    sectors,
+    supertypes,
+    types,
+    wasteGen,
+    prefill,
+    wasteMap,
+    dataEntryId: req.params.id
+  })
+})
+
 // Manual form confirmation
 app.post('/dashboard/submit-report/form/confirm', async (req, res) => {
   const rawData = req.body.jsonData
@@ -1270,10 +1312,7 @@ app.post('/dashboard/submit-report/form/confirm', async (req, res) => {
 
   for (const row of allTypes) {
     const {
-      supertype_id,
-      supertype_name,
-      type_id,
-      type_name
+      supertype_id, supertype_name, type_id, type_name
     } = row;
 
     // Initialize supertype if not already in map
@@ -1519,16 +1558,67 @@ app.post("/api/data/submit-report/manual", async (req, res) => {
       currentUser, title, region, province, municipality, fullLocation, population, per_capita, annual, date_start, date_end, newWasteComp
     );
 
-    // Get ID of new data
-    const idResult = await getLatestDataEntry()
-    const newId = idResult[0].data_entry_id
+    res.status(200).json({
+      message: "Report submitted successfully"
+    });
 
-    // Insert first edit history entry
-    const result = await createEditEntry(newId, currentUser, 'Data entry submitted')
+  } catch (error) {
+    console.error("Error processing report:", error);
+    res.status(500).json({ error: "Failed to submit report" });
+  }
+});
+
+app.post("/api/data/edit-report", async (req, res) => {
+  // Request body
+  const {
+    dataEntryId, title, region, province, municipality, population, per_capita, annual, date_start, date_end, wasteComposition, comment
+  } = req.body;
+
+  // Get current logged in user
+  const currentUser = req.session.user.id
+
+  // Prepare PSGC data for location names
+  const psgcRegions = await PSGCResource.getRegions()
+  const psgcProvinces = await PSGCResource.getProvinces()
+  const psgcMunicipalities = await PSGCResource.getMunicipalities()
+  const psgcCities = await PSGCResource.getCities()
+
+  // Get location names
+  const regionName = getPsgcName(psgcRegions, region)
+  const provinceName = getPsgcName(psgcProvinces, province) || null
+  const municipalityName = getPsgcName(psgcMunicipalities, municipality) || getPsgcName(psgcCities, municipality) || null
+
+  // Set full location name
+  const parts = [municipalityName, provinceName, regionName].filter(Boolean)
+  const fullLocation = parts.join(', ')
+
+  try {
+    // Format waste composition entries for insertion to DB
+    const newWasteComp = wasteComposition.map((entry) => {
+        return {
+          sector_id: entry.sector_id,
+          type_id: entry.type_id,
+          waste_amount: Number(entry.waste_amount) || 0,  // Ensure weight is always a number
+        }
+    }).filter(entry => entry !== null); // Remove any invalid entries
+
+    // Push form data to db
+    await updateForm(
+      dataEntryId, title, region, province, municipality, fullLocation, population, per_capita, annual, date_start, date_end, newWasteComp
+    );
+
+    // Update entry status to Revised
+    await updateDataStatus(dataEntryId, 'Revised')
+
+    // Finally, create new revision entry
+    // Insert into data revision log
+    const revisionId = await createRevisionEntry(dataEntryId, currentUser, 'Resubmitted', comment)
+
+    // Update current revision
+    await updateCurrentLog(dataEntryId, revisionId)
 
     res.status(200).json({
-        message: "Report submitted successfully",
-        reportResult: result,
+      message: "Report submitted successfully"
     });
 
   } catch (error) {
@@ -1604,16 +1694,8 @@ app.post("/api/data/submit-report/upload", async (req, res) => {
       currentUser, title, region, province, municipality, fullLocation, population, per_capita, annual, date_start, date_end, wasteComposition
     );
 
-    // Get ID of new data
-    const idResult = await getLatestDataEntry()
-    const newId = idResult[0].data_entry_id
-
-    // Insert first edit history entry
-    const result = await createEditEntry(newId, currentUser, 'Data entry submitted')
-
     res.status(200).json({
-        message: "Report submitted successfully",
-        reportResult: result,
+        message: "Report submitted successfully"
     });
 
   } catch (error) {
@@ -2073,8 +2155,8 @@ app.put('/api/applications/:id/notes', async (req, res) => {
 
 app.patch('/api/data/:id/status', async (req, res) => {
   try {
-    const id = req.params.id
-    const { status, rejectionReason, reviewedBy } = req.body
+    const entryId = req.params.id
+    const { status, reviewedBy, comment } = req.body
     
     // Basic validation
     if (!status) {
@@ -2082,16 +2164,14 @@ app.patch('/api/data/:id/status', async (req, res) => {
     }
     
     // Update data entry
-    await updateDataStatus(id, status, rejectionReason || null, reviewedBy)
+    await updateDataStatus(entryId, status)
     
     // Update data entry edit history
     let result
     
     if(status === 'Approved') {
-      await createEditEntry(id, reviewedBy, 'Approved data entry')
-
       // Retrieve entry location name
-      const locationName = await getEntryLocationName(id)
+      const locationName = await getEntryLocationName(entryId)
 
       // First, make sure entry's location exists in db
       const coords = await getCoordinates(locationName)
@@ -2106,12 +2186,16 @@ app.patch('/api/data/:id/status', async (req, res) => {
 
     }
     else if(status === 'Needs Revision') {
-      await createEditEntry(id, reviewedBy, `Needs Revision: ${rejectionReason}`)
+      // Insert into data revision log
+      const revisionId = await createRevisionEntry(entryId, reviewedBy, 'Marked for Revision', comment)
+
+      // Update current revision
+      await updateCurrentLog(entryId, revisionId)
     }
 
     res.json({ 
       success: true,
-      message: `Application ${id} status updated to ${status}`,
+      message: `Application ${entryId} status updated to ${status}`,
       data: result
     })
   } catch (error) {

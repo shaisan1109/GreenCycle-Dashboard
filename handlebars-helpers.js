@@ -151,3 +151,8 @@ Handlebars.registerHelper('queryString', function (query, overrides) {
 Handlebars.registerHelper('hasQuery', function(query) {
   return Object.values(query).some(val => val);
 });
+
+// Concatenation
+Handlebars.registerHelper('concat', function (a, b) {
+  return `${a}-${b}`;
+});

@@ -1,15 +1,43 @@
 <!-- Approval window -->
-<div class="form-section">
+<div class="form-section" style="background-color: #f5fff9;">
     <center>
-        <h3 style="font-weight: normal;">Approve data entry?</h3>
+        <!-- Approve buttons (for review) -->
+        {{#ifNotEquals wasteGen.status 'Needs Revision'}}
+            <h3 style="font-weight: normal;">Approve data entry?</h3>
 
-        <button type="button" class="review-approve" onclick="showApprove()">
-            <i class="fa-solid fa-thumbs-up"></i>&nbsp; Approve
-        </button>&emsp;
+            <button type="button" class="review-approve" onclick="showApprove()">
+                <i class="fa-solid fa-thumbs-up"></i>&nbsp; Approve
+            </button>&emsp;
 
-        <button type="button" class="review-reject" onclick="showReject()">
-            <i class="fa-solid fa-pencil"></i>&nbsp; Suggest Edits
-        </button>
+            <button type="button" class="review-reject" onclick="showReject()">
+                <i class="fa-solid fa-pencil"></i>&nbsp; Suggest Edits
+            </button><br><br>
+        {{/ifNotEquals}}
+
+        <!-- Show if entry is on 'Needs Revision' status -->
+        {{#ifEquals wasteGen.status 'Needs Revision'}}
+            <div class="form-section waiting-card">
+                This entry was <b>marked for revision</b>.<br>
+                Waiting for changes on submitter's end.
+            </div>
+        {{/ifEquals}}
+
+        <!-- If revision entry counts exist, then show revision log -->
+        {{#if (gt revisionEntryCount 0)}}
+        <h3>EDIT HISTORY</h3>
+            <div class="form-section revision-window">
+                <table>
+                    {{#each revisionLogs}}
+                    <tr>
+                        <td>{{uppercase lastname}}, {{firstname}} </td>
+                        <td>{{textDateTime created_at}} </td>
+                        <td>{{action}} </td>
+                        <td>{{comment}} </td>
+                    </tr>
+                    {{/each}}
+                </table>
+            </div>
+        {{/if}}
     </center>
 </div>
 
@@ -325,10 +353,10 @@ function updateEntry(status) {
                 }
             })
     } else { // Rejected
-        const rejectionReason = document.getElementById('reject-notes').value
+        const comment = document.getElementById('reject-notes').value
 
         // Send request to server
-        reviewApi('Needs Revision', rejectionReason, reviewedBy)
+        reviewApi('Needs Revision', comment, reviewedBy)
             .then(response => {
                 if (response.success) {                
                     // Pop up to show success
@@ -341,7 +369,7 @@ function updateEntry(status) {
     }
 }
 
-async function reviewApi(status, rejectionReason, reviewedBy) {
+async function reviewApi(status, comment, reviewedBy) {
     try {
         const response = await fetch(`/api/data/${entryId}/status`, {
             method: 'PATCH',
@@ -350,7 +378,7 @@ async function reviewApi(status, rejectionReason, reviewedBy) {
             },
             body: JSON.stringify({
                 status,
-                rejectionReason,
+                comment,
                 reviewedBy
             })
         });
@@ -453,6 +481,18 @@ dropdown.addEventListener('change', filterTable);
 
 <!-- General style -->
 <style>
+
+.waiting-card {
+    background-color: #d4edda !important;
+    font-size: large;
+    font-style: italic;
+}
+
+.revision-window {
+    background-color: lightgoldenrodyellow !important;
+    max-height: 150px;
+    overflow: auto;
+}
 
 .info-grid {
   display: flex;

@@ -676,6 +676,36 @@ export async function getDataForReview(currentUser, status, limit, offset) {
     return result
 }
 
+// Get pending entries (both for Review and Revision)
+export async function getPendingData(currentUser, limit, offset) {
+    const [result] = await sql.query(`
+        SELECT
+            dat.data_entry_id, dat.user_id, dat.title, dat.location_name,
+            u.lastname, u.firstname, u.company_name,
+            dat.region_id, dat.province_id, dat.municipality_id,
+            dat.date_submitted, dat.collection_start, dat.collection_end,
+            dat.status,
+            rl.latest_revision_date
+        FROM data_entry dat
+        JOIN user u ON u.user_id = dat.user_id
+        LEFT JOIN (
+            SELECT data_entry_id, MAX(created_at) AS latest_revision_date
+            FROM data_entry_revision_log
+            GROUP BY data_entry_id
+        ) rl ON rl.data_entry_id = dat.data_entry_id
+        WHERE (dat.status = 'Pending Review' OR dat.status = 'Revised')
+          AND dat.user_id != ?
+        ORDER BY 
+            CASE 
+                WHEN dat.status = 'Pending Review' THEN dat.date_submitted
+                WHEN dat.status = 'Revised' THEN rl.latest_revision_date
+            END DESC
+        LIMIT ? OFFSET ?
+    `, [currentUser, limit, offset])
+
+    return result
+}
+
 // Get *number* of entries to review (for notifications)
 export async function getDataForReviewCount(currentUser, status) {
     const [result] = await sql.query(`
@@ -758,12 +788,12 @@ export async function getCoordinates(locationName) {
 --------------------------------------- */
 
 // Change status of data entry
-export async function updateDataStatus(dataId, status, rejectionReason, reviewedBy) {
+export async function updateDataStatus(dataId, status) {
     await sql.query(`
         UPDATE greencycle.data_entry
-        SET status = ?, rejection_reason = ?, reviewed_by = ?
+        SET status = ?
         WHERE data_entry_id = ?
-    `, [status, rejectionReason, reviewedBy, dataId], function (err, result) {
+    `, [status, dataId], function (err, result) {
         if (err) throw err;
         console.log(result.affectedRows + " record(s) updated");
     })
@@ -829,49 +859,104 @@ export function getPsgcName(locationSet, code) {
 }
 
 /* ---------------------------------------
-    DATA EDITING HISTORY
+    DATA EDITING (NEW VERSION)
 --------------------------------------- */
-export async function createEditEntry(entryId, editorId, remarks) {
+
+// Create revision log
+export async function createRevisionEntry(data_entry_id, user_id, action, comment) {
     const result = await sql.query(`
-        INSERT INTO greencycle.data_edit_history (data_entry_id, user_id, remarks)
-        VALUES (?, ?, ?)
-    `, [entryId, editorId, remarks])
+        INSERT INTO greencycle.data_entry_revision_log (data_entry_id, user_id, action, comment)
+        VALUES (?, ?, ?, ?)
+    `, [data_entry_id, user_id, action, comment])
     
     // Return new object if successful
     const id = result[0].insertId
-    return getUserById(id)
+    return id
 }
 
-export async function getEditHistory(entryId) {
-    const [result] = await sql.query(`
-        SELECT u.lastname, u.firstname, eh.datetime, eh.remarks
-        FROM greencycle.data_edit_history eh
-        JOIN greencycle.user u ON u.user_id = eh.user_id
-        WHERE eh.data_entry_id = ?
-        ORDER BY eh.datetime DESC
-    `, [entryId])
-    return result // important, to not return an array
-}
-
-export async function getLatestEdit(entryId) {
-    const [result] = await sql.query(`
-        SELECT datetime
-        FROM greencycle.data_edit_history
+// Update current log ID for data entry
+export async function updateCurrentLog(dataId, newLogId) {
+    await sql.query(`
+        UPDATE greencycle.data_entry
+        SET current_log_id = ?
         WHERE data_entry_id = ?
-        ORDER BY datetime DESC
-        LIMIT 1
-    `, [entryId])
-    return result // important, to not return an array
+    `, [newLogId, dataId], function (err, result) {
+        if (err) throw err;
+        console.log(result.affectedRows + " record(s) updated");
+    })
 }
 
-// Retrieve newest data entry (upon creation)
-export async function getLatestDataEntry() {
+// Get revision log count
+export async function getRevisionEntryCount(entryId) {
     const [result] = await sql.query(`
-        SELECT data_entry_id FROM data_entry 
-        ORDER BY data_entry_id DESC 
-        LIMIT 1
+        SELECT COUNT(log_id)
+        FROM greencycle.data_entry_revision_log
+        WHERE data_entry_id = ${entryId}    
     `)
-    return result // important, to not return an array
+    return result[0]['COUNT(log_id)']
+}
+
+// Get revision logs for a specific data entry
+// And sort from latest to oldest
+export async function getRevisionEntries(entryId) {
+    const [result] = await sql.query(`
+        SELECT dl.action, dl.comment, dl.created_at, u.lastname, u.firstname
+        FROM greencycle.data_entry_revision_log dl
+        JOIN greencycle.user u ON dl.user_id = u.user_id
+        WHERE data_entry_id = ${entryId}
+        ORDER BY created_at DESC
+    `)
+
+    return result
+}
+
+// Update data entry
+export async function updateForm(data_entry_id, title, region_id, province_id, municipality_id, location_name, population, per_capita, annual, collection_start, collection_end, wasteComposition) {
+    try {
+        // Update the main data_entry record
+        await sql.query(
+            `UPDATE greencycle.data_entry 
+             SET title = ?, region_id = ?, province_id = ?, municipality_id = ?, location_name = ?, 
+                 population = ?, per_capita = ?, annual = ?, collection_start = ?, collection_end = ?, 
+                 status = 'Pending Review', date_submitted = NOW()
+             WHERE data_entry_id = ?`,
+            [title, region_id, province_id, municipality_id, location_name, population, per_capita, annual, collection_start, collection_end, data_entry_id]
+        );
+
+        // Safer: update existing or insert new waste composition records
+        if (wasteComposition && wasteComposition.length > 0) {
+            for (const item of wasteComposition) {
+                const [existing] = await sql.query(
+                    `SELECT id FROM data_waste_composition 
+                     WHERE data_entry_id = ? AND sector_id = ? AND type_id = ?`,
+                    [data_entry_id, item.sector_id, item.type_id]
+                );
+
+                if (existing.length > 0) {
+                    // Entry exists — update it
+                    await sql.query(
+                        `UPDATE data_waste_composition 
+                         SET waste_amount = ? 
+                         WHERE data_entry_id = ? AND sector_id = ? AND type_id = ?`,
+                        [item.waste_amount, data_entry_id, item.sector_id, item.type_id]
+                    );
+                } else {
+                    // Entry does not exist — insert it
+                    await sql.query(
+                        `INSERT INTO data_waste_composition (data_entry_id, sector_id, type_id, waste_amount)
+                         VALUES (?, ?, ?, ?)`,
+                        [data_entry_id, item.sector_id, item.type_id, item.waste_amount]
+                    );
+                }
+            }
+        }
+
+        return { success: true, message: "Form updated successfully!" };
+
+    } catch (error) {
+        console.error("Database error:", error);
+        throw new Error("Error updating data in the database.");
+    }
 }
 
 /* ---------------------------------------
