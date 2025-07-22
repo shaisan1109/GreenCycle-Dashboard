@@ -1193,7 +1193,6 @@ app.get('/dashboard/data/:id', async (req, res) => {
     summaryPieData: JSON.stringify(summaryData),
     detailedPieData: JSON.stringify(detailedData),
     legendData,
-    latestEdit,
     compliance,
     sectorBarData: JSON.stringify(sectorBarData),
     sectorPieData: JSON.stringify(sectorPieData),

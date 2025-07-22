@@ -272,7 +272,15 @@ async function openRegionModal() {
   regions.forEach(region => {
     const div = document.createElement('div');
     div.className = 'ranked-item';
-    div.innerHTML = `${region.region_name}<span class="ranked-count">${region.entry_count}</span>`;
+
+    // Apply red color if entry_count is 0
+    if (region.entry_count === 0) {
+      div.style.color = 'red';
+      div.innerHTML = `${region.region_name}<span class="ranked-count" style="color: red;">${region.entry_count}</span>`;
+    } else {
+      div.innerHTML = `${region.region_name}<span class="ranked-count">${region.entry_count}</span>`;
+    }
+
     container.appendChild(div);
   });
 
