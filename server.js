@@ -1898,7 +1898,11 @@ app.get('/dashboard/noncompliance', async (req, res) => {
 
 app.post('/dashboard/noncompliance/pdf', async (req, res) => {
   try {
-    const userId = req.session.user?.id; // ensure session contains user info
+    const userId = req.session.user?.id;
+    const firstname = req.session.user?.firstname || 'User';
+    const lastname = req.session.user?.lastname || 'Name';
+    const filename = `Non-Compliance-${firstname}-${lastname}.pdf`.replace(/\s+/g, '-');
+
     if (!userId) return res.status(401).send('Unauthorized');
 
     const clients = await getNonCompliantClients(userId);
@@ -1907,13 +1911,13 @@ app.post('/dashboard/noncompliance/pdf', async (req, res) => {
     }
 
     const doc = new PDFDocument({ margin: 50 });
-    const filename = 'Non-Compliance-Notice.pdf';
-
+    
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Type', 'application/pdf');
 
     doc.pipe(res);
 
+    // PDF content
     doc.fontSize(20).fillColor('#2e7d32').text('GreenCycle Compliance Office', { align: 'center' });
     doc.moveDown(0.3);
     doc.fontSize(12).fillColor('#555').text('Official Non-Compliance Warning Notice', { align: 'center' });
@@ -1943,7 +1947,7 @@ app.post('/dashboard/noncompliance/pdf', async (req, res) => {
         .fontSize(10)
         .text(
           `Please ensure future entries meet or exceed the required quota. 
-          You must be able to submit or review your submission as soon as possible.`,
+           You must be able to submit or review your submission as soon as possible.`,
           {
             align: 'justify',
             indent: 20,
@@ -1951,7 +1955,7 @@ app.post('/dashboard/noncompliance/pdf', async (req, res) => {
           }
         )
         .moveDown(1);
-      
+
       doc
         .strokeColor('#66bb6a')
         .lineWidth(0.5)
@@ -1967,6 +1971,7 @@ app.post('/dashboard/noncompliance/pdf', async (req, res) => {
     res.status(500).send('Error generating PDF');
   }
 });
+
 /* ---------------------------------------
     CONTROL PANEL ROUTES
 --------------------------------------- */

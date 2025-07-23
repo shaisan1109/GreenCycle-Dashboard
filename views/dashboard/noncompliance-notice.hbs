@@ -1,48 +1,76 @@
 <h2 class="title">⚠️ Non-Compliance Warning Notices</h2>
 
-<div class="notice-container">
-  {{#each clients}}
-    <div class="warning-card">
-      <div class="warning-header">
-        <h3><i class="fas fa-user-circle"></i> {{firstname}} {{lastname}}</h3>
-        <span class="company"><i class="fas fa-building"></i> {{company_name}}</span>
+{{#if clients.length}}
+  <div class="notice-container">
+    {{#each clients}}
+      <div class="warning-card">
+        <div class="warning-header">
+          <h3><i class="fas fa-user-circle"></i> {{firstname}} {{lastname}}</h3>
+          <span class="company"><i class="fas fa-building"></i> {{company_name}}</span>
+        </div>
+
+        <div class="warning-body">
+          <p><strong>Supertype:</strong> {{supertype_name}}</p>
+          <p><strong>Total Submissions:</strong> {{entry_count}}</p>
+          <p><strong>Total Collected:</strong> {{total_collected}} kg</p>
+          <p><strong>Required Quota:</strong> {{required_quota}} kg</p>
+          <p><strong>Status:</strong> <span class="noncompliant-text">{{compliance_status}}</span></p>
+        </div>
       </div>
+    {{/each}}
+  </div>
 
-      <div class="warning-body">
-        <p><strong>Supertype:</strong> {{supertype_name}}</p>
-        <p><strong>Total Submissions:</strong> {{entry_count}}</p>
-        <p><strong>Total Collected:</strong> {{total_collected}} kg</p>
-        <p><strong>Required Quota:</strong> {{required_quota}} kg</p>
-        <p><strong>Status:</strong> <span class="noncompliant-text">{{compliance_status}}</span></p>
-      </div>
-    </div>
-  {{/each}}
-</div>
-
-<form action="/dashboard/noncompliance/pdf" method="POST" style="text-align: right; margin-bottom: 20px;">
-  <button type="submit" class="pdf-btn">
-    <i class="fa-solid fa-file-pdf"></i> Download Compliance Report
-  </button>
-</form>
+  <form action="/dashboard/noncompliance/pdf" method="POST" style="text-align: right; margin-bottom: 20px;">
+    <button type="submit" class="pdf-btn">
+      <i class="fa-solid fa-file-pdf"></i> Download Compliance Report
+    </button>
+  </form>
+{{else}}
+  <div class="no-notices">
+    <i class="fas fa-check-circle success-icon"></i>
+    <h3>All caught up! 🎉</h3>
+    <p>There are currently no clients flagged for non-compliance.</p>
+  </div>
+{{/if}}
 
 
+<script>
+  window.onload = () => {
+    fetch('/dashboard/noncompliance/pdf', {
+      method: 'POST'
+    })
+    .then(response => {
+      if (!response.ok) throw new Error("Failed to generate PDF");
+
+      // Extract filename from Content-Disposition header
+      const disposition = response.headers.get('Content-Disposition');
+      let filename = "non-compliance.pdf"; // default fallback
+
+      if (disposition && disposition.includes("filename=")) {
+        const match = disposition.match(/filename="?([^"]+)"?/);
+        if (match && match[1]) filename = match[1];
+      }
+
+      return response.blob().then(blob => ({ blob, filename }));
+    })
+    .then(({ blob, filename }) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url); // clean up
+    })
+    .catch(err => {
+      console.error("Error downloading PDF:", err);
+    });
+  };
+</script>
 
 <style>
-.pdf-btn {
-  margin-bottom: 20px;
-  background-color: #2e7d32;
-  color: white;
-  padding: 10px 20px;
-  font-size: 15px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-.pdf-btn:hover {
-  background-color: #1b5e20;
-}
-
-.title {
+  .title {
     font-size: 28px;
     margin-bottom: 30px;
     color: #155724;
@@ -69,12 +97,6 @@
     transform: scale(1.02);
   }
 
-  .warning-header {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 10px;
-  }
-
   .warning-header h3 {
     margin: 0;
     font-size: 20px;
@@ -96,5 +118,35 @@
   .noncompliant-text {
     color: #c62828;
     font-weight: bold;
+  }
+
+  .pdf-btn {
+    margin-bottom: 20px;
+    background-color: #2e7d32;
+    color: white;
+    padding: 10px 20px;
+    font-size: 15px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .pdf-btn:hover {
+    background-color: #1b5e20;
+  }
+
+  .no-notices {
+    text-align: center;
+    padding: 40px;
+    background-color: #f1f8f4;
+    border: 2px dashed #2e7d32;
+    border-radius: 12px;
+    color: #2e7d32;
+  }
+
+  .success-icon {
+    font-size: 60px;
+    color: #2e7d32;
+    margin-bottom: 15px;
   }
 </style>
