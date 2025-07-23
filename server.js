@@ -58,7 +58,13 @@ import {
   updateForm,
   getPendingData,
   getUserComplianceSummary,
-  getNonCompliantClients
+  getNonCompliantClients,
+  getNotifications,
+  getUnreadNotifCount,
+  getNotifStatus,
+  updateNotifRead,
+  createNotification,
+  deleteNotification
 } from './database.js'
 
 // File Upload
@@ -235,9 +241,13 @@ const loginSetup = async (req, res, next) => {
       const revisedCount = await getDataForReviewCount(req.session.user.id, 'Revised')
       const pendingData = pendingCount + revisedCount
 
+      // Retrieve user's current notif count
+      const notifCount = await getUnreadNotifCount(req.session.user.id)
+
       // Make it available to views and routes
       res.locals.pendingApplications = pendingApplications
       res.locals.pendingData = pendingData
+      res.locals.notifCount = notifCount
     }
 
     next();
@@ -440,7 +450,7 @@ app.get('/dashboard', (req, res) => {
   })
 })
 
-// Dashboard home page
+// Waste guide
 app.get('/dashboard/guide', (req, res) => {
   res.render('dashboard/guide', {
     layout: 'dashboard',
@@ -449,6 +459,61 @@ app.get('/dashboard/guide', (req, res) => {
   })
 })
 
+// User notifs
+app.get('/dashboard/notifications/:id', async (req, res) => {
+  const currentUser = req.params.id
+  const notifications = await getNotifications(currentUser)
+
+  res.render('dashboard/notifications', {
+    layout: 'dashboard',
+    title: 'Notifications | GC Dashboard',
+    current_notifs: true,
+    notifications
+  })
+})
+
+// Toggle notif
+app.post('/notifications/toggle/:notifId', async (req, res) => {
+  const notifId = parseInt(req.params.notifId);
+  const isRead = req.body.isRead ? 1 : 0;
+
+  try {
+    await updateNotifRead(notifId, isRead);
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+})
+
+// Link button sets notif to read
+app.post('/notifications/read/:id', async (req, res) => {
+  const notifId = req.params.id;
+  const { isRead } = req.body;
+
+  try {
+    await updateNotifRead(notifId, isRead);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Failed to update notification:', err);
+    res.status(500).json({ success: false });
+  }
+});
+
+// Delete notif using x button
+app.delete('/notifications/delete/:id', async (req, res) => {
+  const notifId = req.params.id;
+  try {
+    await deleteNotification(notifId)
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('Failed to delete notification:', err);
+    res.status(500).json({ success: false });
+  }
+});
+
+// Display data summary
 app.get('/dashboard/data/summary', async (req, res, next) => {
   // Clean query before proceeding
   const cleanedQuery = {};
@@ -1031,6 +1096,8 @@ app.get('/dashboard/data/review/:id', async (req, res) => {
     layout: 'dashboard',
     title: `${wasteGen.title} | GC Dashboard`,
     wasteGen,
+    submitter: wasteGen.user_id,
+    title: wasteGen.title,
     current_datasubs: true,
     sectors,
     supertypes: Object.values(supertypeMap),
@@ -2276,7 +2343,7 @@ app.put('/api/applications/:id/notes', async (req, res) => {
 app.patch('/api/data/:id/status', async (req, res) => {
   try {
     const entryId = req.params.id
-    const { status, reviewedBy, comment } = req.body
+    const { status, reviewedBy, comment, submitter, title } = req.body
     
     // Basic validation
     if (!status) {
@@ -2304,6 +2371,9 @@ app.patch('/api/data/:id/status', async (req, res) => {
           await createLocationEntry(locationName, fetchCoords.latitude, fetchCoords.longitude)
       }
 
+      // Send notification to user that the entry has been approved
+      await createNotification(submitter, 'Approval', `Your data entry, <b>${title}</b>, has been Approved.`, `/dashboard/data/${entryId}`)
+
     }
     else if(status === 'Needs Revision') {
       // Insert into data revision log
@@ -2311,6 +2381,9 @@ app.patch('/api/data/:id/status', async (req, res) => {
 
       // Update current revision
       await updateCurrentLog(entryId, revisionId)
+
+      // Send notification to user
+      await createNotification(submitter, 'Revision Notice', `Your data entry, <b>${title}</b>, needs revision.`, `/dashboard/data/wip/${entryId}`)
     }
 
     res.json({ 

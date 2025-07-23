@@ -274,6 +274,8 @@
 // Get ID of current entry
 const entryId = {{{ entryId }}}
 const reviewedBy = {{{ reviewer }}}
+const submitter = {{{ submitter }}}
+const title = "{{{ title }}}"
 
 // Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -379,7 +381,9 @@ async function reviewApi(status, comment, reviewedBy) {
             body: JSON.stringify({
                 status,
                 comment,
-                reviewedBy
+                reviewedBy,
+                submitter,
+                title
             })
         });
         

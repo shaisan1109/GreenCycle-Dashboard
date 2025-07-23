@@ -68,6 +68,13 @@
                     <i class="fa-solid fa-house nav-icon"></i> Home
                 </a>
 
+                <a href="/dashboard/notifications/{{user.id}}" class="{{#if current_notifs}}current{{/if}}">
+                    <i class="fa-solid fa-bell nav-icon"></i> Notifications
+                    <span class="notif-badge" id="notif-badge" style="{{#ifEquals notifCount 0}}display:none;{{/ifEquals}}">
+                        {{notifCount}}
+                    </span>
+                </a>
+
                 <a href="/dashboard/data/all" class="{{#if current_all}}current{{/if}}">
                     <i class="fa-solid fa-chart-simple nav-icon"></i> Data Entries
                 </a>
