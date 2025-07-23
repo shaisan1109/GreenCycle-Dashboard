@@ -765,8 +765,9 @@ select {
     background-color: red;
     color: white;
     border-radius: 50%;
-    padding: 3px 8px;
     font-size: small;
+    display: inline-block;
+    padding: 3px 8px;
 }
 
 /* ------ Data Entry Pie Chart ------ */

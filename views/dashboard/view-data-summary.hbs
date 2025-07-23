@@ -66,25 +66,6 @@
         </tr>
         </table>
     </div>
-<div class="form-section">
-  <h2>Compliance Status</h2>
-  <table class="user-profile">
-    <tr>
-      <th>Waste Category</th>
-      <th>Collected</th>
-      <th>Quota</th>
-      <th>Status</th>
-    </tr>
-    {{#each compliances}}
-      <tr>
-        <td>{{supertype_name}}</td>
-        <td>{{total_collected_weight}} kg</td>
-        <td>{{quota_weight}} kg</td>
-        <td>{{compliance_status}}</td>
-      </tr>
-    {{/each}}
-  </table>
-</div>
 
     <!-- Collection Info -->
     <div class="form-section">
@@ -99,6 +80,27 @@
             <td>{{textDate avgInfo.latest_collection_end}}</td>
         </tr>
         </table>
+    </div>
+
+    <!-- Compliance -->
+    <div class="form-section" style="background-color: rgb(227, 255, 227)">
+      <h2>Compliance Status</h2>
+      <table class="user-profile">
+        <tr>
+          <th>Waste Category</th>
+          <th>Collected</th>
+          <th>Quota</th>
+          <th>Status</th>
+        </tr>
+        {{#each compliances}}
+          <tr>
+            <td>{{supertype_name}}</td>
+            <td>{{total_collected_weight}} kg</td>
+            <td>{{quota_weight}} kg</td>
+            <td>{{compliance_status}}</td>
+          </tr>
+        {{/each}}
+      </table>
     </div>
   </div>
 
@@ -267,7 +269,7 @@ for (const [supertype, chartData] of Object.entries(barChartData)) {
 
   const canvas = document.createElement('canvas');
   canvas.id = `barChart-${supertype.replace(/\s+/g, '-')}`;
-  canvas.style.maxWidth = '560px';
+  canvas.style.maxWidth = '700px';
   canvas.style.marginBottom = '20px';
 
   const wrapper = document.createElement('div');
@@ -324,7 +326,7 @@ const sectorBarData = {{{sectorBarData}}},
 
 const tsCanvas = document.createElement('canvas');
 tsCanvas.id = 'sectorBarChart';
-tsCanvas.style.maxWidth = '600px';
+tsCanvas.style.maxWidth = '700px';
 tsCanvas.style.marginBottom = '20px';
 
 const tsWrapper = document.createElement('div');
@@ -384,7 +386,7 @@ for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
 
   const canvas = document.createElement('canvas');
   canvas.id = `pieChart-${sectorName.replace(/\s+/g, '-')}`;
-  canvas.style.cssText = 'max-width:600px;max-height:600px;margin-bottom:20px';
+  canvas.style.cssText = 'max-width:625px; max-height:600px; margin-bottom:20px; margin-left: 30px';
 
   const wrapper = document.createElement('div');
   wrapper.classList.add('chart-wrapper');
