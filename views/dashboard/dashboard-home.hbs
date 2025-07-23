@@ -53,9 +53,12 @@
         <a href="/dashboard/noncompliance" class="feature-card">
   <div class="feature-icon"><i class="fas fa-exclamation-triangle"></i></div>
   <div class="feature-text">
-    <h3>Compliance Check</h3>
+    <h3>Client Compliance Warning</h3>
     <p>View your non-compliance notices based on submitted data.</p>
   </div>
+   {{#ifNotEquals clients 0}}
+    <span class="notif-badge" title="You are currently non-compliant.">!</span>
+  {{/ifNotEquals}}
 </a>
       </div>
     </section>
@@ -134,7 +137,7 @@ a {
   transition: background-color 0.2s, transform 0.2s;
   box-shadow: 0 2px 6px rgba(0,0,0,0.04);
   border: 2px solid #127009;
-  gap: 15px;
+  gap: 50px;
 }
 
 .feature-icon i {
