@@ -42,6 +42,7 @@ data-prefill-region="{{prefill.region}}" data-prefill-province="{{prefill.provin
           <input type="text" name="title" id="title"
             placeholder="Provide a meaningful title (up to 100 characters only)"
             value="{{prefill.title}}" required>
+            <div class="error-msg" id="error-title"></div>
         </div>
 
         <!-- Personal Information -->
@@ -60,6 +61,7 @@ data-prefill-region="{{prefill.region}}" data-prefill-province="{{prefill.provin
           <select name="region" id="regions" required>
               <option value="">Select a region</option>
           </select>
+          <div class="error-msg" id="error-regions"></div>
 
           <label for="province">Province</label>
           <select name="province" id="provinces" disabled>
@@ -81,9 +83,11 @@ data-prefill-region="{{prefill.region}}" data-prefill-province="{{prefill.provin
 
             <label for="date_start">Data Collection Start Date<span class="required">*</span></label>
             <input type="date" id="date_start" name="date_start" value="{{prefill.date_start}}" required>
+            <div class="error-msg" id="error-date_start"></div>
 
             <label for="date_end">Data Collection End Date<span class="required">*</span></label>
             <input type="date" id="date_end" name="date_end" value="{{prefill.date_end}}" required disabled>
+            <div class="error-msg" id="error-date_end"></div>
         </div>
 
         <!-- File Upload -->
@@ -237,6 +241,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 
+// File upload verification
 document.getElementById("fileElem").addEventListener("change", async function (e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -351,28 +356,66 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const submitBtn = document.querySelector(".upload-btn");
 
-  function checkRequirements() {
-    const allFilled = requiredFields.every(selector => {
+  function validateSpreadsheetForm() {
+    let allValid = true;
+
+    requiredFields.forEach(selector => {
       const el = document.querySelector(selector);
-      if (!el) return false;
-      if (el.type === "file") return el.files.length > 0;
-      return el.value.trim() !== "";
+      const val = el?.type === "file" ? el?.files?.length : el?.value?.trim();
+      const errorEl = document.getElementById("error-" + el.id);
+      const touched = el.dataset.touched === "true";
+      let error = "";
+
+      switch (selector) {
+        case "#title":
+          if (!val) error = "Title is required.";
+          break;
+
+        case "#regions":
+          if (!val) error = "Please select a region.";
+          break;
+
+        case "#date_start":
+          if (!val) error = "Start Date is required.";
+          break;
+
+        case "#date_end":
+          const startVal = document.querySelector("#date_start").value;
+          if (!val) error = "End Date is required.";
+          else if (startVal && val < startVal) error = "End date cannot be before start date.";
+          break;
+
+        case "#fileElem":
+          if (el.files.length === 0) error = "Please upload a spreadsheet file.";
+          break;
+      }
+
+      if (errorEl) {
+        errorEl.textContent = touched ? error : "";
+      }
+
+      if (error) allValid = false;
     });
 
-    submitBtn.disabled = !allFilled;
+    submitBtn.disabled = !allValid;
+    submitBtn.classList.toggle("disabled", !allValid);
   }
 
-  // Run on page load
-  checkRequirements();
-
-  // Recheck on every change
+  // Add event listeners
   requiredFields.forEach(selector => {
     const el = document.querySelector(selector);
     if (el) {
-      el.addEventListener("input", checkRequirements);
-      el.addEventListener("change", checkRequirements);
+      el.addEventListener("input", validateSpreadsheetForm);
+      el.addEventListener("change", validateSpreadsheetForm);
+      el.addEventListener("blur", () => {
+        el.dataset.touched = "true";
+        validateSpreadsheetForm();
+      });
     }
   });
+
+  // Initial check on page load
+  validateSpreadsheetForm();
 });
 
 </script>
@@ -383,6 +426,12 @@ document.addEventListener("DOMContentLoaded", function () {
 .required {
   color: red;
   margin-left: 4px;
+}
+
+.error-msg {
+  color: red;
+  font-size: 0.9em;
+  margin-top: 4px;
 }
 
 .instructions-tab {
