@@ -68,7 +68,7 @@
                     <i class="fa-solid fa-house nav-icon"></i> Home
                 </a>
 
-                <a href="/dashboard/notifications/{{user.id}}" class="{{#if current_notifs}}current{{/if}}">
+                <a href="/dashboard/notifications" class="{{#if current_notifs}}current{{/if}}">
                     <i class="fa-solid fa-bell nav-icon"></i> Notifications&nbsp;
                     <span class="notif-badge" id="notif-badge" style="{{#ifEquals notifCount 0}}display:none;{{/ifEquals}}">
                         {{notifCount}}
@@ -89,17 +89,20 @@
                     <i class="fa-solid fa-file-medical nav-icon"></i>&nbsp; Submit Data Entry
                 </a>
 
-                <a href="/dashboard/data/user/{{user.id}}" class="{{#if current_user_report}}current{{/if}}">
-                    <i class="fa-solid fa-folder nav-icon"></i> Your Submissions
+                <a href="/dashboard/data/user/revision" class="{{#if current_in_progress}}current{{/if}}">
+                    <i class="fa-solid fa-file-pen nav-icon"></i> Submissions in Progress
+                </a>
+
+                <a href="/dashboard/data/user/approved" class="{{#if current_user_report}}current{{/if}}">
+                    <i class="fa-solid fa-clipboard-check nav-icon"></i> Approved Submissions
                 </a>
                 
-                    <a href="/dashboard/noncompliance" class="{{#if current_noncompliance}}current{{/if}}">
+                <a href="/dashboard/noncompliance" class="{{#if current_noncompliance}}current{{/if}}">
                     <i class="fa-solid fa-triangle-exclamation nav-icon"></i>&nbsp;Client Compliance Warning
                     {{#ifNotEquals clients.length 0}}
                     <span class="notif-badge"> {{clients.length}}</span>
                     {{/ifNotEquals}}
-
-                    </a>
+                </a>
 
 
                 <!-- Only show functions if current user is NOT a client -->

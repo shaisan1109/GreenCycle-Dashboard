@@ -76,25 +76,46 @@ data-prefill-region="{{prefill.region}}" data-prefill-province="{{prefill.provin
 
 <!-- Show tabs if current page is review list -->
 {{#if current_datasubs}}
-<div class="tab">
-  <a href="/dashboard/data/submissions/pending">
-    <button class="tablinks {{#if pending}}active{{/if}}">
-      PENDING
-      {{#ifNotEquals pendingCount 0}}
-        &nbsp;<span class="notif-badge">{{pendingCount}}</span>
-      {{/ifNotEquals}}
-    </button>
-  </a>
-  
-  <a href="/dashboard/data/submissions/revision">
-    <button class="tablinks {{#if revision}}active{{/if}}">
-      NEEDS REVISION
-      {{#ifNotEquals revisionCount 0}}
-        &nbsp;<span class="notif-badge">{{revisionCount}}</span>
-      {{/ifNotEquals}}
-    </button>
-  </a>
-</div>
+  <div class="tab">
+    <a href="/dashboard/data/submissions/pending">
+      <button class="tablinks {{#if pending}}active{{/if}}">
+        PENDING
+        {{#ifNotEquals pendingCount 0}}
+          &nbsp;<span class="notif-badge">{{pendingCount}}</span>
+        {{/ifNotEquals}}
+      </button>
+    </a>
+    
+    <a href="/dashboard/data/submissions/revision">
+      <button class="tablinks {{#if revision}}active{{/if}}">
+        WAITING FOR REVISION
+        {{#ifNotEquals revisionCount 0}}
+          &nbsp;<span class="notif-badge">{{revisionCount}}</span>
+        {{/ifNotEquals}}
+      </button>
+    </a>
+  </div>
+<!-- Show tabs if current page is user list -->
+{{else current_in_progress}}
+  <div class="tab">
+    <a href="/dashboard/data/user/revision">
+      <button class="tablinks {{#if revision}}active{{/if}}">
+        FOR REVISION
+        {{#ifNotEquals revisionCount 0}}
+          &nbsp;<span class="notif-badge">{{revisionCount}}</span>
+        {{/ifNotEquals}}
+      </button>
+    </a>
+    
+    <a href="/dashboard/data/user/pending">
+      <button class="tablinks {{#if pending}}active{{/if}}">
+        WAITING FOR REVIEW
+        {{#ifNotEquals pendingCount 0}}
+          &nbsp;<span class="notif-badge">{{pendingCount}}</span>
+        {{/ifNotEquals}}
+      </button>
+    </a>
+  </div>
 {{/if}}
 
 <!-- Entry counter -->
@@ -122,7 +143,8 @@ data-prefill-region="{{prefill.region}}" data-prefill-province="{{prefill.provin
 {{/ifEquals}}
 
 {{#each data}}
-    <a href="/dashboard/data{{#if ../current_datasubs}}/review{{/if}}/{{data_entry_id}}" class="waste-data-btn-link">
+    <a href="/dashboard/data{{#if ../current_datasubs}}/review{{else ../current_in_progress}}/wip{{/if}}/{{data_entry_id}}
+      " class="waste-data-btn-link">
         <div class="form-section waste-data-btn" style="cursor: pointer;">
             
             <!-- Header: Title and Status -->

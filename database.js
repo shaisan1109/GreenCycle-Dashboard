@@ -717,7 +717,7 @@ export async function getDataForReviewCount(currentUser, status) {
 }
 
 // Get all data by user and sort according to IDs in descending order (recent to oldest)
-export async function getDataByUser(userId, limit, offset) {
+export async function getDataByUser(userId, status, limit, offset) {
     const [result] = await sql.query(`
         SELECT
             dat.data_entry_id, dat.title, dat.location_name,
@@ -727,7 +727,7 @@ export async function getDataByUser(userId, limit, offset) {
             dat.status
         FROM data_entry dat
         JOIN user u ON u.user_id = dat.user_id
-        WHERE u.user_id = ${userId}
+        WHERE u.user_id = ${userId} AND dat.status = '${status}'
         ORDER BY dat.data_entry_id DESC
         LIMIT ${limit} OFFSET ${offset}
     `)
@@ -736,12 +736,24 @@ export async function getDataByUser(userId, limit, offset) {
 }
 
 // Count data made by user
-export async function getDataByUserCount(userId) {
+export async function getDataByUserCount(userId, status) {
     const [[{ count }]] = await sql.query(`
         SELECT COUNT(*) as count
         FROM data_entry dat
         JOIN user u ON u.user_id = dat.user_id
-        WHERE u.user_id = ?
+        WHERE u.user_id = ? AND dat.status = '${status}'
+    `, [userId]);
+
+    return count;
+}
+
+
+export async function getApprovedDataByUserCount(userId) {
+    const [[{ count }]] = await sql.query(`
+        SELECT COUNT(*) as count
+        FROM data_entry dat
+        JOIN user u ON u.user_id = dat.user_id
+        WHERE u.user_id = ? AND dat.status = 'Approved'
     `, [userId]);
 
     return count;

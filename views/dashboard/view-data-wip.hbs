@@ -28,6 +28,14 @@
 </div>
 {{/ifEquals}}
 
+<!-- Window if data is waiting for review -->
+{{#ifEquals wasteGen.status 'Pending Review'}}
+  <div class="form-section waiting-card">
+      This entry was submitted on <b>{{textDate wasteGen.date_submitted}}</b>.<br>
+      Staff is currently reviewing your entry.
+  </div>
+{{/ifEquals}}
+
 <!-- Actual Data Display -->
 <!-- Title Card -->
 <div class="form-section title-card" style="text-align: center;">
@@ -190,6 +198,13 @@
 
 <!-- General style -->
 <style>
+
+.waiting-card {
+    background-color: #d4edda !important;
+    font-size: large;
+    font-style: italic;
+    text-align: center;
+}
 
 .revision-window {
     background-color: lightgoldenrodyellow !important;

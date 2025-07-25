@@ -156,3 +156,11 @@ Handlebars.registerHelper('hasQuery', function(query) {
 Handlebars.registerHelper('concat', function (a, b) {
   return `${a}-${b}`;
 });
+
+// Or condition
+Handlebars.registerHelper('or', function(a, b, options) {
+  if (a || b) {
+    return options.fn(this); // Render the block if either a or b is true
+  }
+  return options.inverse(this); // Otherwise, skip the block
+});

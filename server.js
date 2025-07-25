@@ -462,8 +462,8 @@ app.get('/dashboard/guide', (req, res) => {
 })
 
 // User notifs
-app.get('/dashboard/notifications/:id', async (req, res) => {
-  const currentUser = req.params.id
+app.get('/dashboard/notifications', async (req, res) => {
+  const currentUser = req.session.user.id
   const notifications = await getNotifications(currentUser)
 
   res.render('dashboard/notifications', {
@@ -961,7 +961,7 @@ app.get('/dashboard/data/wip/:id', async (req, res) => {
     layout: 'dashboard',
     title: `${wasteGen.title} | GC Dashboard`,
     wasteGen,
-    current_user_report: true,
+    current_in_progress: true,
     sectors,
     supertypes: Object.values(supertypeMap),
     sectorTotals,
@@ -972,8 +972,8 @@ app.get('/dashboard/data/wip/:id', async (req, res) => {
   })
 })
 
-// Get all data entries by one user (Your Submissions)
-app.get('/dashboard/data/user/:id', async (req, res) => {
+// Get approved data entries by current user
+app.get('/dashboard/data/user/approved', async (req, res) => {
   const user = Number(req.session.user.id)
 
   // Pagination
@@ -983,8 +983,8 @@ app.get('/dashboard/data/user/:id', async (req, res) => {
 
   // Retrieve data and count
   const [data, totalCount] = await Promise.all([
-    getDataByUser(user, limit, offset),
-    getDataByUserCount(user)
+    getDataByUser(user, 'Approved', limit, offset),
+    getDataByUserCount(user, 'Approved')
   ]);
 
   // Pagination button variables
@@ -1002,6 +1002,84 @@ app.get('/dashboard/data/user/:id', async (req, res) => {
     totalCount,
     startEntry,
     endEntry
+  })
+})
+
+// Get data entries for revision by current user
+app.get('/dashboard/data/user/revision', async (req, res) => {
+  // Current user
+  const user = req.session.user.id
+
+  // Pagination
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const offset = (page - 1) * limit;
+
+  // Get data and counts
+  const data = await getDataByUser(user, 'Needs Revision', limit, offset)
+  const revisionCount = await getDataByUserCount(user, 'Needs Revision')
+  const pendingCount = await getDataByUserCount(user, 'Pending Review')
+
+  // Set current total count
+  const totalCount = revisionCount
+
+  // Pagination offset
+  const totalPages = Math.ceil(totalCount / limit);
+  const startEntry = totalCount === 0 ? 0 : offset + 1;
+  const endEntry = Math.min(offset + limit, totalCount);
+
+  res.render('dashboard/list-data-all', {
+    layout: 'dashboard',
+    title: 'Submissions in Progress | GC Dashboard',
+    data,
+    current_in_progress: true,
+    revision: true,
+    totalPages,
+    totalCount,
+    pendingCount,
+    revisionCount,
+    startEntry,
+    endEntry,
+    currentPage: page
+  })
+})
+
+// Get data entries for revision by current user
+app.get('/dashboard/data/user/pending', async (req, res) => {
+  // Current user
+  const user = req.session.user.id
+
+  // Pagination
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const offset = (page - 1) * limit;
+
+  // Get data and counts
+  const data = await getDataByUser(user, 'Pending Review', limit, offset)
+  const revisionCount = await getDataByUserCount(user, 'Needs Revision')
+  const pendingCount = await getDataByUserCount(user, 'Pending Review')
+
+  // Set current total count
+  const totalCount = pendingCount
+
+  // Pagination offset
+  const totalPages = Math.ceil(totalCount / limit);
+  const startEntry = totalCount === 0 ? 0 : offset + 1;
+  const endEntry = Math.min(offset + limit, totalCount);
+
+  res.render('dashboard/list-data-all', {
+    layout: 'dashboard',
+    title: 'Submissions in Progress | GC Dashboard',
+    data,
+    current_in_progress: true,
+    pending: true,
+    totalPages,
+    totalCount,
+    pendingCount,
+    revisionCount,
+    startEntry,
+    endEntry,
+    currentPage: page
   })
 })
 
