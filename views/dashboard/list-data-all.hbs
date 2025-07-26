@@ -40,7 +40,10 @@ data-prefill-region="{{prefill.region}}" data-prefill-province="{{prefill.provin
               </select>
 
               <label for="barangay">Barangay</label>
-              <input type="text" id="barangay">
+              <select name="barangay" id="barangay" disabled>
+                <option value="">Select a barangay</option>
+                <!-- Populated by locations.js -->
+              </select>
             </div>
 
             <!-- Author & Date Filters -->
