@@ -76,7 +76,7 @@
     <div id="map" style="width: 100%; height: 450px; background-color: #f0f0f0;"></div>
 
     <div class="form-section" style="margin-left: 15px; background-color: rgb(227, 255, 227)">
-      <h2>Compliance Status</h2>
+      <h2>Waste Category Compliance Status</h2>
       <table class="user-profile">
         <tr>
           <th>Waste Category</th>
@@ -84,9 +84,29 @@
           <th>Quota</th>
           <th>Status</th>
         </tr>
-        {{#each compliance}}
+        {{#each wasteCompliance}}
           <tr>
             <td>{{supertype_name}}</td>
+            <td>{{total_collected_weight}} kg</td>
+            <td>{{quota_weight}} kg</td>
+            <td>{{compliance_status}}</td>
+          </tr>
+        {{/each}}
+      </table>
+    </div>
+
+    <div class="form-section" style="margin-left: 15px; background-color: rgb(227, 255, 227)">
+      <h2>Waste Sector Compliance Status</h2>
+      <table class="user-profile">
+        <tr>
+          <th>Sector</th>
+          <th>Collected</th>
+          <th>Quota</th>
+          <th>Status</th>
+        </tr>
+        {{#each sectorCompliance}}
+          <tr>
+            <td>{{sector_name}}</td>
             <td>{{total_collected_weight}} kg</td>
             <td>{{quota_weight}} kg</td>
             <td>{{compliance_status}}</td>

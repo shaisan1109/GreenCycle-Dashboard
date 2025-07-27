@@ -343,9 +343,7 @@ export async function createApplication(role_id, lastName,firstName, email, cont
     return null;
 }
 
-// Update application status
 export async function updateApplicationStatus(appId, status, adminNotes) {
-    // If status is null, only update admin_notes
     if (status === null) {
         await sql.query(`
             UPDATE user_applications 
@@ -361,8 +359,12 @@ export async function updateApplicationStatus(appId, status, adminNotes) {
         `, [status, adminNotes, appId])
     }
     
-    return getApplicationById(appId)
+    const updatedApp = await getApplicationById(appId);
+
+    // You can return status or other flags here
+    return updatedApp;
 }
+
 
 // Approve application and create user
 export async function approveApplication(appId, adminNotes) {
@@ -428,8 +430,42 @@ export async function approveApplication(appId, adminNotes) {
 
 // Reject application 
 export async function rejectApplication(appId, adminNotes) {
-    return updateApplicationStatus(appId, 'Rejected', adminNotes)
+    const connection = await sql.getConnection()
+    try {
+        await connection.beginTransaction()
+
+        // 1. Update the user_application status to 'Rejected' and add notes
+        await connection.query(`
+            UPDATE user_applications 
+            SET status = 'Rejected', 
+                admin_notes = ?
+            WHERE application_id = ?
+        `, [adminNotes, appId])
+
+        // 2. If a user was already created before rejection (e.g., during review), set verified to 0
+        const [userData] = await connection.query(`
+            SELECT email FROM user_applications WHERE application_id = ?
+        `, [appId])
+
+        if (userData.length > 0) {
+            const email = userData[0].email
+            await connection.query(`
+                UPDATE user 
+                SET verified = 0
+                WHERE email = ?
+            `, [email])
+        }
+
+        await connection.commit()
+        return { success: true }
+    } catch (error) {
+        await connection.rollback()
+        throw error
+    } finally {
+        connection.release()
+    }
 }
+
 
 // Move application back to pending
 export async function resetApplicationStatus(appId, adminNotes) {
@@ -1103,6 +1139,26 @@ export async function getWasteComplianceStatus(dataEntryId) {
 
   return rows;
 }
+export async function getSectorComplianceStatus(dataEntryId) {
+  const [rows] = await sql.query(`
+    SELECT
+        s.name AS sector_name,
+        scq.quota_weight,
+        COALESCE(SUM(wc.waste_amount), 0) AS total_collected_weight,
+        CASE
+            WHEN COALESCE(SUM(wc.waste_amount), 0) >= scq.quota_weight THEN 'Compliant'
+            ELSE 'Non-Compliant'
+        END AS compliance_status
+    FROM sector_compliance_quotas scq
+    JOIN sector s ON s.id = scq.sector_id
+    LEFT JOIN data_waste_composition wc 
+    ON wc.sector_id = scq.sector_id AND wc.data_entry_id = ?
+    GROUP BY s.id, scq.quota_weight
+  `, [dataEntryId]);
+
+  return rows;
+}
+
 
 export async function getWasteComplianceStatusFromSummary(title, region, province, locationCode, author, company, startDate, endDate) {
   const [rows] = await sql.query(`
@@ -1166,7 +1222,69 @@ export async function getWasteComplianceStatusFromSummary(title, region, provinc
   return rows;
 }
 
-export async function getUserComplianceSummary() {
+export async function getSectorComplianceStatusFromSummary(title, region, province, locationCode, author, company, startDate, endDate) {
+  const [rows] = await sql.query(`
+    WITH matching_entries AS (
+      SELECT DISTINCT de.data_entry_id
+      FROM data_entry de
+      JOIN user u ON de.user_id = u.user_id
+      WHERE de.status = 'Approved'
+        ${title ? 'AND de.title LIKE ?' : ''}
+        ${locationCode ? `
+          AND (
+            de.region_id = ? OR 
+            de.province_id = ? OR 
+            de.municipality_id = ?
+          )` : ''}
+        ${author ? 'AND CONCAT(u.firstname, " ", u.lastname) LIKE ?' : ''}
+        ${company ? 'AND u.company_name LIKE ?' : ''}
+        ${startDate ? 'AND de.collection_start >= ?' : ''}
+        ${endDate ? 'AND de.collection_end <= ?' : ''}
+    ),
+    entry_count AS (
+      SELECT COUNT(*) AS total_entries FROM matching_entries
+    ),
+    sector_totals AS (
+      SELECT
+        wc.sector_id,
+        SUM(wc.waste_amount) AS total_collected_weight
+      FROM data_waste_composition wc
+      WHERE wc.data_entry_id IN (SELECT data_entry_id FROM matching_entries)
+      GROUP BY wc.sector_id
+    )
+    SELECT
+      s.name AS sector_name,
+      scq.quota_weight * ec.total_entries AS quota_weight,
+      COALESCE(st.total_collected_weight, 0) AS total_collected_weight,
+      CASE
+        WHEN COALESCE(st.total_collected_weight, 0) >= scq.quota_weight * ec.total_entries THEN 'Compliant'
+        ELSE 'Non-Compliant'
+      END AS compliance_status,
+      ec.total_entries AS entry_count
+    FROM sector_compliance_quotas scq
+    JOIN sector s ON s.id = scq.sector_id
+    JOIN entry_count ec ON 1=1
+    LEFT JOIN sector_totals st ON st.sector_id = s.id
+  `, [
+    ...(title ? [`%${title}%`] : []),
+    ...(locationCode ? [locationCode, locationCode, locationCode] : []),
+    ...(author ? [`%${author}%`] : []),
+    ...(company ? [`%${company}%`] : []),
+    ...(startDate ? [startDate] : []),
+    ...(endDate ? [endDate] : [])
+  ]);
+
+  if (rows.length > 0) {
+    console.log(`Matching approved entries count: ${rows[0].entry_count}`);
+  } else {
+    console.log(`No approved matching entries`);
+  }
+
+  return rows;
+}
+
+
+export async function getUserWasteComplianceSummary() {
   const [rows] = await sql.query(`
     WITH approved_entries AS (
       SELECT de.data_entry_id, de.user_id
@@ -1210,7 +1328,50 @@ export async function getUserComplianceSummary() {
   return rows;
 }
 
-export async function getNonCompliantClients(userId) {
+export async function getUserSectorComplianceSummary() {
+  const [rows] = await sql.query(`
+    WITH approved_entries AS (
+      SELECT de.data_entry_id, de.user_id
+      FROM data_entry de
+      WHERE de.status = 'Approved'
+    ),
+    entry_count AS (
+      SELECT user_id, COUNT(*) AS entry_count
+      FROM approved_entries
+      GROUP BY user_id
+    ),
+    waste_collected AS (
+      SELECT 
+        ae.user_id,
+        wc.sector_id,
+        SUM(wc.waste_amount) AS total_collected_weight
+      FROM data_waste_composition wc
+      JOIN approved_entries ae ON wc.data_entry_id = ae.data_entry_id
+      GROUP BY ae.user_id, wc.sector_id
+    )
+    SELECT
+      u.firstname,
+      u.lastname,
+      u.company_name,
+      s.name AS sector_name,
+      scq.quota_weight * ec.entry_count AS quota_weight,
+      COALESCE(wc.total_collected_weight, 0) AS total_collected_weight,
+      CASE
+        WHEN COALESCE(wc.total_collected_weight, 0) >= scq.quota_weight * ec.entry_count THEN 'Compliant'
+        ELSE 'Non-Compliant'
+      END AS compliance_status
+    FROM user u
+    JOIN entry_count ec ON u.user_id = ec.user_id
+    JOIN sector_compliance_quotas scq ON 1=1
+    JOIN sector s ON s.id = scq.sector_id
+    LEFT JOIN waste_collected wc ON wc.user_id = u.user_id AND wc.sector_id = s.id
+    ORDER BY u.lastname ASC, s.id ASC
+  `);
+
+  return rows;
+}
+
+export async function getWasteNonCompliantClients(userId) {
   const [rows] = await sql.query(`
     SELECT
       u.user_id,
@@ -1239,6 +1400,36 @@ export async function getNonCompliantClients(userId) {
 
   return rows;
 }
+
+export async function getSectorNonCompliantClients(userId) {
+  const [rows] = await sql.query(`
+    SELECT
+    u.user_id,
+    u.firstname,
+    u.lastname,
+    u.company_name,
+    s.name AS sector_name,
+    COUNT(DISTINCT de.data_entry_id) AS entry_count,
+    MAX(scq.quota_weight) * COUNT(DISTINCT de.data_entry_id) AS required_quota,
+    COALESCE(SUM(wc.waste_amount), 0) AS total_collected,
+    CASE
+        WHEN COALESCE(SUM(wc.waste_amount), 0) >= MAX(scq.quota_weight) * COUNT(DISTINCT de.data_entry_id)
+        THEN 'Compliant'
+        ELSE 'Non-Compliant'
+    END AS compliance_status
+    FROM user u
+    LEFT JOIN data_entry de ON de.user_id = u.user_id AND de.status = 'Approved'
+    LEFT JOIN data_waste_composition wc ON wc.data_entry_id = de.data_entry_id
+    LEFT JOIN sector s ON wc.sector_id = s.id
+    LEFT JOIN sector_compliance_quotas scq ON scq.sector_id = s.id
+    WHERE u.user_id = 1
+    GROUP BY u.user_id, s.id
+    HAVING compliance_status = 'Non-Compliant'
+  `, [userId]);
+
+  return rows;
+}
+
 
 /* ---------------------------------------
     CONTROL PANEL

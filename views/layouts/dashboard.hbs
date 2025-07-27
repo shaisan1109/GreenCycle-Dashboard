@@ -102,8 +102,8 @@
                 
                 <a href="/dashboard/noncompliance" class="{{#if current_noncompliance}}current{{/if}}">
                     <i class="fa-solid fa-triangle-exclamation nav-icon"></i>&nbsp;Client Compliance Warning
-                    {{#ifNotEquals cmpCount 0}}
-                        <span class="notif-badge"> {{cmpCount}}</span>
+                    {{#ifNotEquals totalCount 0}}
+                        <span class="notif-badge"> {{totalCount}}</span>
                     {{/ifNotEquals}}
                 </a>
 

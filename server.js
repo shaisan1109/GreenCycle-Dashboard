@@ -51,20 +51,24 @@ import {
   updateUserRole,
   getWasteComplianceStatus,
   getWasteComplianceStatusFromSummary,
+  getSectorComplianceStatus,
+  getSectorComplianceStatusFromSummary,
   createRevisionEntry,
   updateCurrentLog,
   getRevisionEntryCount,
   getRevisionEntries,
   updateForm,
   getPendingData,
-  getUserComplianceSummary,
-  getNonCompliantClients,
+  getUserWasteComplianceSummary,
+  getUserSectorComplianceSummary,
+  getWasteNonCompliantClients,
+  getSectorNonCompliantClients,
   getNotifications,
   getUnreadNotifCount,
   getNotifStatus,
   updateNotifRead,
   createNotification,
-  deleteNotification
+  deleteNotification,
 } from './database.js'
 
 // File Upload
@@ -248,15 +252,19 @@ const loginSetup = async (req, res, next) => {
       const revisionCount = await getDataByUserCount(req.session.user.id, 'Needs Revision')
 
       // Retrieve compliance entry count
-      const clients = await getNonCompliantClients(req.session.user.id)
-      const cmpCount = clients.length
-
+      const wasteClients = await getWasteNonCompliantClients(req.session.user.id)
+      const sectorClients = await getSectorNonCompliantClients(req.session.user.id)
+      const cmpCount = wasteClients.length
+      const secCount = sectorClients.length
+      const totalCount = cmpCount + secCount
       // Make it available to views and routes
       res.locals.pendingApplications = pendingApplications
       res.locals.pendingData = pendingData
       res.locals.notifCount = notifCount
       res.locals.revisionCount = revisionCount
       res.locals.cmpCount = cmpCount
+      res.locals.secCount = secCount
+      res.locals.totalCount = totalCount
     }
 
     next();
@@ -546,7 +554,8 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
       /* ------ LOCATION NAME ------ */
       // Use the most specific locationCode available
       const locationCode = municipality || province || region || null;
-      const compliances = await getWasteComplianceStatusFromSummary(title, region, province, locationCode, author, company, startDate, endDate);      
+      const wasteCompliances = await getWasteComplianceStatusFromSummary(title, region, province, locationCode, author, company, startDate, endDate);      
+      const sectorCompliances = await getSectorComplianceStatusFromSummary(title, region, province, locationCode, author, company, startDate, endDate); 
       // Prepare PSGC data for location names
       const psgcRegions = await PSGCResource.getRegions()
       const psgcProvinces = await PSGCResource.getProvinces()
@@ -701,7 +710,8 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
         summaryPieData: JSON.stringify(summaryData),
         detailedPieData: JSON.stringify(detailedData),
         legendData,
-        compliances,
+        wasteCompliances,
+        sectorCompliances,
         sectorBarData: JSON.stringify(sectorBarData),
         sectorPieData: JSON.stringify(sectorPieData),
         regionName, provinceName, municipalityName,
@@ -1206,7 +1216,8 @@ app.get('/dashboard/data/:id', async (req, res) => {
   const sectors = await getSectors();
   const supertypes = await getAllTypes();
   const wasteComp = await getWasteCompById(id);
-  const compliance = await getWasteComplianceStatus(id);
+  const wasteCompliance = await getWasteComplianceStatus(id);
+  const sectorCompliance = await getSectorComplianceStatus(id);
 
   // Retrieve location coordinates
   const coords = await getCoordinates(wasteGen.location_name)
@@ -1365,7 +1376,8 @@ app.get('/dashboard/data/:id', async (req, res) => {
     summaryPieData: JSON.stringify(summaryData),
     detailedPieData: JSON.stringify(detailedData),
     legendData,
-    compliance,
+    wasteCompliance,
+    sectorCompliance,
     sectorBarData: JSON.stringify(sectorBarData),
     sectorPieData: JSON.stringify(sectorPieData),
     coords: JSON.stringify(coords)
@@ -1968,16 +1980,36 @@ app.get('/dashboard/noncompliance', async (req, res) => {
   //   return res.redirect('/unauthorized');
   // }
 
-  try {
-    const nonCompliantClients = await getNonCompliantClients(id); // pass user ID here
-    console.log(`✅ Loaded non-compliant data for user ${id}`);
+   try {
+    const wasteNonCompliantClients = await getWasteNonCompliantClients(id);
+    const sectorNonCompliantClients = await getSectorNonCompliantClients(id);
+
+    console.log(`✅ Loaded waste + sector non-compliant data for user ${id}`);
+
+    // Create notifications for waste-type violations
+    for (const client of wasteNonCompliantClients) {
+      const message = `Client <b>${client.firstname} ${client.lastname}</b> (${client.company_name}) is currently 
+      <span style="color:red;"><b>non-compliant</b></span> on ${client.supertype_name} data.`;
+      const link = '/dashboard/noncompliance';
+
+      await createNotification(id, 'Revision Notice', message, link);
+    }
+
+    // Create notifications for sector-based violations
+    for (const client of sectorNonCompliantClients) {
+      const message = `Client <b>${client.firstname} ${client.lastname}</b> (${client.company_name}) is currently 
+      <span style="color:red;"><b>non-compliant</b></span> on <b>${client.sector_name}</b> sector requirements.`;
+      const link = '/dashboard/noncompliance';
+
+      await createNotification(id, 'Revision Notice', message, link);
+    }
 
     res.render('dashboard/noncompliance-notice', {
       layout: 'dashboard',
       title: 'Non-Compliance Notice | GC Dashboard',
       current_noncompliance: true,
-      clients: nonCompliantClients,
-      
+      wasteClients: wasteNonCompliantClients,
+      sectorClients: sectorNonCompliantClients
     });
   } catch (error) {
     console.error('❌ Error generating non-compliance:', error);
@@ -1995,65 +2027,112 @@ app.post('/dashboard/noncompliance/pdf', async (req, res) => {
 
     if (!userId) return res.status(401).send('Unauthorized');
 
-    const clients = await getNonCompliantClients(userId);
-    if (!clients || clients.length === 0) {
+    const wasteClients = await getWasteNonCompliantClients(userId);
+    const sectorClients = await getSectorNonCompliantClients(userId);
+
+    if ((!wasteClients || wasteClients.length === 0) && (!sectorClients || sectorClients.length === 0)) {
       return res.status(404).send('No non-compliant records found.');
     }
 
     const doc = new PDFDocument({ margin: 50 });
-    
+
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Type', 'application/pdf');
-
     doc.pipe(res);
 
-    // PDF content
     doc.fontSize(20).fillColor('#2e7d32').text('GreenCycle Compliance Office', { align: 'center' });
     doc.moveDown(0.3);
     doc.fontSize(12).fillColor('#555').text('Official Non-Compliance Warning Notice', { align: 'center' });
     doc.moveDown(1);
 
-    clients.forEach(client => {
-      doc
-        .fillColor('#1b5e20')
-        .fontSize(14)
-        .text(`${client.firstname} ${client.lastname} (${client.company_name})`, { underline: true });
+    // Section: Waste Type Violations
+    if (wasteClients.length > 0) {
+      doc.fontSize(16).fillColor('#1b5e20').text('Waste Type Non-Compliance', { underline: true });
+      doc.moveDown(0.5);
 
-      doc
-        .moveDown(0.3)
-        .fontSize(11)
-        .fillColor('#333')
-        .text(`Supertype Monitored: ${client.supertype_name}`)
-        .text(`Number of Approved Entries: ${client.entry_count}`)
-        .text(`Required Total Quota: ${client.required_quota} kg`)
-        .text(`Actual Total Collected: ${client.total_collected} kg`)
-        .text(`Compliance Status:`, { continued: true })
-        .fillColor('red')
-        .text(`  ${client.compliance_status}`)
-        .moveDown();
+      wasteClients.forEach(client => {
+        doc
+          .fillColor('#1b5e20')
+          .fontSize(14)
+          .text(`${client.firstname} ${client.lastname} (${client.company_name})`, { underline: true });
 
-      doc
-        .fillColor('#2e7d32')
-        .fontSize(10)
-        .text(
-          `Please ensure future entries meet or exceed the required quota. 
-           You must be able to submit or review your submission as soon as possible.`,
-          {
+        doc
+          .moveDown(0.3)
+          .fontSize(11)
+          .fillColor('#333')
+          .text(`Waste Type Monitored: ${client.supertype_name}`)
+          .text(`Number of Approved Entries: ${client.entry_count}`)
+          .text(`Required Total Quota: ${client.required_quota} kg`)
+          .text(`Actual Total Collected: ${client.total_collected} kg`)
+          .text(`Compliance Status:`, { continued: true })
+          .fillColor('red')
+          .text(`  ${client.compliance_status}`)
+          .moveDown();
+
+        doc
+          .fillColor('#2e7d32')
+          .fontSize(10)
+          .text(`Please ensure future entries meet or exceed the required quota.`, {
             align: 'justify',
             indent: 20,
             lineGap: 2
-          }
-        )
-        .moveDown(1);
+          })
+          .moveDown(1);
 
-      doc
-        .strokeColor('#66bb6a')
-        .lineWidth(0.5)
-        .moveTo(doc.page.margins.left, doc.y)
-        .lineTo(doc.page.width - doc.page.margins.right, doc.y)
-        .stroke()
-        .moveDown(1);
-    });
+        doc
+          .strokeColor('#66bb6a')
+          .lineWidth(0.5)
+          .moveTo(doc.page.margins.left, doc.y)
+          .lineTo(doc.page.width - doc.page.margins.right, doc.y)
+          .stroke()
+          .moveDown(1);
+      });
+    }
+
+    // Section: Sector-Based Violations
+    if (sectorClients.length > 0) {
+      doc.addPage();
+      doc.fontSize(16).fillColor('#c62828').text('Sector-Based Non-Compliance', { underline: true });
+      doc.moveDown(0.5);
+
+      sectorClients.forEach(client => {
+        doc
+          .fillColor('#b71c1c')
+          .fontSize(14)
+          .text(`${client.firstname} ${client.lastname} (${client.company_name})`, { underline: true });
+
+        doc
+          .moveDown(0.3)
+          .fontSize(11)
+          .fillColor('#333')
+          .text(`Sector: ${client.sector_name}`)
+          .text(`Number of Approved Entries: ${client.entry_count}`)
+          .text(`Required Total Quota: ${client.required_quota} kg`)
+          .text(`Actual Total Collected: ${client.total_collected} kg`)
+          .text(`Compliance Status:`, { continued: true })
+          .fillColor('red')
+          .text(`  ${client.compliance_status}`)
+          .moveDown();
+
+        doc
+          .fillColor('#ad1457')
+          .fontSize(10)
+          .text(`Review your compliance per sector to avoid penalties.`, {
+            align: 'justify',
+            indent: 20,
+            lineGap: 2
+          })
+          .moveDown(1);
+
+        doc
+          .strokeColor('#ef9a9a')
+          .lineWidth(0.5)
+          .moveTo(doc.page.margins.left, doc.y)
+          .lineTo(doc.page.width - doc.page.margins.right, doc.y)
+          .stroke()
+          .moveDown(1);
+      });
+    }
 
     doc.end();
   } catch (err) {
@@ -2061,6 +2140,7 @@ app.post('/dashboard/noncompliance/pdf', async (req, res) => {
     res.status(500).send('Error generating PDF');
   }
 });
+
 
 /* ---------------------------------------
     CONTROL PANEL ROUTES
@@ -2085,7 +2165,8 @@ app.get('/control-panel/entry-statistics', async (req, res) => {
   const latestSubmissions = await getLatestSubmissions(3)
   const topRegions = await getTopReportingRegions(5)
   const monthlySubmissions = await getMonthlySubmissions()
-  const data = await getUserComplianceSummary()
+  const wasteCompliance = await getUserWasteComplianceSummary()
+  const sectorCompliance = await getUserSectorComplianceSummary()
 
   res.render('control-panel/entry-stats', {
   layout: 'control-panel',
@@ -2096,7 +2177,8 @@ app.get('/control-panel/entry-statistics', async (req, res) => {
   latestSubmissions,
   topRegions,
   monthlySubmissions: JSON.stringify(monthlySubmissions),
-  data// 👈 Add this
+  wasteCompliance,// 👈 Add this
+  sectorCompliance
 });
 })
 

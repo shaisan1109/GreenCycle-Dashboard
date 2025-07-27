@@ -40,7 +40,7 @@
 </div>
 
 <div class="form-section">
-  <h2>User Compliance Statistics</h2>
+  <h2>User Waste Compliance Statistics</h2>
   <table class="user-profile" style="width: 100%;">
     <thead>
       <tr>
@@ -53,8 +53,8 @@
       </tr>
     </thead>
     <tbody>
-  {{#if data.length}}
-    {{#each data}}
+  {{#if wasteCompliance.length}}
+    {{#each wasteCompliance}}
       <tr>
         <td>{{uppercase this.lastname}}, {{this.firstname}}</td>
         <td>{{this.company_name}}</td>
@@ -73,7 +73,46 @@
   {{else}}
     <tr><td colspan="6">No data available.</td></tr>
   {{/if}}
-</tbody>
+ </tbody>
+
+  </table>
+</div>
+
+<div class="form-section">
+  <h2>User Sector Compliance Statistics</h2>
+  <table class="user-profile" style="width: 100%;">
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Company</th>
+        <th>Sector</th>
+        <th>Quota</th>
+        <th>Collected</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+  {{#if sectorCompliance.length}}
+    {{#each sectorCompliance}}
+      <tr>
+        <td>{{uppercase this.lastname}}, {{this.firstname}}</td>
+        <td>{{this.company_name}}</td>
+        <td>{{this.sector_name}}</td>
+        <td>{{this.quota_weight}} kg</td>
+        <td>{{this.total_collected_weight}} kg</td>
+        <td>
+          {{#ifEquals this.compliance_status "Compliant"}}
+            <span class="stat-approved">Compliant</span>
+          {{else}}
+            <span class="stat-revision">Non-Compliant</span>
+          {{/ifEquals}}
+        </td>
+      </tr>
+    {{/each}}
+  {{else}}
+    <tr><td colspan="6">No data available.</td></tr>
+  {{/if}}
+ </tbody>
 
   </table>
 </div>
