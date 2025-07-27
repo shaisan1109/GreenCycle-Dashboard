@@ -2022,7 +2022,7 @@ app.get('/dashboard/noncompliance', async (req, res) => {
     // Create notifications for waste-type violations
     for (const client of wasteNonCompliantClients) {
       const message = `Client <b>${client.firstname} ${client.lastname}</b> (${client.company_name}) is currently 
-      <span style="color:red;"><b>non-compliant</b></span> on ${client.supertype_name} data.`;
+      <span style="color:red;"><b>non-compliant</b></span> on <b>${client.supertype_name}</b> data.`;
       const link = '/dashboard/noncompliance';
 
       await createNotification(id, 'Revision Notice', message, link);

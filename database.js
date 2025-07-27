@@ -1420,7 +1420,7 @@ export async function getSectorNonCompliantClients(userId) {
     LEFT JOIN data_waste_composition wc ON wc.data_entry_id = de.data_entry_id
     LEFT JOIN sector s ON wc.sector_id = s.id
     LEFT JOIN sector_compliance_quotas scq ON scq.sector_id = s.id
-    WHERE u.user_id = 1
+    WHERE u.user_id = ?
     GROUP BY u.user_id, s.id
     HAVING compliance_status = 'Non-Compliant'
   `, [userId]);
