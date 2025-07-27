@@ -50,7 +50,7 @@
       </div>
     {{/each}}
   </div>
-  <form action="/dashboard/noncompliance/sector/pdf" method="POST" style="text-align: right; margin-bottom: 20px;">
+  <form action="/dashboard/noncompliance/pdf" method="POST" style="text-align: right; margin-bottom: 20px;">
     <button type="submit" class="pdf-btn">
       <i class="fa-solid fa-file-pdf"></i> Download Comprehensive Compliance Report
     </button>
@@ -64,38 +64,39 @@
 {{/if}}
 
 <script>
-  window.onload = () => {
-    fetch('/dashboard/noncompliance/pdf', {
-      method: 'POST'
-    })
-    .then(response => {
-      if (!response.ok) throw new Error("Failed to generate PDF");
+ function downloadPDF() {
+  fetch('/dashboard/noncompliance/pdf', {
+    method: 'POST'
+  })
+  .then(response => {
+    if (!response.ok) throw new Error("Failed to generate PDF");
 
-      // Extract filename from Content-Disposition header
-      const disposition = response.headers.get('Content-Disposition');
-      let filename = "non-compliance.pdf"; // default fallback
+    // Extract filename from Content-Disposition header
+    const disposition = response.headers.get('Content-Disposition');
+    let filename = "non-compliance.pdf";
 
-      if (disposition && disposition.includes("filename=")) {
-        const match = disposition.match(/filename="?([^"]+)"?/);
-        if (match && match[1]) filename = match[1];
-      }
+    if (disposition && disposition.includes("filename=")) {
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
 
-      return response.blob().then(blob => ({ blob, filename }));
-    })
-    .then(({ blob, filename }) => {
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url); // clean up
-    })
-    .catch(err => {
-      console.error("Error downloading PDF:", err);
-    });
-  };
+    return response.blob().then(blob => ({ blob, filename }));
+  })
+  .then(({ blob, filename }) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  })
+  .catch(err => {
+    console.error("Error downloading PDF:", err);
+  });
+}
+
 </script>
 
 <style>
