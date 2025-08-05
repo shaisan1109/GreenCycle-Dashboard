@@ -1459,6 +1459,36 @@ export async function updateSectorQuota(quotaId, newWeight) {
     [newWeight, quotaId]
   );
 }
+export async function getTopDashboardData() {
+  try {
+    const [topSectors] = await sql.query(`
+      SELECT s.name, SUM(dwc.waste_amount) AS total_waste
+      FROM data_waste_composition dwc
+      JOIN sector s ON dwc.sector_id = s.id
+      GROUP BY s.name
+      ORDER BY total_waste DESC
+    `);
+
+    const [topWasteTypes] = await sql.query(`
+      SELECT ws.name AS supertype_name, SUM(dwc.waste_amount) AS total_waste
+      FROM data_waste_composition dwc
+      JOIN waste_type wt ON dwc.type_id = wt.id
+      JOIN waste_supertype ws ON wt.supertype_id = ws.id
+      GROUP BY ws.name
+      ORDER BY total_waste DESC
+    `);
+
+    return {
+      topSectors,
+      topWasteTypes
+    };
+  } catch (err) {
+    console.error('Error fetching top data:', err);
+    throw err;
+  }
+}
+
+
 
 /* ---------------------------------------
     CONTROL PANEL

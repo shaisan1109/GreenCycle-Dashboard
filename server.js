@@ -10,7 +10,7 @@ const store = new session.MemoryStore();
 // Import database functions
 import {
   getUsers, getUserByEmail, createUser, getUsersOfRole, getUserById,
-  deleteRole, getAllUsers,
+  deleteRole, getAllUsers,getTopDashboardData,
   updateRoleName,
   getPartners, getOrgRoles,
   getRolesOfSupertype, createClientRole,
@@ -461,14 +461,25 @@ app.get('/partners', async (req, res) => {
 --------------------------------------- */
 
 // Dashboard home page
-app.get('/dashboard', (req, res) => {
-  
-  res.render('dashboard/dashboard-home', {
-    layout: 'dashboard',
-    title: 'Main Dashboard | GC Dashboard',
-    current_home: true
-  })
-})
+
+app.get('/dashboard', async (req, res) => {
+  try {
+    const { topSectors,
+      topWasteTypes } = await getTopDashboardData();
+
+    res.render('dashboard/dashboard-home', {
+      layout: 'dashboard',
+      title: 'Main Dashboard | GC Dashboard',
+      current_home: true,
+      topSectors,
+      topWasteTypes
+    });
+  } catch (err) {
+    console.error("Error fetching top data:", err);
+    res.status(500).send("Failed to load dashboard data.");
+  }
+});
+
 
 // Waste guide
 app.get('/dashboard/guide', (req, res) => {

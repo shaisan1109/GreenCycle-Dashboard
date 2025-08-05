@@ -2,6 +2,57 @@
     <section class="welcome-card">
       <h1>Welcome, <span id="welcome-name">{{user.firstname}}</span>!</h1>
     </section>
+    <section class="section top-contributors-section">
+  <h2 class="section-heading">
+    <i class="fas fa-chart-line"></i> Top Waste Contributors
+  </h2>
+  
+  <div class="table-section">
+    
+    <!-- Top Waste Sectors -->
+    <div class="table-wrapper contributor-card">
+      <h3 class="table-title"><i class="fas fa-industry"></i> Top Waste Sectors</h3>
+      <div class="table-container">
+        <table class="dashboard-table">
+          <thead>
+            <tr>
+              <th>Sector</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each topSectors}}
+              <tr>
+                <td>{{name}}</td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Top Waste Types -->
+    <div class="table-wrapper contributor-card">
+      <h3 class="table-title"><i class="fas fa-recycle"></i> Top Waste Supertypes</h3>
+      <div class="table-container">
+        <table class="dashboard-table">
+          <thead>
+            <tr>
+              <th>Waste Supertype</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each topWasteTypes}}
+              <tr>
+                <td>{{supertype_name}}</td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</section>
 
     <section class="section">
       <h2>General Features</h2>
@@ -214,4 +265,73 @@ a {
 .admin-card:hover {
   background-color: #fbe3cd;
 }
+.top-contributors-section {
+  background-color: #e9fff1;
+  border: 2px solid #99e0b5;
+  border-radius: 18px;
+  padding: 35px 30px;
+  box-shadow: 0 6px 16px rgba(0, 128, 0, 0.1);
+  animation: fadeInUp 0.6s ease-out;
+}
+
+
+.section-heading {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 30px;
+  color: #0e5a0b;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-shadow: 1px 1px 0 #b2f5ca;
+}
+
+.table-wrapper.contributor-card {
+  background-color: #ffffff;
+  padding: 24px;
+  border: 2px solid #b9f2cc;
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(0, 100, 0, 0.05);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.table-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 15px;
+  color: #0f7d2d;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-title i {
+  color: #0f7d2d;
+  font-size: 1.2rem;
+}
+
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.dashboard-table th,
+.dashboard-table td {
+  padding: 14px 18px;
+  text-align: left;
+  border-bottom: 1px solid #e3f7ec;
+}
+
+.dashboard-table th {
+  background-color: #0f7d2d;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+
   </style>
