@@ -159,19 +159,19 @@
     <!-- Compliance Status -->
     <li>
         <label>
-        <input type="checkbox" class="super-item" data-group="compliance" value="Compliance Status" checked>
+        <input type="checkbox" class="super-item" data-group="compliance" checked>
         <span>Compliance Status</span>
         </label>
         <ul>
         <li>
             <label>
-            <input type="checkbox" class="sub-item" data-group="compliance" value="Waste Category Compliance Status" checked>
+            <input type="checkbox" class="sub-item" data-group="compliance" value="compliance-category" checked>
             <span>Waste Category Compliance Status</span>
             </label>
         </li>
         <li>
             <label>
-            <input type="checkbox" class="sub-item" data-group="compliance" value="Waste Sector Compliance Status" checked>
+            <input type="checkbox" class="sub-item" data-group="compliance" value="compliance-sector" checked>
             <span>Waste Sector Compliance Status</span>
             </label>
         </li>
@@ -181,29 +181,36 @@
     <!-- Waste Category Insights -->
     <li>
         <label>
-        <input type="checkbox" class="super-item" data-group="insights" value="Waste Category Insights & Recommendations" checked>
+        <input type="checkbox" class="super-item" data-group="insights" value="insights" checked>
         <span>Waste Category Insights & Recommendations</span>
+        </label>
+    </li>
+
+    <li>
+        <label>
+        <input type="checkbox" class="super-item" data-group="insights" value="top-categories" checked>
+        <span>Top Waste Categories in this Area</span>
         </label>
     </li>
 
     <!-- Top Waste Categories -->
     <li>
         <label>
-        <input type="checkbox" class="super-item" data-group="top-cats" value="Top Waste Categories" checked>
-        <span>Top Waste Categories</span>
+        <input type="checkbox" class="super-item" data-group="top-cats" checked>
+        <span>Top Waste Types by Category</span>
         </label>
         <ul>
-        <li><label><input type="checkbox" class="sub-item" data-group="top-cats" value="Biodegradable" checked><span>Biodegradable</span></label></li>
-        <li><label><input type="checkbox" class="sub-item" data-group="top-cats" value="Recyclable" checked><span>Recyclable</span></label></li>
-        <li><label><input type="checkbox" class="sub-item" data-group="top-cats" value="Residual" checked><span>Residual</span></label></li>
-        <li><label><input type="checkbox" class="sub-item" data-group="top-cats" value="Special/Hazardous" checked><span>Special/Hazardous</span></label></li>
+        <li><label><input type="checkbox" class="sub-item" data-group="top-cats" value="types-biodegradable" checked><span>Biodegradable</span></label></li>
+        <li><label><input type="checkbox" class="sub-item" data-group="top-cats" value="types-recyclable" checked><span>Recyclable</span></label></li>
+        <li><label><input type="checkbox" class="sub-item" data-group="top-cats" value="types-residual" checked><span>Residual</span></label></li>
+        <li><label><input type="checkbox" class="sub-item" data-group="top-cats" value="types-special" checked><span>Special/Hazardous</span></label></li>
         </ul>
     </li>
 
     <!-- Top Sectors -->
     <li>
         <label>
-        <input type="checkbox" class="super-item" data-group="sectors" value="Top Sectors by Waste Output" checked>
+        <input type="checkbox" class="super-item" data-group="sectors" value="top-sectors" checked>
         <span>Top Sectors by Waste Output</span>
         </label>
     </li>
@@ -211,23 +218,23 @@
     <!-- Top Waste Categories per Sector -->
     <li>
         <label>
-        <input type="checkbox" class="super-item" data-group="cats-per-sector" value="Top Waste Categories per Sector" checked>
+        <input type="checkbox" class="super-item" data-group="cats-per-sector" checked>
         <span>Top Waste Categories per Sector</span>
         </label>
         <ul>
-        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="Residential" checked><span>Residential</span></label></li>
-        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="Commercial" checked><span>Commercial</span></label></li>
-        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="Institutional" checked><span>Institutional</span></label></li>
-        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="Industrial" checked><span>Industrial</span></label></li>
-        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="Health" checked><span>Health</span></label></li>
-        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="Agriculture and Livestock" checked><span>Agriculture and Livestock</span></label></li>
+        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-residential" checked><span>Residential</span></label></li>
+        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-commercial" checked><span>Commercial</span></label></li>
+        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-institutional" checked><span>Institutional</span></label></li>
+        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-industrial" checked><span>Industrial</span></label></li>
+        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-health" checked><span>Health</span></label></li>
+        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-agriculture" checked><span>Agriculture and Livestock</span></label></li>
         </ul>
     </li>
 
     <!-- Raw Data -->
     <li>
         <label>
-        <input type="checkbox" class="super-item" data-group="raw" value="Raw Data" checked>
+        <input type="checkbox" class="super-item" data-group="raw" value="raw-data" checked>
         <span>Raw Data</span>
         </label>
     </li>
@@ -462,16 +469,48 @@ document.querySelectorAll("#pdfModal .sub-item").forEach(subItem => {
 });
 
 // Confirm generate
-confirmBtn.addEventListener("click", () => {
+confirmBtn.addEventListener("click", async () => {
   modal.style.display = "none";
 
-  // Collect selected items
-  const selected = Array.from(document.querySelectorAll("#pdfModal input[type=checkbox]:checked"))
-    .map(cb => cb.value); // assume each checkbox has a value attribute
+  try {
+    // Collect selected items
+    const selected = Array.from(
+      document.querySelectorAll("#pdfModal input[type=checkbox]:checked")
+    ).map(cb => cb.value); // assumes each checkbox has value
 
-  // Trigger PDF generation with selected sections
-  const query = new URLSearchParams({ sections: JSON.stringify(selected) });
-  window.open(`/api/${entryId}/pdf?${query.toString()}`, "_blank");
+    // Always prepend non-optional
+    selected.unshift("data-title");
+    selected.unshift("data-info");
+
+    console.log(selected)
+
+    // Send POST request
+    const response = await fetch(`/api/data/${entryId}/pdf`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sections: selected })
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to generate PDF");
+    }
+
+    // Get PDF as blob
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+
+    // Download
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Waste_Report.pdf";
+    a.click();
+
+    // Optional: revoke object URL after a bit
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    console.error("PDF generation failed:", err);
+    alert("Failed to generate PDF. Please try again.");
+  }
 });
 
 </script>

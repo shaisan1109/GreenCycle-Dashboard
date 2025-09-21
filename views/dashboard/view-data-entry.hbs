@@ -2,7 +2,7 @@
 <!-- Actual Data Display -->
 
 <!-- Title Card -->
-<div class="form-section title-card" style="text-align: center;">
+<div data-section="data-title" class="form-section title-card" style="text-align: center;">
   <h1 style="margin-bottom: 0.25rem;">{{wasteGen.title}}</h1>
   <center>
     <h3 style="margin: 0; font-weight: normal; color: #555;">
@@ -13,7 +13,7 @@
 
 <div style="display: flex">
   <!-- Div enclosing info blocks -->
-  <div style="width: 50%;">
+  <div style="width: 50%;" data-section="data-info">
     <!-- Info Blocks -->
     <div class="info-grid">
       <!-- Submission Info -->
@@ -79,7 +79,7 @@
 
   <!-- Compliance -->
   <div style="width: 100%; display: flex;">
-    <div class="form-section" style="background-color: rgb(227, 255, 227); margin: 0 10px 10px 0 !important; width: 100%;">
+    <div data-section="compliance-category" class="form-section" style="background-color: rgb(227, 255, 227); margin: 0 10px 10px 0 !important; width: 100%;">
       <h2>Waste Category Compliance Status</h2>
       <table class="user-profile">
         <tr>
@@ -99,7 +99,7 @@
       </table>
     </div>
 
-    <div class="form-section" style="background-color: rgb(227, 255, 227); margin: 0 0 10px 10px !important; width: 100%;">
+    <div data-section="compliance-sector" class="form-section" style="background-color: rgb(227, 255, 227); margin: 0 0 10px 10px !important; width: 100%;">
       <h2>Waste Sector Compliance Status</h2>
       <table class="user-profile">
         <tr>
@@ -119,16 +119,17 @@
       </table>
     </div>
   </div>
-    <!-- Insight -->
-<hr>
-<div class="form-section" style="background-color: #eef8f2; padding: 1.5rem; border-radius: 12px; border-left: 6px solid #4CAF50; margin-top: 2rem;">
-  <h2 style="color: #2d613f;"><i class="fa-solid fa-lightbulb" style="margin-right: 8px;"></i>Waste Category Insights & Recommendations</h2>
-  <ul style="font-size: 1.1rem; list-style-type: none; padding-left: 0;">
-    {{#each recommendations}}
-      <li style="margin-bottom: 1rem;">{{{this}}}</li>
-    {{/each}}
-  </ul>
-</div>
+
+  <!-- Insight -->
+  <hr>
+  <div data-section="insights" class="form-section" style="background-color: #eef8f2; padding: 1.5rem; border-radius: 12px; border-left: 6px solid #4CAF50; margin-top: 2rem;">
+    <h2 style="color: #2d613f;"><i class="fa-solid fa-lightbulb" style="margin-right: 8px;"></i>Waste Category Insights & Recommendations</h2>
+    <ul style="font-size: 1.1rem; list-style-type: none; padding-left: 0;">
+      {{#each recommendations}}
+        <li style="margin-bottom: 1rem;">{{{this}}}</li>
+      {{/each}}
+    </ul>
+  </div>
 
 <!-- Data Tabs -->
 <div class="tab">
@@ -139,7 +140,7 @@
 <!-- Display A: Chart -->
 <div id="Chart" class="tabcontent">
     <!-- Supertype summary pie chart -->
-    <div style="display: flex;">
+    <div data-section="top-categories" style="display: flex;">
         <div class="pie-chart">
             <canvas id="supertypePieChart">
                 <!-- Populated by JS -->
@@ -188,11 +189,13 @@
 
     <!-- Top sectors producing waste -->
     <br><hr><br>
-    <center>
-      <h2>Top Sectors by Waste Output</h2>
-      <p style="font-size: large;">This chart shows which economic sectors contribute the most to total waste generation. Use this insight to target waste reduction initiatives by sector.</p>
-    </center>
-    <div id="sector-chart-container"></div>
+    <div data-section="top-sectors">
+      <center>
+        <h2>Top Sectors by Waste Output</h2>
+        <p style="font-size: large;">This chart shows which economic sectors contribute the most to total waste generation. Use this insight to target waste reduction initiatives by sector.</p>
+      </center>
+      <div id="sector-chart-container"></div>
+    </div>
 
     <!-- Pie chart per sector -->
     <br><hr><br>
@@ -249,7 +252,7 @@
             </div>
 
             <!-- Waste Composition -->
-            <table class="data-table" id="waste-comp-table">
+            <table class="data-table" id="waste-comp-table" data-section="raw-data">
                 <thead>
                     <tr class="tb-header">
                         <th>Waste Type</th>

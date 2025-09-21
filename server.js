@@ -1446,53 +1446,79 @@ const recommendations = sortedLegend.map((item, index) => {
 });
 
 // Generate PDF report
-app.get("/api/:entryId/pdf", async (req, res) => {
+// Uses /dashboard instead of /api so that browser won't have to use login cookies anymore
+app.post("/api/data/:entryId/pdf", async (req, res) => {
   const { entryId } = req.params;
+  const { sections } = req.body; // array of section IDs (from modal)
+
+  if (!sections || !Array.isArray(sections)) {
+    return res.status(400).json({ error: "Missing or invalid sections list" });
+  }
 
   try {
-    const browser = await puppeteer.launch({ headless: "new" });
+    const browser = await puppeteer.launch({
+      headless: true, // use 'new' for latest Puppeteer
+      executablePath: puppeteer.executablePath(), // force bundled Chromium
+      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    });
     const page = await browser.newPage();
 
-    // Puppeteer logs in then converts page to PDF
-    // This is the full cookie value sent by browser (already signed)
-    const sidCookie = req.cookies["connect.sid"]; 
-    await browser.setCookie({
-      name: "connect.sid",
-      value: sidCookie,
-      domain: "localhost", // or your production hostname
-      path: "/",
-      httpOnly: true
-    });
+    // User login cookie
+    const cookies = req.headers.cookie
+      ?.split(";")
+      .map(c => {
+        const [name, ...rest] = c.trim().split("=");
+        return { name, value: rest.join("="), domain: "localhost" };
+      }) || [];
 
-    // Force "screen" CSS so it doesn’t hide stuff in print
-    await page.emulateMediaType("screen");
+    await page.setCookie(...cookies);
 
-    // Load your existing entry page with handlebars template
-    await page.goto(`${process.env.APP_BASE_URL}/dashboard/data/${entryId}`, {
-      waitUntil: "networkidle0"
-    });
+    // Navigate to report view page (server-rendered HTML)
+    const reportUrl = `http://localhost:3000/dashboard/data/${entryId}`;
+    await page.goto(reportUrl, { waitUntil: "networkidle0" });
 
-    // Wait for some known selector to ensure content is loaded
-    await page.waitForSelector("#sector-pies-container");
-    await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 2000)));
+    // Make sure page is rendered
+    await page.waitForSelector(".title-card", { timeout: 10000 });
 
-    // Generate PDF
-    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
+    // Hide sections not selected
+    await page.evaluate((keepSections) => {      
+      document.querySelectorAll("[data-section]").forEach(el => {
+        const id = el.getAttribute("data-section");
+        if (!keepSections.includes(id)) {
+          //el.style.display = "none";
+          el.style.setProperty("display", "none", "important");
+        }
+      });
+    }, sections);
 
     // DEBUG
-    await page.screenshot({ path: "debug.png", fullPage: true });
+    await page.evaluate(() => {
+      return Array.from(document.querySelectorAll("[data-section]"))
+        .map(el => el.getAttribute("data-section"));
+    }).then(ids => console.log("Available sections in page:", ids));
+
+    await page.screenshot({ path: "after-hide.png", fullPage: true }); // DEBUG
+
+    // Generate PDF
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      landscape: true,
+      preferCSSPageSize: false
+    });
 
     await browser.close();
 
-    // Send PDF to browser
+    // Send PDF as response
     res.set({
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="entry-${entryId}.pdf"`
+      "Content-Disposition": "attachment; filename=Waste_Report.pdf",
     });
-    res.send(pdfBuffer);
+    res.end(pdfBuffer);
+
   } catch (err) {
-    console.error("PDF generation failed:", err);
-    res.status(500).send("Error generating PDF");
+    console.error("PDF generation error:", err);
+    res.status(500).json({ error: "Failed to generate PDF" });
   }
 });
 
