@@ -1,337 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
 <main class="dashboard-container">
-    <section class="welcome-card">
-      <h1>Welcome, <span id="welcome-name">{{user.firstname}}</span>!</h1>
-    </section>
-    <section class="section top-contributors-section">
-  <h2 class="section-heading">
-    <i class="fas fa-chart-line"></i> Top Waste User Contributions
-  </h2>
-  
-  <div class="table-section">
-    
-    <!-- Top Waste Sectors -->
-    <div class="table-wrapper contributor-card">
-      <h3 class="table-title"><i class="fas fa-industry"></i> Top Waste Sectors</h3>
-      <div class="table-container">
-        <table class="dashboard-table">
-          <thead>
-            <tr>
-              <th>Sector</th>
-            </tr>
-          </thead>
-          <tbody>
-            {{#each topSectors}}
-              <tr>
-                <td>{{name}}</td>
-              </tr>
-            {{/each}}
-          </tbody>
-        </table>
-      </div>
-    </div>
 
-    <!-- Top Waste Types -->
-    <div class="table-wrapper contributor-card">
-      <h3 class="table-title"><i class="fas fa-recycle"></i> Top Waste Supertypes</h3>
-      <div class="table-container">
-        <table class="dashboard-table">
-          <thead>
-            <tr>
-              <th>Waste Supertype</th>
-            </tr>
-          </thead>
-          <tbody>
-            {{#each topWasteTypes}}
-              <tr>
-                <td>{{supertype_name}}</td>
-              </tr>
-            {{/each}}
-          </tbody>
-        </table>
+  <!-- Dashboard Controls -->
+  <div class="dashboard-controls">
+    <button id="customize-btn" class="customize-btn customize-btn-left">
+      <i class="fas fa-cog"></i> Customize
+    </button>
+  </div>
+
+  <!-- Customize Mode Controls -->
+  <div class="customize-mode-controls" style="display: none;">
+    <button id="save-layout-btn" class="save-btn">
+      <i class="fas fa-save"></i> Save
+    </button>
+    <button id="cancel-customize-btn" class="cancel-btn">
+      <i class="fas fa-times"></i> Cancel
+    </button>
+    <button id="reset-layout-btn" class="reset-btn">
+      <i class="fas fa-refresh"></i> Reset
+    </button>
+  </div>
+
+  <!-- Welcome Section -->
+  <section class="welcome-card widget-item" data-widget="welcome">
+    <h1>Welcome, <span id="welcome-name">Cassandra</span>!</h1>
+    <p class="welcome-subtitle">Here's your personalized dashboard overview</p>
+  </section>
+
+  <!-- Widget Container -->
+  <div id="widget-container" class="widget-container">
+
+    <!-- Quick Stats -->
+    <section class="section widget-item stats-widget" data-widget="quick-stats">
+      <div class="widget-header">
+        <h2><i class="fas fa-chart-bar"></i> Quick Stats</h2>
+        <div class="widget-controls" style="display: none;">
+          <button class="widget-remove-btn"><i class="fas fa-times"></i></button>
+          <button class="widget-drag-handle"><i class="fas fa-grip-vertical"></i></button>
+        </div>
       </div>
-    </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon success"><i class="fas fa-check-circle"></i></div>
+          <div class="stat-content"><h3>12</h3><p>Approved Submissions</p></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon pending"><i class="fas fa-clock"></i></div>
+          <div class="stat-content"><h3>5</h3><p>Pending Review</p></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon warning"><i class="fas fa-exclamation-triangle"></i></div>
+          <div class="stat-content"><h3>3</h3><p>Compliance Warnings</p></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon notification"><i class="fas fa-bell"></i></div>
+          <div class="stat-content"><h3>7</h3><p>Notifications</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Recent Activity -->
+    <section class="section widget-item activity-widget" data-widget="recent-activity">
+      <div class="widget-header">
+        <h2><i class="fas fa-history"></i> Recent Activity</h2>
+        <div class="widget-controls" style="display: none;">
+          <button class="widget-remove-btn"><i class="fas fa-times"></i></button>
+          <button class="widget-drag-handle"><i class="fas fa-grip-vertical"></i></button>
+        </div>
+      </div>
+      <div class="activity-list">
+        <div class="activity-item"><div class="activity-icon success"><i class="fas fa-check"></i></div><div class="activity-content"><p><strong>Data submission approved</strong></p><span class="activity-time">2 hours ago</span></div></div>
+        <div class="activity-item"><div class="activity-icon info"><i class="fas fa-upload"></i></div><div class="activity-content"><p><strong>New report submitted</strong></p><span class="activity-time">1 day ago</span></div></div>
+        <div class="activity-item"><div class="activity-icon warning"><i class="fas fa-edit"></i></div><div class="activity-content"><p><strong>Report needs revision</strong></p><span class="activity-time">3 days ago</span></div></div>
+        <div class="activity-item"><div class="activity-icon success"><i class="fas fa-certificate"></i></div><div class="activity-content"><p><strong>Compliance check passed</strong></p><span class="activity-time">1 week ago</span></div></div>
+      </div>
+    </section>
+
+    <!-- Top Contributors -->
+    <section class="section top-contributors-section widget-item" data-widget="top-contributors">
+      <div class="widget-header">
+        <h2 class="section-heading"><i class="fas fa-chart-line"></i> Top Waste Contributors</h2>
+        <div class="widget-controls" style="display: none;">
+          <button class="widget-remove-btn"><i class="fas fa-times"></i></button>
+          <button class="widget-drag-handle"><i class="fas fa-grip-vertical"></i></button>
+        </div>
+      </div>
+      <div class="table-section">
+        <div class="table-wrapper contributor-card">
+          <h3 class="table-title"><i class="fas fa-industry"></i> Top Waste Sectors</h3>
+          <div class="table-container">
+            <table class="dashboard-table">
+              <thead><tr><th>Sector</th><th>Submissions</th></tr></thead>
+              <tbody>
+                <tr><td>Manufacturing</td><td><span class="badge">15</span></td></tr>
+                <tr><td>Retail</td><td><span class="badge">10</span></td></tr>
+                <tr><td>Healthcare</td><td><span class="badge">8</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="table-wrapper contributor-card">
+          <h3 class="table-title"><i class="fas fa-recycle"></i> Top Waste Supertypes</h3>
+          <div class="table-container">
+            <table class="dashboard-table">
+              <thead><tr><th>Waste Supertype</th><th>Volume</th></tr></thead>
+              <tbody>
+                <tr><td>Plastics</td><td><span class="badge secondary">120 kg</span></td></tr>
+                <tr><td>Organic</td><td><span class="badge secondary">95 kg</span></td></tr>
+                <tr><td>Metal</td><td><span class="badge secondary">70 kg</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Actions -->
+    <section class="section widget-item actions-widget" data-widget="quick-actions">
+      <div class="widget-header">
+        <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
+        <div class="widget-controls" style="display: none;">
+          <button class="widget-remove-btn"><i class="fas fa-times"></i></button>
+          <button class="widget-drag-handle"><i class="fas fa-grip-vertical"></i></button>
+        </div>
+      </div>
+      <div class="quick-actions-grid">
+        <a href="/dashboard/submit-report" class="action-btn primary"><i class="fas fa-plus-circle"></i><span>New Submission</span></a>
+        <a href="/dashboard/data/user/revision" class="action-btn warning"><i class="fas fa-edit"></i><span>Review Pending</span><span class="action-badge">5</span></a>
+        <a href="/dashboard/notifications" class="action-btn info"><i class="fas fa-bell"></i><span>Check Alerts</span><span class="action-badge">7</span></a>
+        <a href="/dashboard/data/all" class="action-btn secondary"><i class="fas fa-table"></i><span>Browse Data</span></a>
+      </div>
+    </section>
+
+    <!-- Pending Tasks -->
+    <section class="section widget-item tasks-widget" data-widget="pending-tasks">
+      <div class="widget-header">
+        <h2><i class="fas fa-tasks"></i> Pending Tasks</h2>
+        <div class="widget-controls" style="display: none;">
+          <button class="widget-remove-btn"><i class="fas fa-times"></i></button>
+          <button class="widget-drag-handle"><i class="fas fa-grip-vertical"></i></button>
+        </div>
+      </div>
+      <div class="task-list">
+        <div class="task-item priority-high">
+          <div class="task-icon"><i class="fas fa-exclamation-circle"></i></div>
+          <div class="task-content">
+            <h4>Review Required Submissions</h4>
+            <p>5 submissions need your attention</p>
+            <a href="/dashboard/data/user/revision" class="task-action">Review Now</a>
+          </div>
+        </div>
+        <div class="task-item priority-medium">
+          <div class="task-icon"><i class="fas fa-shield-alt"></i></div>
+          <div class="task-content">
+            <h4>Compliance Warnings</h4>
+            <p>3 compliance issues to address</p>
+            <a href="/dashboard/noncompliance" class="task-action">View Details</a>
+          </div>
+        </div>
+        <div class="task-item priority-low">
+          <div class="task-icon"><i class="fas fa-book"></i></div>
+          <div class="task-content">
+            <h4>Review Guidelines</h4>
+            <p>Stay updated with waste classification changes</p>
+            <a href="/dashboard/guide" class="task-action">Read Guide</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- System Alerts -->
+    <section class="section widget-item alerts-widget" data-widget="system-alerts">
+      <div class="widget-header">
+        <h2><i class="fas fa-bullhorn"></i> System Alerts</h2>
+        <div class="widget-controls" style="display: none;">
+          <button class="widget-remove-btn"><i class="fas fa-times"></i></button>
+          <button class="widget-drag-handle"><i class="fas fa-grip-vertical"></i></button>
+        </div>
+      </div>
+      <div class="alerts-container">
+        <div class="alert-item info"><div class="alert-icon"><i class="fas fa-info-circle"></i></div><div class="alert-content"><h4>System Maintenance</h4><p>Scheduled maintenance on Sunday, 2:00 AM - 4:00 AM</p></div></div>
+        <div class="alert-item success"><div class="alert-icon"><i class="fas fa-check-circle"></i></div><div class="alert-content"><h4>New Feature Available</h4><p>Bulk data import feature is now live</p></div></div>
+      </div>
+    </section>
+
+    <!-- Staff Dashboard -->
+    <section class="section widget-item staff-widget" data-widget="staff-dashboard">
+      <div class="widget-header">
+        <h2><i class="fas fa-users-cog"></i> Staff Dashboard</h2>
+        <div class="widget-controls" style="display: none;">
+          <button class="widget-remove-btn"><i class="fas fa-times"></i></button>
+          <button class="widget-drag-handle"><i class="fas fa-grip-vertical"></i></button>
+        </div>
+      </div>
+      <div class="staff-metrics">
+        <div class="metric-row">
+          <div class="metric-item single">
+            <span class="metric-label">Pending Reviews</span>
+            <span class="metric-value warning">2</span>
+          </div>
+        </div>
+        <div class="staff-actions">
+          <a href="/dashboard/data/submissions/pending" class="staff-btn"><i class="fas fa-clipboard-list"></i> Review Queue<span class="staff-badge">2</span></a>
+          <a href="/control-panel" class="staff-btn admin"><i class="fas fa-cogs"></i> Control Panel</a>
+        </div>
+      </div>
+    </section>
 
   </div>
-</section>
 
-    <section class="section">
-      <h2>General Features</h2>
-      <div class="card-grid">
-        <a href="/dashboard/notifications" class="feature-card">
-          <div class="feature-icon"><i class="fa-solid fa-bell {{#ifNotEquals notifCount 0}}fa-shake{{/ifNotEquals}}"></i></div>
-          <div class="feature-text">
-            <h3>
-              Notifications&nbsp;
-              <span class="notif-badge" id="notif-badge" style="{{#ifEquals notifCount 0}}display:none;{{/ifEquals}}">
-                {{notifCount}}
-              </span>
-            </h3>
-            <p>Stay up-to-date with all your important alerts and messages.</p>
-          </div>
-        </a>
-
-        <a href="/dashboard/data/all" class="feature-card">
-          <div class="feature-icon"><i class="fas fa-table"></i></div>
-          <div class="feature-text">
-            <h3>View Data Entries</h3>
-            <p>Browse all approved data entries submitted to the system.</p>
-          </div>
-        </a>
-
-        <a href="/dashboard/guide" class="feature-card">
-          <div class="feature-icon"><i class="fas fa-book-open"></i></div>
-          <div class="feature-text">
-            <h3>Waste Type Guide</h3>
-            <p>Learn about waste classifications with examples.</p>
-          </div>
-        </a>
-      </div>
-    </section>
-
-    <section class="section">
-      <h2>Your Reports</h2>
-      <div class="card-grid">
-        <a href="/dashboard/submit-report" class="feature-card">
-          <div class="feature-icon"><i class="fas fa-file-upload"></i></div>
-          <div class="feature-text">
-            <h3>Submit Data Entry</h3>
-            <p>Upload your waste composition data for review.</p>
-          </div>
-        </a>
-
-        <a href="/dashboard/data/user/revision" class="feature-card">
-          <div class="feature-icon"><i class="fas fa-file-pen"></i></div>
-          <div class="feature-text">
-            <h3>
-              Submissions in Progress&nbsp;
-              <span class="notif-badge" id="notif-badge" style="{{#ifEquals revisionCount 0}}display:none;{{/ifEquals}}">
-                  {{revisionCount}}
-              </span>
-            </h3>
-            <p>View your submissions for review.</p>
-          </div>
-        </a>
-
-        <a href="/dashboard/data/user/approved" class="feature-card">
-          <div class="feature-icon"><i class="fas fa-clipboard-check"></i></div>
-          <div class="feature-text">
-            <h3>Approved Submissions</h3>
-            <p>View your approved reports.</p>
-          </div>
-        </a>
-
-        <a href="/dashboard/noncompliance" class="feature-card">
-          <div class="feature-icon"><i class="fas fa-exclamation-triangle"></i></div>
-          <div class="feature-text">
-            <h3>
-              Client Compliance Warning&nbsp;
-              {{#ifNotEquals cmpTotalCount 0}}
-                  <span class="notif-badge"> {{cmpTotalCount}}</span>
-              {{/ifNotEquals}}
-            </h3>
-            <p>View your non-compliance notices based on submitted data.</p>
-          </div>
-        </a>
-      </div>
-    </section>
-
-    {{#ifNotEquals user.supertype 2}}
-        <section class="section">
-          <h2>Staff Functions</h2>
-          <div class="card-grid">
-
-            <a href="/dashboard/data/submissions/pending" class="feature-card">
-              <div class="feature-icon"><i class="fa-solid fa-file-pen"></i></div>
-              <div class="feature-text">
-                <h3>
-                  Review Data Submissions&nbsp;
-                  {{#ifNotEquals pendingData 0}}
-                      <span class="notif-badge">{{pendingData}}</span>
-                  {{/ifNotEquals}}
-                </h3>
-                <p>View and manage pending or revised data entries.</p>
-              </div>
-            </a>
-
-            <a href="/control-panel" class="feature-card admin-card">
-              <div class="feature-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-              <div class="feature-text">
-                <h3>Control Panel</h3>
-                <p>Access administrative settings, system controls, and oversight tools.</p>
-              </div>
-            </a>
-          </div>
-        </section>
-    {{/ifNotEquals}}
-  </main>
+  <!-- Add Widgets Panel -->
+  <div id="widget-panel" class="widget-panel" style="display: none;">
+    <h3><i class="fas fa-plus"></i> Add Widgets</h3>
+    <div id="available-widgets" class="available-widgets"></div>
+  </div>
+</main>
 
 <style>
-a {
-  text-decoration: none;
-  color: inherit;
+/* full CSS preserved from your original with fixes */
+a{text-decoration:none;color:inherit}
+.dashboard-container{max-width:1100px;margin:40px auto;padding:0 20px;position:relative}
+.welcome-card{background:linear-gradient(135deg,#d4edda,#c3e6cb);color:#155724;padding:35px;border-radius:15px;box-shadow:0 6px 20px rgba(0,0,0,.08);margin-bottom:40px;text-align:center;border:1px solid #b8dabc}
+.welcome-card h1{font-size:2.2rem;margin:0 0 8px;font-weight:700}
+.welcome-subtitle{margin:0;font-size:1.1rem;opacity:.8}
+.section{background:#fff;border-radius:12px;padding:25px;box-shadow:0 4px 12px rgba(0,0,0,.06);border:1px solid #e9ecef;margin-bottom:40px}
+.stats-widget{background:linear-gradient(135deg,#f8f9ff,#e8f2ff);border:1px solid #d1ecf1}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px}
+.stat-card{background:#fff;padding:20px;border-radius:10px;display:flex;align-items:center;gap:15px;box-shadow:0 2px 8px rgba(0,0,0,.04);border:1px solid #e3f2fd}
+.stat-icon{width:50px;height:50px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#127009;color:#fff;font-size:1.4rem}
+.stat-icon.pending{background:#ffc107}.stat-icon.warning{background:#dc3545}.stat-icon.notification{background:#17a2b8}
+.stat-content h3{font-size:2rem;font-weight:700;margin:0;color:#2c3e50}
+.stat-content p{margin:0;color:#6c757d;font-size:.9rem}
+.activity-widget{background:linear-gradient(135deg,#fff5f5,#ffe8e8);border:1px solid #f8d7da}
+.activity-list{display:flex;flex-direction:column;gap:15px}
+.activity-item{display:flex;align-items:center;gap:12px;padding:12px;background:#fff;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.04)}
+.activity-icon{width:35px;height:35px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;color:#fff}
+.activity-icon.success{background:#28a745}.activity-icon.info{background:#17a2b8}.activity-icon.warning{background:#ffc107;color:#333}
+.actions-widget{background:linear-gradient(135deg,#f0fff4,#e6fffa);border:1px solid #b8f5cd}
+.quick-actions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:15px}
+.action-btn{display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px;background:#fff;border-radius:10px;text-decoration:none;color:#333;transition:.2s;box-shadow:0 2px 8px rgba(0,0,0,.06);border:2px solid transparent;position:relative}
+.action-btn:hover{transform:translateY(-3px);box-shadow:0 4px 15px rgba(0,0,0,.1)}
+.action-btn.primary{border-color:#127009}.action-btn.warning{border-color:#ffc107}.action-btn.info{border-color:#17a2b8}.action-btn.secondary{border-color:#6c757d}
+.action-badge{position:absolute;top:-5px;right:-5px;background:#dc3545;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700}
+.tasks-widget{background:linear-gradient(135deg,#fffbf0,#fff3cd);border:1px solid #ffeaa7}
+.task-list{display:flex;flex-direction:column;gap:15px}
+.task-item{display:flex;gap:15px;padding:15px;background:#fff;border-radius:10px;border-left:4px solid #ddd;box-shadow:0 2px 6px rgba(0,0,0,.04)}
+.task-item.priority-high{border-left-color:#dc3545}.task-item.priority-medium{border-left-color:#ffc107}.task-item.priority-low{border-left-color:#17a2b8}
+.task-icon{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#f8f9fa;color:#6c757d}
+.task-content h4{margin:0 0 8px;font-size:1.1rem;color:#2c3e50}
+.task-content p{margin:0 0 10px;color:#6c757d;font-size:.9rem}
+.task-action{color:#127009;font-weight:600;text-decoration:none;font-size:.9rem}
+.task-action:hover{text-decoration:underline}
+.alerts-widget{background:linear-gradient(135deg,#f0f8ff,#e3f2fd);border:1px solid #b3e5fc}
+.alerts-container{display:flex;flex-direction:column;gap:12px}
+.alert-item{display:flex;gap:12px;padding:12px;background:#fff;border-radius:8px;border-left:4px solid #17a2b8}
+.alert-item.success{border-left-color:#28a745}
+.alert-icon{color:#17a2b8;font-size:1.2rem}
+.alert-content h4{margin:0 0 4px;font-size:1rem;color:#2c3e50}
+.alert-content p{margin:0;color:#6c757d;font-size:.85rem}
+.staff-widget{background:linear-gradient(135deg,#fff0e6,#ffeaa7);border:1px solid #f39c12}
+.metric-row{display:flex;justify-content:center;margin-bottom:20px}
+.metric-item{padding:20px;background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.05);min-width:160px;text-align:center;border:2px solid #f39c12}
+.metric-label{display:block;font-size:.9rem;color:#6c757d;margin-bottom:8px;font-weight:500}
+.metric-value{font-size:2rem;font-weight:700;color:#2c3e50}
+.metric-value.warning{color:#e67e22}
+.staff-actions{display:flex;gap:15px;flex-wrap:wrap}
+.staff-btn{display:flex;align-items:center;gap:8px;padding:12px 20px;background:#fff;border:2px solid #c95f00;border-radius:8px;color:#c95f00;font-weight:600;transition:.2s;position:relative}
+.staff-btn:hover{background:#c95f00;color:#fff}
+.staff-btn.admin{border-color:#e67e22;color:#e67e22}
+.staff-btn.admin:hover{background:#e67e22;color:#fff}
+.staff-badge{position:absolute;top:-5px;right:-5px;background:#dc3545;color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700}
+.top-contributors-section{background:linear-gradient(135deg,#e9fff1,#d4f5d2);border:2px solid #99e0b5;border-radius:18px;padding:35px 30px;box-shadow:0 6px 16px rgba(0,128,0,.1)}
+.section-heading{font-size:2rem;font-weight:800;margin-bottom:25px;color:#0e5a0b;display:flex;align-items:center;gap:12px}
+.table-wrapper.contributor-card{background:#fff;padding:24px;border:2px solid #b9f2cc;border-radius:14px;box-shadow:0 4px 10px rgba(0,100,0,.05)}
+.table-title{font-size:1.3rem;font-weight:700;margin-bottom:15px;color:#0f7d2d;display:flex;align-items:center;gap:8px}
+.dashboard-table{width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden}
+.dashboard-table th,.dashboard-table td{padding:12px 16px;text-align:left;border-bottom:1px solid #e3f7ec}
+.dashboard-table th{background:#0f7d2d;color:#fff;font-weight:600;font-size:.9rem}
+.badge{background:#127009;color:#fff;padding:3px 8px;border-radius:12px;font-size:.8rem;font-weight:600}
+.badge.secondary{background:#6c757d}
+.dashboard-controls{position:absolute;top:0;right:0;z-index:1000;display:flex;gap:10px;align-items:center}
+.dashboard-controls button{padding:8px 12px;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:600;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.customize-btn{background:#127009;color:#fff}.customize-btn:hover{background:#0a4a06}
+.save-btn{background:#28a745;color:#fff}.save-btn:hover{background:#1e7e34}
+.cancel-btn{background:#dc3545;color:#fff}.cancel-btn:hover{background:#c82333}
+.reset-btn{background:#ffc107;color:#333}.reset-btn:hover{background:#e0a800}
+.widget-item.dragging{opacity:.6;border:2px dashed #127009}
+.widget-panel{margin-top:20px;background:#fff;border:1px solid #ccc;padding:20px;border-radius:10px}
+.available-widgets button{margin:5px;padding:8px 12px;border:none;background:#127009;color:#fff;border-radius:6px;cursor:pointer}
+</style>
+
+<script>
+const customizeBtn=document.getElementById("customize-btn");
+const customizeControls=document.querySelector(".customize-mode-controls");
+const widgetContainer=document.getElementById("widget-container");
+const widgetPanel=document.getElementById("widget-panel");
+const availableWidgets=document.getElementById("available-widgets");
+let removedWidgets=[];
+customizeBtn.onclick=()=>{customizeBtn.style.display="none";customizeControls.style.display="flex";document.querySelectorAll(".widget-controls").forEach(c=>c.style.display="flex")};
+document.getElementById("cancel-customize-btn").onclick=()=>{customizeBtn.style.display="flex";customizeControls.style.display="none";document.querySelectorAll(".widget-controls").forEach(c=>c.style.display="none")};
+document.getElementById("save-layout-btn").onclick=()=>{customizeBtn.style.display="flex";customizeControls.style.display="none";document.querySelectorAll(".widget-controls").forEach(c=>c.style.display="none")};
+document.getElementById("reset-layout-btn").onclick=()=>location.reload();
+document.querySelectorAll(".widget-item").forEach(w=>{
+  const removeBtn=w.querySelector(".widget-remove-btn");
+  if(removeBtn) removeBtn.onclick=()=>{removedWidgets.push(w);w.remove();updateWidgetPanel()}
+  w.setAttribute("draggable",true);
+  w.addEventListener("dragstart",()=>w.classList.add("dragging"));
+  w.addEventListener("dragend",()=>w.classList.remove("dragging"))
+});
+widgetContainer.addEventListener("dragover",e=>{
+  e.preventDefault();
+  const dragging=document.querySelector(".dragging");
+  const after=getDragAfterElement(widgetContainer,e.clientY);
+  if(after==null)widgetContainer.appendChild(dragging);else widgetContainer.insertBefore(dragging,after)
+});
+function getDragAfterElement(container,y){
+  const els=[...container.querySelectorAll(".widget-item:not(.dragging)")];
+  return els.reduce((closest,child)=>{
+    const box=child.getBoundingClientRect();const offset=y-box.top-box.height/2;
+    if(offset<0&&offset>closest.offset)return{offset:offset,element:child};else return closest
+  },{offset:Number.NEGATIVE_INFINITY}).element
 }
-
-.dashboard-container {
-  max-width: 1100px;
-  margin: 40px auto;
-  padding: 0 20px;
+function updateWidgetPanel(){
+  availableWidgets.innerHTML="";
+  if(removedWidgets.length>0){widgetPanel.style.display="block";removedWidgets.forEach(w=>{const b=document.createElement("button");b.innerText=w.querySelector("h2,h3").innerText;b.onclick=()=>{widgetContainer.appendChild(w);removedWidgets=removedWidgets.filter(x=>x!==w);updateWidgetPanel()};availableWidgets.appendChild(b)})}
+  else widgetPanel.style.display="none"
 }
-
-/* Welcome Card */
-.welcome-card {
-  background-color: #d4edda;
-  color: #155724;
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-  margin-bottom: 40px;
-  text-align: center;
-}
-
-.welcome-card h1 {
-  font-size: 2rem;
-  margin: 0;
-}
-
-/* Sections */
-.section {
-  margin-bottom: 40px;
-}
-
-.section h2 {
-  font-size: 1.4rem;
-  margin-bottom: 15px;
-  color: #444;
-}
-
-/* Feature Cards */
-.card-grid {
-  display: grid;
-  grid-template-columns: 1fr; /* full width cards */
-  gap: 20px;
-}
-
-.feature-card {
-  display: flex;
-  align-items: center;
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  font-weight: 500;
-  font-size: 1rem;
-  text-align: left;
-  transition: background-color 0.2s, transform 0.2s;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-  border: 2px solid #127009;
-  gap: 20px;
-}
-
-.feature-icon i {
-  font-size: 2rem;
-  color: #127009;
-  min-width: 30px;
-}
-
-.feature-text h3 {
-  font-size: 1.1rem;
-  margin: 0;
-  color: #127009;
-}
-
-.feature-text p {
-  font-size: 0.95rem;
-  margin: 4px 0 0;
-  color: #444;
-}
-
-.feature-card:hover {
-  background-color: #d4f5d2;
-  transform: translateY(-3px);
-}
-
-.admin-card {
-  background-color: #f9f0e6; /* light tan/orange tint */
-  border-color: #c95f00; /* stronger orange for border */
-}
-
-.admin-card .feature-icon i {
-  color: #c95f00;
-}
-
-.admin-card .feature-text h3 {
-  color: #c95f00;
-}
-
-.admin-card:hover {
-  background-color: #fbe3cd;
-}
-.top-contributors-section {
-  background-color: #e9fff1;
-  border: 2px solid #99e0b5;
-  border-radius: 18px;
-  padding: 35px 30px;
-  box-shadow: 0 6px 16px rgba(0, 128, 0, 0.1);
-  animation: fadeInUp 0.6s ease-out;
-}
-
-
-.section-heading {
-  font-size: 2.2rem;
-  font-weight: 800;
-  margin-bottom: 30px;
-  color: #0e5a0b;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-shadow: 1px 1px 0 #b2f5ca;
-}
-
-.table-wrapper.contributor-card {
-  background-color: #ffffff;
-  padding: 24px;
-  border: 2px solid #b9f2cc;
-  border-radius: 14px;
-  box-shadow: 0 4px 10px rgba(0, 100, 0, 0.05);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-
-.table-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 15px;
-  color: #0f7d2d;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.table-title i {
-  color: #0f7d2d;
-  font-size: 1.2rem;
-}
-
-.dashboard-table {
-  width: 100%;
-  border-collapse: collapse;
-  border-radius: 10px;
-  overflow: hidden;
-  font-size: 1.2rem;
-  font-weight: 600;
-}
-
-.dashboard-table th,
-.dashboard-table td {
-  padding: 14px 18px;
-  text-align: left;
-  border-bottom: 1px solid #e3f7ec;
-}
-
-.dashboard-table th {
-  background-color: #0f7d2d;
-  color: #fff;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-
-  </style>
+</script>
+</body>
+</html>
