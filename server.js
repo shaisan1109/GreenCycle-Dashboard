@@ -1510,13 +1510,35 @@ app.post("/api/data/:entryId/pdf", async (req, res) => {
       });
     });
 
-    // Extract HTML for only selected sections
-    const selectedHtml = await page.evaluate((keepSections) => {
-      return Array.from(document.querySelectorAll("[data-section]"))
-        .filter(el => keepSections.includes(el.getAttribute("data-section")))
-        .map(el => el.outerHTML)
-        .join("");
-    }, sections);
+    // Order map: array of arrays (each inner array = one page)
+    const sectionGroups = [
+      ["data-title", "data-info", "compliance-category", "compliance-sector"],
+      ["insights"],
+      ["top-categories"],
+      ["top-cats", "types-biodegradable"],
+      ["types-recyclable"],
+      ["types-residual", "types-special/hazardous"],
+      ["top-sectors"],
+      ["cats-per-sector", "top-residential", "top-commercial", "top-institutional", "top-industrial", "top-health", "top-agriculture and livestock"],
+      ["raw-data"]
+    ];
+
+    // Extract HTML in print order
+    const selectedHtml = await page.evaluate((groups, keepSections) => {
+      const allSections = Array.from(document.querySelectorAll("[data-section]"))
+        .reduce((map, el) => {
+          map[el.getAttribute("data-section")] = el.outerHTML;
+          return map;
+        }, {});
+
+      return groups.map(group => {
+        const content = group
+          .filter(id => keepSections.includes(id)) // only if selected
+          .map(id => allSections[id] || "")
+          .join("");
+        return content ? `<div class="pdf-page">${content}</div>` : "";
+      }).join("");
+    }, sectionGroups, sections);
 
     // Build a new page with just the selected sections
     const printPage = await browser.newPage();
