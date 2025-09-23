@@ -24,7 +24,11 @@
         <div class="header-logo-text">
             GreenCycle <text style="color:#d4ffd0; font-weight: bold;">DASHBOARD</text>
         </div>
-        
+{{#ifEquals user.supertype 2}}
+<div id="deadline-timer" class="deadline-timer">    
+  📅 Submission Deadline Loading...
+</div>
+{{/ifEquals}}
         <!-- User Menu -->
         <div class="header-user">
             <!-- Display user menu (profile, settings, log out) -->           
@@ -256,7 +260,6 @@
   </div>
 </div>
 
-
 <style>
 /* Modal box */
 .modal-content {
@@ -269,6 +272,16 @@
   text-align: center;
   box-shadow: 0 4px 10px rgba(0,0,0,0.2);
   overflow-y: auto;             /* scroll modal if content is very tall */
+}
+.deadline-timer {
+  width: 70%;
+  background:#2C3927; /* green banner */
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.2rem;
+  text-align: center;
+  padding: 8px 0;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 /* Checklist container */
@@ -415,8 +428,63 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 </script>
+  <script>
+async function startDeadlineTimer(userId) {
+  const el = document.getElementById("deadline-timer");
+  if (!el) {
+    console.log("⏳ No timer element found (probably not a client).");
+    return;
+  }
 
-<!-- Modal script -->
+  try {
+    const res = await fetch(`/api/deadline/${userId}`);
+    if (!res.ok) {
+      throw new Error("API returned " + res.status);
+    }
+
+    const data = await res.json();
+    console.log("Deadline API response:", data); // 👀 debug
+
+    if (data.exempt) {
+      el.style.display = "none"; 
+      return;
+    }
+
+    if (data.submitted) {
+      el.textContent = "✅ You’ve already submitted this month!";
+      return;
+    }
+
+    const deadline = new Date(data.deadline);
+    function updateDisplay() {
+      const now = new Date();
+      const msRemaining = deadline - now;
+
+      if (msRemaining <= 0) {
+        el.textContent = "⚠️ Deadline passed!";
+        return;
+      }
+
+      const days = Math.floor(msRemaining / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((msRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((msRemaining % (1000 * 60)) / 1000);
+
+      el.textContent = `⏳ Deadline: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    updateDisplay();
+    setInterval(updateDisplay, 1000);
+  } catch (err) {
+    console.error("Failed to load deadline:", err);
+    el.textContent = "⚠️ Error loading deadline.";
+  }
+}
+
+    // Inject the logged-in user ID from the server
+    startDeadlineTimer({{#if user}}{{user.id}}{{else}}0{{/if}});
+  </script>
+<!-- Modal script >-->
 <script>
 // Modal elements
 const modal = document.getElementById("pdfModal");

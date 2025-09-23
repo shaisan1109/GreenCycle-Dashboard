@@ -3,6 +3,7 @@ import { engine } from 'express-handlebars'
 import cors from 'cors'
 import PDFDocument from 'pdfkit';
 import cookieParser from "cookie-parser";
+import cron from "node-cron";
 
 // Session
 import session from 'express-session'
@@ -75,6 +76,7 @@ import {
   updateNotifRead,
   createNotification,
   deleteNotification,
+  getDeadlineTimer
 } from './database.js'
 
 // File Upload
@@ -403,6 +405,20 @@ app.post('/api/user', async (req, res) => {
   const user = await getUserByEmail(email)
   res.send(user)
 })
+// server.js
+
+// API route for deadline timer
+app.get("/api/deadline/:userId", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const timer = await getDeadlineTimer(userId);
+    res.json(timer);
+  } catch (err) {
+    console.error("Error fetching deadline:", err);
+    res.status(500).json({ error: "Failed to fetch deadline" });
+  }
+});
+
 
 app.get('/register', (req, res) => {
   res.render('register', {
@@ -2888,6 +2904,43 @@ app.get('*', function(req, res){
 })
 
 /* ---------------------------------------
+    NODE-CRON TIMER
+--------------------------------------- */
+// Run every 30 minutes (minute 0 and 30 of every hour)
+cron.schedule("0,0 * * * *", async () => {
+  console.log("⏰ Running deadline reminder job...");
+
+  try {
+    const users = await getUsers();
+
+    for (const user of users) {
+      const timer = await getDeadlineTimer(user.user_id);  // use user_id
+
+      // Skip if no deadline, already submitted, or exempt
+      if (!timer || !timer.deadline || timer.submitted || timer.exempt) continue;
+
+      const deadline = new Date(timer.deadline);
+      if (isNaN(deadline)) continue;  // prevent "Invalid Date"
+      if (deadline <= new Date()) continue;  // deadline already passed
+
+      const msg = `Reminder: Your data submission deadline is on ${deadline.toLocaleString()}. Please submit before time runs out.`;
+
+      await createNotification(
+        user.user_id,
+        "Warning",   // shorter, fits DB column
+        msg,
+        "/dashboard"
+      );
+
+      console.log(`🔔 Reminder sent to user ${user.user_id}`);
+    }
+  } catch (err) {
+    console.error("Failed to run reminder job:", err);
+  }
+});
+
+
+/* ---------------------------------------
     APP LISTENER AND APP LOCALS FUNCTIONS
 --------------------------------------- */
 
@@ -2895,3 +2948,4 @@ const port = 3000
 app.listen(port, () => {
   console.log(`App listening on port ${port}`)
 })
+

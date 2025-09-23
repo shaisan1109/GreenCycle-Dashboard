@@ -1490,6 +1490,50 @@ export async function getTopDashboardData() {
   }
 }
 
+// dashboard.js
+export async function getDeadlineTimer(userId) {
+  // First get the user role supertype
+  const [userRows] = await sql.query(`
+    SELECT ur.supertype
+    FROM user u
+    JOIN user_roles ur ON u.role_id = ur.role_id
+    WHERE u.user_id = ?
+  `, [userId]);
+
+  if (userRows.length === 0) {
+    return { error: "User not found" };
+  }
+
+  const supertype = userRows[0].supertype;
+
+  // Only clients (supertype = 2) are affected by deadline
+  if (supertype !== 2) {
+    return { submitted: true, deadline: null, exempt: true };
+  }
+
+  // Check if already submitted this month
+  const [rows] = await sql.query(`
+    SELECT COUNT(*) AS count
+    FROM data_entry
+    WHERE user_id = ?
+      AND status = 'approved'
+      AND MONTH(date_submitted) = MONTH(CURRENT_DATE())
+      AND YEAR(date_submitted) = YEAR(CURRENT_DATE())
+  `, [userId]);
+
+  const hasSubmitted = rows[0].count > 0;
+
+  const now = new Date();
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+  return {
+    submitted: hasSubmitted,
+    deadline: endOfMonth.toISOString(),
+    exempt: false
+  };
+}
+
+
 
 
 /* ---------------------------------------
