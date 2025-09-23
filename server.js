@@ -608,10 +608,10 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
 
       /* -------- CHART BUILDER -------- */
       // Create a lookup map for waste amounts
-      const wasteMap = {}; // type_id -> { sector_id -> avg_waste_amount }
+      const wasteMap = {}; // type_id -> { sector_id -> total_waste_amount }
       for (const row of avgData) {
         if (!wasteMap[row.type_id]) wasteMap[row.type_id] = {};
-        wasteMap[row.type_id][row.sector_id] = Number(row.avg_waste_amount);
+        wasteMap[row.type_id][row.sector_id] = Number(row.total_waste_amount);
       }
 
       const supertypeMap = {};

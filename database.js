@@ -1066,7 +1066,7 @@ export async function getAvgWasteCompositionWithFilters(title, locationCode, nam
         SELECT
             dwc.sector_id,
             dwc.type_id,
-            AVG(dwc.waste_amount) AS avg_waste_amount
+            SUM(dwc.waste_amount) AS total_waste_amount
         FROM data_entry dat
         JOIN data_waste_composition dwc ON dat.data_entry_id = dwc.data_entry_id
         JOIN user u ON dat.user_id = u.user_id
@@ -1116,6 +1116,7 @@ export async function getAvgWasteCompositionWithFilters(title, locationCode, nam
     const [result] = await sql.query(query, params);
     return result; // important: single object, not array
 } 
+
 export async function getWasteComplianceStatus(dataEntryId) {
   const [rows] = await sql.query(`
     SELECT
@@ -1137,6 +1138,7 @@ export async function getWasteComplianceStatus(dataEntryId) {
 
   return rows;
 }
+
 export async function getSectorComplianceStatus(dataEntryId) {
   const [rows] = await sql.query(`
     SELECT
@@ -1156,7 +1158,6 @@ export async function getSectorComplianceStatus(dataEntryId) {
 
   return rows;
 }
-
 
 export async function getWasteComplianceStatusFromSummary(title, region, province, locationCode, author, company, startDate, endDate) {
   const [rows] = await sql.query(`
@@ -1459,6 +1460,7 @@ export async function updateSectorQuota(quotaId, newWeight) {
     [newWeight, quotaId]
   );
 }
+
 export async function getTopDashboardData() {
   try {
     const [topSectors] = await sql.query(`
