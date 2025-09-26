@@ -236,12 +236,14 @@
     </li>
 
     <!-- Raw Data -->
+    {{#if data_entry}}
     <li>
         <label>
         <input type="checkbox" class="super-item" data-group="raw" value="raw-data" checked>
         <span>Raw Data</span>
         </label>
     </li>
+    {{/if}}
     </ul>
 
     <!-- Modal Actions -->
@@ -367,6 +369,7 @@
 
 </style>
 
+<!-- Sidebar button script -->
 <script>
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -428,6 +431,8 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 </script>
+
+<!-- Deadline script -->
   <script>
 async function startDeadlineTimer(userId) {
   const el = document.getElementById("deadline-timer");
@@ -484,6 +489,7 @@ async function startDeadlineTimer(userId) {
     // Inject the logged-in user ID from the server
     startDeadlineTimer({{#if user}}{{user.id}}{{else}}0{{/if}});
   </script>
+
 <!-- Modal script >-->
 <script>
 // Modal elements
@@ -492,7 +498,13 @@ const generateBtn = document.getElementById("generate-btn");
 const closeBtn = document.querySelector(".close");
 const cancelBtn = document.getElementById("cancel-generate");
 const confirmBtn = document.getElementById("confirm-generate");
-const entryId = {{entryId}};
+
+// API route
+const isSummary = {{isSummary}}
+const apiUrl = isSummary ? "/api/data/summary/pdf" : `/api/data/{{entryId}}/pdf`;
+
+// Query (for data summary version)
+const query = {{#if query}} {{{json query}}} {{else}} null {{/if}};
 
 // Extra elements for checklists
 const toggleBtn = document.getElementById("toggle-select");
@@ -577,16 +589,17 @@ confirmBtn.addEventListener("click", async () => {
     ).map(cb => cb.value);
 
     // Always prepend non-optional
+    selected.unshift("filters");
     selected.unshift("data-title");
     selected.unshift("data-info");
 
     console.log("Sections selected:", selected);
 
     // Send POST request
-    const response = await fetch(`/api/data/${entryId}/pdf`, {
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sections: selected })
+      body: JSON.stringify({ sections: selected, query })
     });
 
     if (!response.ok) throw new Error("Failed to generate PDF");

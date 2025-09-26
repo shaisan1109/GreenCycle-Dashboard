@@ -150,3 +150,29 @@
   border-radius: 6px;
   display: block;
 }
+
+.filter-columns {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.filter-column {
+  flex: 1 1 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-column label {
+  font-weight: 600;
+  margin-top: 0.8rem;
+  margin-bottom: 0.3rem;
+}
+
+.filter-section {
+  background: #fafafa;
+  border: 1px solid #ccc;
+  padding: 1.5rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}

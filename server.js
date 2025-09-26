@@ -739,20 +739,22 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
           backgroundColor: rawTotals.map(r => r.color)
         };
       }
-const sortedLegend = [...legendData].sort((a, b) => b.value - a.value);
 
-const categoryRecommendations = sortedLegend.map((item, index) => {
-  const cat = item.label;
-  if (item.value === 0) {
-    return `${cat} has <b>no recorded data</b>. Consider reviewing your data collection or categorization practices for this category.`;
-  } else if (index === 0) {
-    return `${cat} is the <b>top contributor</b> to total waste. Prioritize <b>reduction, reuse, and proper disposal</b> strategies.`;
-  } else if (index === 1 || index === 2) {
-    return `${cat} has a <b>moderate share</b> of the waste stream. Monitor trends and <b>optimize collection methods</b>.`;
-  } else {
-    return `${cat} shows <b>minimal contribution</b>. Evaluate if underreporting or poor classification is affecting this figure.`;
-  }
-});
+      const sortedLegend = [...legendData].sort((a, b) => b.value - a.value);
+
+      const categoryRecommendations = sortedLegend.map((item, index) => {
+        const cat = item.label;
+        if (item.value === 0) {
+          return `${cat} has <b>no recorded data</b>. Consider reviewing your data collection or categorization practices for this category.`;
+        } else if (index === 0) {
+          return `${cat} is the <b>top contributor</b> to total waste. Prioritize <b>reduction, reuse, and proper disposal</b> strategies.`;
+        } else if (index === 1 || index === 2) {
+          return `${cat} has a <b>moderate share</b> of the waste stream. Monitor trends and <b>optimize collection methods</b>.`;
+        } else {
+          return `${cat} shows <b>minimal contribution</b>. Evaluate if underreporting or poor classification is affecting this figure.`;
+        }
+      });
+
       res.render('dashboard/view-data-summary', {
         layout: 'dashboard',
         title: 'Data Summary | GC Dashboard',
@@ -770,7 +772,8 @@ const categoryRecommendations = sortedLegend.map((item, index) => {
         sectorPieData: JSON.stringify(sectorPieData),
         regionName, provinceName, municipalityName, barangayName,
         locations: JSON.stringify(validCoords), // map coords
-        show_generate_btn: true
+        show_generate_btn: true,
+        isSummary: true
       })
     } catch (err) {
       console.error('Summary Error:', err);  // Log the actual error
@@ -1417,23 +1420,24 @@ app.get('/dashboard/data/:id', async (req, res) => {
       backgroundColor: rawTotals.map(r => r.color)
     };
   }
-// Generate waste recommendations
-const sortedLegend = [...legendData].sort((a, b) => b.value - a.value);
 
-const recommendations = sortedLegend.map((item, index) => {
-  const cat = item.label;
-  const value = item.value;
+  // Generate waste recommendations
+  const sortedLegend = [...legendData].sort((a, b) => b.value - a.value);
 
-  if (value === 0) {
-    return `<span class="low-priority"><strong>${cat}</strong> shows <strong>no recorded data</strong>. This may indicate issues in waste sorting, data logging, or community awareness. <em>We recommend auditing data entry points and reinforcing waste segregation education among constituents.</em></span>`;
-  } else if (index === 0) {
-    return `<span class="high-priority"><strong>${cat}</strong> is the <strong>largest contributor</strong> to overall waste. <em>Focus efforts on upstream reduction, community education, alternative disposal methods (e.g., composting or recycling), and stronger enforcement of waste segregation at source.</em></span>`;
-  } else if (index === 1 || index === 2) {
-    return `<span class="mid-priority"><strong>${cat}</strong> represents a <strong>moderate proportion</strong> of total waste. <em>Monitor trends closely and implement consistent collection programs and classification training to sustain or improve performance.</em></span>`;
-  } else {
-    return `<span class="low-priority"><strong>${cat}</strong> appears to be <strong>underreported or lacking</strong>. <em>Consider targeted campaigns or infrastructure (e.g., drop-off points, incentives) to encourage proper classification and collection.</em></span>`;
-  }
-});
+  const recommendations = sortedLegend.map((item, index) => {
+    const cat = item.label;
+    const value = item.value;
+
+    if (value === 0) {
+      return `<span class="low-priority"><strong>${cat}</strong> shows <strong>no recorded data</strong>. This may indicate issues in waste sorting, data logging, or community awareness. <em>We recommend auditing data entry points and reinforcing waste segregation education among constituents.</em></span>`;
+    } else if (index === 0) {
+      return `<span class="high-priority"><strong>${cat}</strong> is the <strong>largest contributor</strong> to overall waste. <em>Focus efforts on upstream reduction, community education, alternative disposal methods (e.g., composting or recycling), and stronger enforcement of waste segregation at source.</em></span>`;
+    } else if (index === 1 || index === 2) {
+      return `<span class="mid-priority"><strong>${cat}</strong> represents a <strong>moderate proportion</strong> of total waste. <em>Monitor trends closely and implement consistent collection programs and classification training to sustain or improve performance.</em></span>`;
+    } else {
+      return `<span class="low-priority"><strong>${cat}</strong> appears to be <strong>underreported or lacking</strong>. <em>Consider targeted campaigns or infrastructure (e.g., drop-off points, incentives) to encourage proper classification and collection.</em></span>`;
+    }
+  });
 
 
   res.render('dashboard/view-data-entry', {
@@ -1457,16 +1461,179 @@ const recommendations = sortedLegend.map((item, index) => {
     sectorPieData: JSON.stringify(sectorPieData),
     coords: JSON.stringify(coords),
     show_generate_btn: true,
+    data_entry: true,
+    isSummary: false,
     entryId: req.params.id
   });
 });
 
+// Generate PDF report (data summary version)
+app.post("/api/data/summary/pdf", async (req, res) => {
+  const { sections, query } = req.body; // array of section IDs (from modal)
+
+  console.log("DATA SUMMARY MODE")
+  console.log(query)
+
+  if (!sections || !Array.isArray(sections)) {
+    return res.status(400).json({ error: "Missing or invalid sections list" });
+  }
+
+  try {
+    const browser = await puppeteer.launch({
+      headless: true, // use 'new' for latest Puppeteer
+      executablePath: puppeteer.executablePath(), // force bundled Chromium
+      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    });
+    const page = await browser.newPage();
+
+    // User login cookie
+    const cookies = req.headers.cookie
+      ?.split(";")
+      .map(c => {
+        const [name, ...rest] = c.trim().split("=");
+        return { name, value: rest.join("="), domain: "localhost" };
+      }) || [];
+
+    await page.setCookie(...cookies);
+
+    const cleanedQuery = {};
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== '') cleanedQuery[key] = value;
+    }
+
+    const queryString = new URLSearchParams(cleanedQuery).toString();
+    const reportUrl = `http://localhost:3000/dashboard/data/summary?${queryString}`;
+
+    // Navigate to report view page (server-rendered HTML)
+    //const reportUrl = `http://localhost:3000/dashboard/data/summary`;
+    await page.goto(reportUrl, { waitUntil: "networkidle0" });
+
+    // ensure page rendered
+    await page.waitForSelector("body", { timeout: 10000 });
+
+    // Expand all tab contents
+    await page.evaluate(() => {
+      document.querySelectorAll(".tabcontent, .bar-tabcontent, .sector-tabcontent")
+        .forEach(el => {
+          el.style.display = "block";
+          el.style.visibility = "visible";
+          el.style.opacity = "1";
+          el.style.height = "auto";
+        });
+    });
+
+    // Wait a tick to ensure they actually paint
+    await new Promise(resolve => setTimeout(resolve, 1200));
+
+    // Convert canvases to images
+    await page.evaluate(() => {
+      document.querySelectorAll("canvas").forEach(canvas => {
+        try {
+          const img = document.createElement("img");
+          img.src = canvas.toDataURL("image/png");
+          img.style.maxWidth = "100%";
+          img.style.height = "auto";
+          canvas.replaceWith(img);
+        } catch (e) {
+          console.error("Canvas export failed", e);
+        }
+      });
+    });
+
+    // Order map: array of arrays (each inner array = one page)
+    const sectionGroups = [
+      ["filters", "data-title", "data-info", "compliance-category", "compliance-sector"],
+      ["insights", "top-categories"],
+      ["top-cats", "types-biodegradable"],
+      ["types-recyclable"],
+      ["types-residual", "types-special/hazardous"],
+      ["top-sectors"],
+      ["cats-per-sector", "top-residential", "top-commercial", "top-institutional", "top-industrial", "top-health", "top-agriculture and livestock"],
+      ["raw-data"]
+    ];
+
+    // Extract HTML in print order
+    const selectedHtml = await page.evaluate((groups, keepSections) => {
+      const allSections = Array.from(document.querySelectorAll("[data-section]"))
+        .reduce((map, el) => {
+          map[el.getAttribute("data-section")] = el.outerHTML;
+          return map;
+        }, {});
+
+      return groups.map(group => {
+        const content = group
+          .filter(id => keepSections.includes(id)) // only if selected
+          .map(id => allSections[id] || "")
+          .join("");
+        return content ? `<div class="pdf-page">${content}</div>` : "";
+      }).join("");
+    }, sectionGroups, sections);
+
+    // Build a new page with just the selected sections
+    const printPage = await browser.newPage();
+    await printPage.setContent(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          
+          <link rel="stylesheet" type="text/css" href="http://localhost:3000/css/dashboard-style.css" />
+          <link rel="stylesheet" type="text/css" href="http://localhost:3000/css/admin-style.css" />
+          <link rel="stylesheet" type="text/css" href="http://localhost:3000/css/chart-style.css" />
+          <link rel="stylesheet" type="text/css" href="http://localhost:3000/css/print-style.css" />
+          <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+          <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+          <script src="https://cdn.jsdelivr.net/npm/handlebars/dist/handlebars.min.js"></script>
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+          <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+          <script src="https://kit.fontawesome.com/2fcb76e57d.js" crossorigin="anonymous"></script>
+        </head>
+        <body>
+          ${selectedHtml}
+        </body>
+      </html>
+    `, { waitUntil: "networkidle0" });
+
+    // wait a short tick for layout to settle, then screenshot for visual confirmation
+    await new Promise(resolve => setTimeout(resolve, 250));
+    await printPage.screenshot({ path: "after-hide.png", fullPage: true }); // DEBUG
+
+    // Generate PDF
+    const pdfBuffer = await printPage.pdf({
+      format: "A4",
+      printBackground: true,
+      preferCSSPageSize: true,
+      scale: 0.8,
+      margin: {
+        top: "20mm",
+        bottom: "20mm",
+        left: "15mm",
+        right: "15mm"
+      },
+    });
+
+    await browser.close();
+
+    // Send PDF as response
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": "attachment; filename=Waste_Report.pdf",
+    });
+    res.end(pdfBuffer);
+
+  } catch (err) {
+    console.error("PDF generation error:", err);
+    res.status(500).json({ error: "Failed to generate PDF" });
+  }
+});
+
 // Generate PDF report
-app.post("/api/data/:entryId/pdf", async (req, res) => {
+app.post("/api/data/:entryId(\\d+)/pdf", async (req, res) => {
   const { entryId } = req.params;
   const { sections } = req.body; // array of section IDs (from modal)
 
-  console.log(sections)
+  console.log("DATA ENTRY MODE")
 
   if (!sections || !Array.isArray(sections)) {
     return res.status(400).json({ error: "Missing or invalid sections list" });
@@ -1529,14 +1696,13 @@ app.post("/api/data/:entryId/pdf", async (req, res) => {
     // Order map: array of arrays (each inner array = one page)
     const sectionGroups = [
       ["data-title", "data-info", "compliance-category", "compliance-sector"],
-      ["insights"],
-      ["top-categories"],
+      ["insights", "top-categories"],
       ["top-cats", "types-biodegradable"],
       ["types-recyclable"],
       ["types-residual", "types-special/hazardous"],
       ["top-sectors"],
       ["cats-per-sector", "top-residential", "top-commercial", "top-institutional", "top-industrial", "top-health", "top-agriculture and livestock"],
-      ["raw-data"]
+      ["raw-desc", "raw-data"]
     ];
 
     // Extract HTML in print order

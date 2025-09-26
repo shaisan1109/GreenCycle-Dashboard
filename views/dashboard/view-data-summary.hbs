@@ -1,5 +1,5 @@
 <!-- Display search parameters if current route has query -->    
-<div id="filter-section" class="filter-section">
+<div id="filter-section" class="filter-section" data-section="filters">
     <center>
         <h2 style="margin: 0;">Search Parameters</h2>
     </center>
@@ -42,7 +42,7 @@
 
 <!-- Display charts for aggregated data (UPDATE UI FOR THIS) -->
 <!-- Title Card -->
-<div class="form-section title-card" style="text-align: center;">
+<div class="form-section title-card" style="text-align: center;" data-section="data-title">
     <h1 style="margin-bottom: 0.25rem;">
       GreenCycle Dashboard – Data Summary
     </h1>
@@ -51,7 +51,7 @@
 
 <!-- Initial Summary -->
 <div style="display: flex;">
-  <div style="width: 50%">
+  <div data-section="data-info">
     <!-- Waste Generation Info -->
     <div class="form-section">
         <h3><i class="fas fa-dumpster"></i> Waste Generation</h3>
@@ -84,12 +84,12 @@
   </div>
 
   <!-- Map view -->
-  <div id="map" style="width: 50%; margin-bottom: 10px"></div>
+  <div id="map" style="margin-bottom: 10px; flex: 1;"></div>
 </div>
 
 <div style="display: flex;">
     <!-- Compliance -->
-    <div class="form-section" style="background-color: rgb(227, 255, 227); margin: 0 10px 10px 0 !important; width: 100%;">
+    <div class="form-section" style="background-color: rgb(227, 255, 227); margin: 0 10px 10px 0 !important; width: 100%;" data-section="compliance-category">
       <h2>Waste Category Compliance Status</h2>
       <table class="user-profile">
         <tr>
@@ -109,7 +109,7 @@
       </table>
     </div>
 
-    <div class="form-section" style="background-color: rgb(227, 255, 227); margin: 0 10px 10px 0 !important; width: 100%;">
+    <div class="form-section" style="background-color: rgb(227, 255, 227); margin: 0 10px 10px 0 !important; width: 100%;" data-section="compliance-sector">
       <h2>Waste Sector Compliance Status</h2>
       <table class="user-profile">
         <tr>
@@ -132,7 +132,7 @@
 
 <!-- Insight Summary -->
 <hr>
-<div class="form-section" style="background-color: #eef8f2; padding: 1.5rem; border-radius: 12px; border-left: 6px solid #4CAF50; margin-top: 2rem;">
+<div class="form-section" style="background-color: #eef8f2; padding: 1.5rem; border-radius: 12px; border-left: 6px solid #4CAF50; margin-top: 2rem;" data-section="insights">
   <h2 style="color: #2d613f; font-weight: 600; margin-bottom: 1rem;">
     <i class="fa-solid fa-lightbulb" style="margin-right: 10px; color: #ffb300;"></i>
     Waste Category Insights & Recommendations
@@ -147,6 +147,7 @@
     {{/each}}
   </ul>
 </div>
+
 <!-- Data Tabs -->
 <div class="tab">
   <button class="tablinks" onclick="openTab(event, 'Chart')" id="defaultOpen">CHART</button>
@@ -155,7 +156,7 @@
 <!-- Display A: Chart -->
 <div id="Chart" class="tabcontent">
     <!-- Supertype summary pie chart -->
-    <div style="display: flex;">
+    <div data-section="top-categories" style="display: flex;">
         <div class="pie-chart">
             <canvas id="supertypePieChart">
                 <!-- Populated by JS -->
@@ -187,7 +188,7 @@
 
     <!-- Subtypes bar charts -->
     <hr>
-    <br><center>
+    <br><center data-section="top-cats">
         <h2>Top Waste Types by Category</h2>
         <p style="font-size: large;">Each bar chart below focuses on one waste category. The bars represent different types under that category, showing how much each contributed to the total weight.</p>
     </center>
@@ -202,16 +203,17 @@
 
     <!-- Top sectors producing waste -->
     <br><hr><br>
-    <center>
-      <h2>Top Sectors by Waste Output</h2>
-      <p style="font-size: large;">This chart shows which economic sectors contribute the most to total waste generation. Use this insight to target waste reduction initiatives by sector.</p>
-    </center>
-
-    <div id="sector-chart-container"></div>
+    <div data-section="top-sectors">
+      <center>
+        <h2>Top Sectors by Waste Output</h2>
+        <p style="font-size: large;">This chart shows which economic sectors contribute the most to total waste generation. Use this insight to target waste reduction initiatives by sector.</p>
+      </center>
+      <div id="sector-chart-container"></div>
+    </div>
 
     <!-- Pie chart per sector -->
     <br><hr><br>
-    <center>
+    <center data-section="cats-per-sector">
       <h2>Top Waste Categories per Sector</h2>
       <p style="font-size: large;">Each pie chart below shows the waste composition for a specific economic sector.</p>
     </center>
@@ -305,6 +307,7 @@ for (const [supertype, chartData] of Object.entries(barChartData)) {
   const tabDiv = document.createElement('div');
   tabDiv.id = supertype.replace(/\s+/g, '');
   tabDiv.classList.add('bar-tabcontent');
+  tabDiv.setAttribute('data-section', `types-${supertype.toLowerCase()}`);
 
   const canvas = document.createElement('canvas');
   canvas.id = `barChart-${supertype.replace(/\s+/g, '-')}`;
@@ -422,6 +425,7 @@ for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
   const tabDiv = document.createElement('div');
   tabDiv.id = sectorName.replace(/\s+/g, '');
   tabDiv.classList.add('sector-tabcontent');
+  tabDiv.setAttribute('data-section', `top-${sectorName.toLowerCase()}`);
 
   const canvas = document.createElement('canvas');
   canvas.id = `pieChart-${sectorName.replace(/\s+/g, '-')}`;
