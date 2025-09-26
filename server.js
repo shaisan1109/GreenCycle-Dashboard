@@ -76,7 +76,9 @@ import {
   updateNotifRead,
   createNotification,
   deleteNotification,
-  getDeadlineTimer
+  getDeadlineTimer,
+  getRolesOfSupertypes,
+  createCompanyRole
 } from './database.js'
 
 // File Upload
@@ -624,10 +626,10 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
 
       /* -------- CHART BUILDER -------- */
       // Create a lookup map for waste amounts
-      const wasteMap = {}; // type_id -> { sector_id -> total_waste_amount }
+      const wasteMap = {}; // type_id -> { sector_id -> avg_waste_amount }
       for (const row of avgData) {
         if (!wasteMap[row.type_id]) wasteMap[row.type_id] = {};
-        wasteMap[row.type_id][row.sector_id] = Number(row.total_waste_amount);
+        wasteMap[row.type_id][row.sector_id] = Number(row.avg_waste_amount);
       }
 
       const supertypeMap = {};
@@ -1797,16 +1799,15 @@ app.get('/users/role/:roleId', async (req, res) => {
 })
 
 // Create user form page
-app.get('/dashboard/users/create', async (req, res) => {
-  const gcRoles = await getRolesOfSupertype(1)
+app.get('/control-panel/users/create', async (req, res) => {
+   const companyRoles = await getRolesOfSupertypes([0, 1]) 
 
-  console.log(gcRoles)
 
-  res.render('dashboard/create-user', {
-    layout: 'dashboard',
-    title: 'Create New Staff Account | GC Dashboard',
+  res.render('control-panel/create-user', {
+    layout: 'control-panel',
+    title: 'Create New Company Account | GC Dashboard',
     current_users: true,
-    gcRoles
+    companyRoles
   });
 });
 
@@ -1816,6 +1817,22 @@ app.post('/roles/client', async (req, res) => {
   const role = await createClientRole(roleName)
   res.send(role)
 })
+
+app.post('/roles/company', async (req, res) => {
+  try {
+    const { roleName, supertype } = req.body;
+    if (!roleName) return res.status(400).json({ error: "Role name is required" });
+    if (supertype === undefined) return res.status(400).json({ error: "Supertype is required" });
+
+    await createCompanyRole(roleName, supertype);
+    res.status(201).json({ message: "Company role created successfully" });
+  } catch (err) {
+    console.error("Error creating company role:", err);
+    res.status(500).json({ error: "Server error creating company role" });
+  }
+});
+
+
 
 // Data submission menu
 app.get('/dashboard/submit-report', async (req, res) => {

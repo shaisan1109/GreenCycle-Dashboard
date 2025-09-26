@@ -1,9 +1,11 @@
-<h2>Default Roles</h2> 
-Default roles cannot be modified.
-
+<h2>Admin Roles</h2>
 <div class="tb-container">
     <table>
         <tr class="tb-header">
+            <td>
+<button id="create-company-role-btn" class="btn-green">+ Create New Company Role</button>
+      </td>
+            </td>
             <td>Role ID</td>
             <td>Role Name</td>
             <td>Number of Users</td>
@@ -12,6 +14,14 @@ Default roles cannot be modified.
         
         {{#each adminRoles}}
             <tr class="tb-gray-row">
+                <td>
+                    <button class="tb-button-action edit" data-role-id="{{role_id}}" data-role-name="{{role_name}}">
+                        <i class="fa-solid fa-pencil"></i>
+                    </button>
+                    <button class="tb-button-action delete" data-role-id="{{role_id}}">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
                 <td>{{role_id}}</td>
                 <td>{{role_name}}</td>
                 <td>{{user_count}}</td>
@@ -22,9 +32,17 @@ Default roles cannot be modified.
                 </td>
             </tr>
         {{/each}}
-        
+
         {{#each gcRoles}}
-            <tr class="tb-gray-row">
+             <tr class="tb-gray-row">
+                <td>
+                    <button class="tb-button-action edit" data-role-id="{{role_id}}" data-role-name="{{role_name}}">
+                        <i class="fa-solid fa-pencil"></i>
+                    </button>
+                    <button class="tb-button-action delete" data-role-id="{{role_id}}">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
                 <td>{{role_id}}</td>
                 <td>{{role_name}}</td>
                 <td>{{user_count}}</td>
@@ -37,6 +55,41 @@ Default roles cannot be modified.
         {{/each}}
     </table>
 </div>
+
+<!-- Create Company Role Modal -->
+<!-- Create Company Role Modal -->
+<div id="create-company-role-modal" class="modal-overlay" style="display:none;">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2>Create New Company Role</h2>
+      <button class="close-btn">&times;</button>
+    </div>
+    
+    <div class="modal-content-2">
+      <form id="create-company-role-form">
+        <div class="form-group">
+          <label for="company-role-name">Role Name:</label>
+          <input type="text" id="company-role-name" placeholder="Enter role name" />
+          <div id="company-role-name-error" class="error-message">Role name cannot be empty</div>
+        </div>
+
+        <div class="form-group">
+          <label for="company-role-type">Role Type:</label>
+          <select id="company-role-type">
+            <option value="0">Admin</option>
+            <option value="1">Staff</option>
+          </select>
+        </div>
+      </form>
+    </div>
+    
+    <div class="modal-footer">
+      <button type="submit" form="create-company-role-form" class="submit-btn">Submit</button>
+      <button class="cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
 
 <h2>Client Roles</h2> 
 User roles assigned to clients.

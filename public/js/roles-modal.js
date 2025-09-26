@@ -13,8 +13,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const cancelButtons = document.querySelectorAll('.cancel-btn');
     const closeModalButtons = document.querySelectorAll('.close-modal-btn');
     
-
-    // Get users of role table
+  const createCompanyRoleButton = document.getElementById('create-company-role-btn');
+  const createCompanyRoleModal = document.getElementById('create-company-role-modal');
+  const createCompanyRoleForm = document.getElementById('create-company-role-form');
+    
+  // Get users of role table
     const tblUsersOfRole = document.getElementById('users-table-body');
 
 let selectedRoleId = null;
@@ -177,7 +180,7 @@ addUserButton.addEventListener('click', async function () {
                 // Reset form
                 createRoleForm.reset();
 
-                window.location.href = '/dashboard/roles';
+                window.location.href = '/control-panel/roles';
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -279,7 +282,7 @@ addUserButton.addEventListener('click', async function () {
                         <td class="user-name">${user.lastname.toUpperCase()}, ${user.firstname}</td>
                         <td class="user-email">${user.email}</td>
                         <td>
-                            <button class="remove-btn">Remove from Role</button>
+                            <button class="remove-btn">Remove</button>
                         </td>
                     </tr>
             `})
@@ -343,4 +346,53 @@ removeButtons.forEach((btn, index) => {
 // });
 
     }
+
+  if (createCompanyRoleButton) {
+    createCompanyRoleButton.addEventListener('click', () => {
+      createCompanyRoleModal.style.display = 'flex';
+    });
+  }
+
+  // Close modal when clicking cancel or close
+  document.querySelectorAll('#create-company-role-modal .close-btn, #create-company-role-modal .cancel-btn')
+    .forEach(btn => {
+      btn.addEventListener('click', () => {
+        createCompanyRoleModal.style.display = 'none';
+      });
+    });
+
+  // Handle form submit
+  if (createCompanyRoleForm) {
+    createCompanyRoleForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const roleName = document.getElementById('company-role-name').value.trim();
+      const supertype = document.getElementById('company-role-type').value;
+
+      if (!roleName) {
+        document.getElementById('company-role-name-error').style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch('/roles/company', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roleName, supertype })
+        });
+
+        if (!res.ok) throw new Error('Failed to create role');
+
+        alert(`✅ ${supertype === "0" ? "Admin" : "Staff"} role created successfully!`);
+        window.location.href = '/control-panel/roles';
+      } catch (err) {
+        console.error(err);
+        alert('❌ Error creating company role.');
+      }
+
+      createCompanyRoleForm.reset();
+      createCompanyRoleModal.style.display = 'none';
+      document.getElementById('company-role-name-error').style.display = 'none';
+    });
+  }
 });

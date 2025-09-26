@@ -209,6 +209,32 @@ export async function getRolesOfSupertype(supertype) {
     return result
 }
 
+// Get combined roles of Admin and Stall (0,1)
+export async function getRolesOfSupertypes(supertypes = []) {
+  // Ensure always an array
+  const supArray = Array.isArray(supertypes) ? supertypes : [supertypes]
+  const supStr = supArray.join(",") // e.g. [0,1] -> "0,1"
+  
+
+  const [result] = await sql.query(`
+    SELECT ur.*, COUNT(u.user_id) AS user_count
+    FROM user_roles ur
+    LEFT JOIN user u ON ur.role_id = u.role_id
+    WHERE ur.supertype IN (${supStr})
+    GROUP BY ur.role_id
+  `)
+  return result
+}
+
+// Create a new role for a given supertype
+export async function createCompanyRole(roleName, supertype) {
+    const [result] = await sql.query(
+        "INSERT INTO user_roles (role_name, supertype) VALUES (?, ?)",
+        [roleName, supertype]
+    );
+    return result;
+}
+
 // Create new client role
 export async function createClientRole(roleName) {
     const result = await sql.query(`

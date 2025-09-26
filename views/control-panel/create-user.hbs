@@ -7,7 +7,7 @@
                 <label for="roleId">Role:</label>
                 <select id="roleId" name="roleId" required>
                     <option value="">Select a role</option>
-                    {{#each gcRoles}}
+                    {{#each companyRoles}}
                         <option value="{{role_id}}">{{role_name}}</option>
                     {{/each}}
                 </select>
@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(data => {
             alert('User created successfully!');
-            window.location.href = '/dashboard/users';
+            window.location.href = '/control-panel/users';
         })
         .catch(error => {
             console.error('Error:', error);
@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handle cancel button
     cancelButton.addEventListener('click', function() {
-        window.location.href = '/dashboard/users';
+        window.location.href = '/control-panel/users';
     });
 });
 </script>
