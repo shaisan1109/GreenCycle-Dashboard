@@ -2406,8 +2406,6 @@ app.get('/your-route', async (req, res) => {
     }
 });
 app.get('/dashboard/noncompliance', async (req, res) => {
-  // console.log('🔍 Attempting to access /dashboard/noncompliance');
-  // console.log('👤 Session User:', req.session.user);
 
   if (!req.session.user) {
     console.log('🚫 No session user found.');
@@ -2428,21 +2426,51 @@ app.get('/dashboard/noncompliance', async (req, res) => {
     console.log(`✅ Loaded waste + sector non-compliant data for user ${id}`);
 
     // Create notifications for waste-type violations
-    for (const client of wasteNonCompliantClients) {
-      const message = `Client <b>${client.firstname} ${client.lastname}</b> (${client.company_name}) is currently 
-      <span style="color:red;"><b>non-compliant</b></span> on <b>${client.supertype_name}</b> data.`;
+    if (wasteNonCompliantClients.length > 0) {
+      // Extract shared client info from the first item
+      const { firstname, lastname, company_name } = wasteNonCompliantClients[0];
+
+      // Collect all unique supertypes
+      const supertypes = [...new Set(
+        wasteNonCompliantClients.map(client => client.supertype_name)
+      )];
+
+      // Build message
+      const message = `
+        Client <b>${firstname} ${lastname}</b> (${company_name}) is currently 
+        <span style="color:red;"><b>non-compliant</b></span> on the following data:
+        <ul>
+          ${supertypes.map(type => `<li>${type}</li>`).join('')}
+        </ul>
+      `;
+
       const link = '/dashboard/noncompliance';
 
-      await createNotification(id, 'Revision Notice', message, link);
+      await createNotification(id, 'Noncompliance Warning', message, link);
     }
 
     // Create notifications for sector-based violations
-    for (const client of sectorNonCompliantClients) {
-      const message = `Client <b>${client.firstname} ${client.lastname}</b> (${client.company_name}) is currently 
-      <span style="color:red;"><b>non-compliant</b></span> on <b>${client.sector_name}</b> sector requirements.`;
+    if (sectorNonCompliantClients.length > 0) {
+      // Extract shared client info from the first item
+      const { firstname, lastname, company_name } = sectorNonCompliantClients[0];
+
+      // Collect all unique supertypes
+      const sectors = [...new Set(
+        sectorNonCompliantClients.map(client => client.sector_name)
+      )];
+
+      // Build message
+      const message = `
+        Client <b>${firstname} ${lastname}</b> (${company_name}) is currently 
+        <span style="color:red;"><b>non-compliant</b></span> on the following sectors:
+        <ul>
+          ${sectors.map(type => `<li>${type}</li>`).join('')}
+        </ul>
+      `;
+
       const link = '/dashboard/noncompliance';
 
-      await createNotification(id, 'Revision Notice', message, link);
+      await createNotification(id, 'Noncompliance Warning', message, link);
     }
 
     res.render('dashboard/noncompliance-notice', {
