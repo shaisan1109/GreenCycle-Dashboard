@@ -2495,7 +2495,7 @@ app.get('/dashboard/noncompliance', async (req, res) => {
 
       // Build message
       const message = `
-        Client <b>${firstname} ${lastname}</b> (${company_name}) is currently 
+        <b>${firstname} ${lastname}</b> (${company_name}) is currently 
         <span style="color:red;"><b>non-compliant</b></span> on the following data:
         <ul>
           ${supertypes.map(type => `<li>${type}</li>`).join('')}

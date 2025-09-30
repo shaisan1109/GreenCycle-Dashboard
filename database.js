@@ -1867,3 +1867,11 @@ export async function deleteNotification(notifId) {
         [notifId]
     );
 }
+
+// Delete all notifs for user
+export async function deleteAllNotifications(userId) {
+    await sql.query(
+        `DELETE FROM greencycle.notifications WHERE user_id = ?`,
+        [userId]
+    );
+}
