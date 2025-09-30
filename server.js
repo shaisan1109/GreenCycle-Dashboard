@@ -521,6 +521,23 @@ app.get('/dashboard/guide', (req, res) => {
   })
 })
 
+app.get('/dashboard/deadline', async (req, res) => {
+  try {
+    const deadline = new Date('2025-08-30T23:59:59Z'); // Example
+
+    res.render('dashboard/deadline', {
+      layout: 'dashboard',     // uses dashboard.hbs layout
+      current_deadline: true,  // highlights nav link
+      deadline: deadline.toISOString()
+    });
+  } catch (err) {
+    console.error("Error loading deadline:", err);
+    res.status(500).send("Failed to load deadline page");
+  }
+});
+
+
+
 // User notifs
 app.get('/dashboard/notifications', async (req, res) => {
   const currentUser = req.session.user.id
