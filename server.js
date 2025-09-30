@@ -79,7 +79,13 @@ import {
   getDeadlineTimer,
   getRolesOfSupertypes,
   createCompanyRole,
-  getAllCompanies
+  getAllCompanies,
+  getTaskClaimStatus,
+  claimTask,
+  unclaimTask,
+  createTask,
+  completeTask,
+  getTaskByEntryId
 } from './database.js'
 
 // File Upload
@@ -862,6 +868,8 @@ app.get('/dashboard/data/submissions/pending', async (req, res) => {
   const revisionCount = await getDataForReviewCount(omitUser, 'Needs Revision')
   const revisedCount = await getDataForReviewCount(omitUser, 'Revised')
 
+  console.log(data)
+
   pendingCount += revisedCount
   const totalCount = pendingCount
 
@@ -870,7 +878,7 @@ app.get('/dashboard/data/submissions/pending', async (req, res) => {
   const startEntry = totalCount === 0 ? 0 : offset + 1;
   const endEntry = Math.min(offset + limit, totalCount);
 
-  res.render('dashboard/list-data-all', {
+  res.render('dashboard/list-data-pending', {
     layout: 'dashboard',
     title: 'Data Submissions for Review | GC Dashboard',
     data,
@@ -882,7 +890,8 @@ app.get('/dashboard/data/submissions/pending', async (req, res) => {
     revisionCount,
     startEntry,
     endEntry,
-    currentPage: page
+    currentPage: page,
+    currentUser: omitUser
   })
 })
 
@@ -1171,12 +1180,13 @@ app.get('/dashboard/data/review/:id', async (req, res) => {
   const entryId = req.params.id
   const reviewer = req.session.user.id
 
-  const [wasteGen, sectors, supertypes, wasteComp, revisionEntryCount] = await Promise.all([
+  const [wasteGen, sectors, supertypes, wasteComp, revisionEntryCount, taskStatus] = await Promise.all([
     getWasteGenById(entryId),
     getSectors(),
     getAllTypes(),
     getWasteCompById(entryId),
-    getRevisionEntryCount(entryId)
+    getRevisionEntryCount(entryId),
+    getTaskClaimStatus(entryId, reviewer)
   ]);
 
   // If revision log count is greater than 0, retrieve entries
@@ -1269,9 +1279,45 @@ app.get('/dashboard/data/review/:id', async (req, res) => {
     entryId,
     reviewer,
     revisionEntryCount,
-    revisionLogs
+    revisionLogs,
+    taskStatus
   })
 })
+
+// Claim a task
+app.post('/api/task/:id/claim', async (req, res, next) => {
+  try {
+    const taskId = req.params.id;
+    const claimed_by = req.session.user.id; // assuming session stores current user
+
+    const affected = await claimTask(taskId, claimed_by);
+    if (affected === 0) {
+      req.flash('error', 'Task has already been claimed by someone else.');
+    }
+
+    // Redirect explicitly to referrer or fallback to tasks route
+    const backUrl = req.get('Referrer') || '/dashboard/data/submissions/pending';
+    res.redirect(backUrl);
+  } catch (err) {
+    console.error('Error claiming task:', err);
+    next(err);
+  }
+});
+
+// Unclaim a task
+app.post('/api/task/:id/unclaim', async (req, res, next) => {
+  try {
+    const taskId = req.params.id;
+
+    await unclaimTask(taskId);
+
+    // Redirect to task list after unclaiming
+    res.redirect('/dashboard/data/submissions/pending');
+  } catch (err) {
+    console.error('Error unclaiming task:', err);
+    next(err);
+  }
+});
 
 // View one data entry
 app.get('/dashboard/data/:id', async (req, res) => {
@@ -2171,9 +2217,13 @@ app.post("/api/data/submit-report/manual", async (req, res) => {
     }).filter(entry => entry !== null); // Remove any invalid entries
 
     // Push form data to db
-    await submitForm(
+    const formResult = await submitForm(
       currentUser, title, region, province, municipality, barangay, fullLocation, population, per_capita, annual, date_start, date_end, newWasteComp
     );
+
+    // Create data review task for staff
+    const dataEntryId = formResult.data_entry_id;
+    await createTask(dataEntryId);
 
     res.status(200).json({
       message: "Report submitted successfully"
@@ -2232,12 +2282,15 @@ app.post("/api/data/edit-report", async (req, res) => {
     // Update entry status to Revised
     await updateDataStatus(dataEntryId, 'Revised')
 
-    // Finally, create new revision entry
+    // Create new revision entry
     // Insert into data revision log
     const revisionId = await createRevisionEntry(dataEntryId, currentUser, 'Resubmitted', comment)
 
     // Update current revision
     await updateCurrentLog(dataEntryId, revisionId)
+
+    // Finally, add task
+    await createTask(dataEntryId)
 
     res.status(200).json({
       message: "Report submitted successfully"
@@ -2317,9 +2370,13 @@ app.post("/api/data/submit-report/upload", async (req, res) => {
 
   try {
     // Push form data to db
-    await submitForm(
+    const formResult = await submitForm(
       currentUser, title, region, province, municipality, barangay, fullLocation, population, per_capita, annual, date_start, date_end, wasteComposition
-    );
+    )
+
+    // Create data review task for staff
+    const dataEntryId = formResult.data_entry_id
+    await createTask(dataEntryId)
 
     res.status(200).json({
         message: "Report submitted successfully"
@@ -2636,17 +2693,17 @@ app.get('/control-panel/entry-statistics', async (req, res) => {
   const sectorCompliance = await getUserSectorComplianceSummary()
 
   res.render('control-panel/entry-stats', {
-  layout: 'control-panel',
-  title: 'Data Entry Statistics | GC Control Panel',
-  current_stats: true,
-  entryCount,
-  contributors,
-  latestSubmissions,
-  topRegions,
-  monthlySubmissions: JSON.stringify(monthlySubmissions),
-  wasteCompliance,// 👈 Add this
-  sectorCompliance
-});
+    layout: 'control-panel',
+    title: 'Data Entry Statistics | GC Control Panel',
+    current_stats: true,
+    entryCount,
+    contributors,
+    latestSubmissions,
+    topRegions,
+    monthlySubmissions: JSON.stringify(monthlySubmissions),
+    wasteCompliance,
+    sectorCompliance
+  });
 })
 
 // Fetch top contributors (entry stats)
@@ -3087,6 +3144,13 @@ app.patch('/api/data/:id/status', async (req, res) => {
 
       // Send notification to user
       await createNotification(submitter, 'Revision Notice', `Your data entry, <b>${title}</b>, needs revision.`, `/dashboard/data/wip/${entryId}`)
+    }
+
+    // Complete task (actually deleting it)
+    const taskId = await getTaskByEntryId(entryId);
+
+    if (taskId) {
+      await completeTask(taskId);
     }
 
     res.json({ 

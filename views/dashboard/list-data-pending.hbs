@@ -1,0 +1,258 @@
+<!-- Show tabs if current page is review list -->
+<div class="tab">
+    <a href="/dashboard/data/submissions/pending">
+        <button class="tablinks {{#if pending}}active{{/if}}">
+        PENDING REVIEW
+        {{#ifNotEquals pendingCount 0}}
+            &nbsp;<span class="notif-badge">{{pendingCount}}</span>
+        {{/ifNotEquals}}
+        </button>
+    </a>
+
+    <a href="/dashboard/data/submissions/revision">
+        <button class="tablinks {{#if revision}}active{{/if}}">
+        WAITING FOR REVISION
+        {{#ifNotEquals revisionCount 0}}
+            &nbsp;<span class="notif-badge">{{revisionCount}}</span>
+        {{/ifNotEquals}}
+        </button>
+    </a>
+</div>
+
+<!-- Entry counter -->
+<div class="form-section">
+  <div style="display: flex;">
+    <p class="entry-count-text">
+      Showing <b>{{startEntry}}–{{endEntry}}</b> of <b>{{totalCount}}</b> entries
+    </p>
+  </div>
+</div>
+
+{{#ifEquals data.length 0}}
+  <div class="form-section">
+    <span style="font-size: large;">No entries found.</span>
+  </div>
+{{/ifEquals}}
+
+{{#each data}}
+  <div class="task-item
+              {{#if (eq claimed_by ../currentUser)}}task-claimed-user
+              {{else if (orValue (not task_status) (eq task_status 'Unclaimed'))}}task-unclaimed
+              {{else}}task-claimed{{/if}}">
+    
+    <!-- Task header -->
+    <div class="task-header">
+      <h3 class="task-title">
+        Task Item 
+        <span class="task-status-tag">
+          {{#if (eq claimed_by ../currentUser)}}
+            <span class="tag claimed-by-user">Claimed by You</span>
+          {{else if (orValue (not task_status) (eq task_status 'Unclaimed'))}}
+            <span class="tag unclaimed">Unclaimed</span>
+          {{else}}
+            <span class="tag claimed">
+              Claimed by: <b>{{uppercase staff_lastname}}, {{staff_firstname}}</b>
+            </span>
+          {{/if}}
+        </span>
+      </h3>
+    </div>
+
+    <!-- Data entry card -->
+    {{#if (orValue (eq claimed_by ../currentUser) (orValue (not task_status) (eq task_status 'Unclaimed')))}}
+      <!-- Clickable for user-claimed or unclaimed -->
+      <a href="/dashboard/data{{#if ../current_datasubs}}/review{{else ../current_in_progress}}/wip{{/if}}/{{data_entry_id}}" 
+         class="waste-data-btn-link">
+    {{else}}
+      <!-- Not clickable if claimed by others -->
+      <div class="waste-data-btn-disabled">
+    {{/if}}
+
+      <div class="form-section waste-data-btn"
+           style="cursor: {{#if (orValue (eq claimed_by ../currentUser) (orValue (not task_status) (eq task_status 'Unclaimed')))}}pointer{{else}}not-allowed{{/if}};">
+
+        <!-- Header: Title and Status -->
+        <div class="data-entry-header">
+          <h2>{{title}}</h2>
+          <span class="data-status
+            {{#ifEquals status 'Pending Review'}}stat-pending{{/ifEquals}}
+            {{#ifEquals status 'Approved'}}stat-approved{{/ifEquals}}
+            {{#ifEquals status 'Needs Revision'}}stat-revision{{/ifEquals}}
+            {{#ifEquals status 'Revised'}}stat-revised{{/ifEquals}}">
+            {{status}}
+          </span>
+        </div>
+
+        <!-- Main Info -->
+        <p><strong>Location:</strong> {{location_name}}<br>
+          <i>Submitted on {{textDate date_submitted}}</i></p>
+
+        <p><strong>Submitted by:</strong> {{uppercase lastname}}, {{firstname}}<br>
+          <i>{{company_name}}</i></p>
+
+        <p><strong>Collection Period:</strong> {{textDate collection_start}} – {{textDate collection_end}}</p>
+
+      </div>
+
+    {{#if (orValue (eq claimed_by ../currentUser) (orValue (not task_status) (eq task_status 'Unclaimed')))}}
+      </a>
+    {{else}}
+      </div>
+    {{/if}}
+  </div>
+{{/each}}
+
+<!-- Page counter -->
+<div class="pagination">
+    {{#if totalPages}}
+        {{#unless (eq currentPage 1)}}
+            <a href="{{queryString query page=1}}" class="pagination-btn arrow">
+              <i class="fa-solid fa-angles-left"></i>
+            </a>
+        {{/unless}}
+
+        {{#if (gt currentPage 1)}}
+            <a href="{{queryString query page=(subtract currentPage 1)}}" class="pagination-btn arrow">
+              <i class="fa-solid fa-chevron-left"></i>
+            </a>
+        {{/if}}
+
+        {{#each (paginationRange currentPage totalPages)}}
+          <a href="{{queryString ../query page=this}}" class="pagination-btn {{#ifEquals this ../currentPage}}active{{/ifEquals}}">
+            {{this}}
+          </a>
+        {{/each}}
+
+        {{#if (lt currentPage totalPages)}}
+            <a href="{{queryString query page=(add currentPage 1)}}" class="pagination-btn arrow">
+              <i class="fa-solid fa-chevron-right"></i>
+            </a>
+        {{/if}}
+
+        {{#unless (eq currentPage totalPages)}}
+            <a href="{{queryString query page=totalPages}}" class="pagination-btn arrow">
+              <i class="fa-solid fa-angles-right"></i>
+            </a>
+        {{/unless}}
+    {{/if}}
+</div>
+
+<style>
+
+.form-section {
+  background-color: #fdfdfd;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  margin: 1rem auto;
+  font-family: 'Segoe UI', sans-serif;
+  color: #333;
+}
+
+.form-section h3 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+}
+
+.form-section h3 i {
+  margin-right: 0.6rem;
+  color: #127009;;
+}
+
+.form-section label {
+  display: block;
+  margin-top: 1rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.entry-count-text {
+  color: #555;
+  margin: 0;
+  font-size: large;
+}
+
+.task-item {
+  border: 2px solid #bcd9b0;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1.2rem;
+  background-color: #f9fff8;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.task-item.task-unclaimed {
+  border-color: #73c573;
+  background-color: #e9fbe9;
+}
+
+.task-item.task-claimed {
+  border-color: #4a9151;
+  background-color: #c6d2c6;
+  opacity: 0.9;
+}
+
+.task-item.task-claimed-user {
+  background-color: #d9f7ff; /* calm blue-green */
+  border-color: #00796b;
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: .5rem;
+}
+
+.task-title {
+  font-size: 1.1rem;
+  color: #2e4a2e;
+  font-weight: 600;
+  margin: 0;
+}
+
+.task-status-tag {
+  font-size: 0.9rem;
+  margin-left: 0.5rem;
+}
+
+.tag {
+  padding: 0.3rem 0.6rem;
+  border-radius: 5px;
+  color: white;
+  font-weight: 500;
+}
+
+.tag.unclaimed {
+  background-color: #5cb85c;
+}
+
+.tag.claimed {
+  background-color: #3d7b3d;
+}
+
+.tag.claimed-by-user {
+  background-color: #009688;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+
+.waste-data-btn-disabled {
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.waste-data-btn {
+  transition: transform 0.2s ease-in-out;
+}
+
+.waste-data-btn-link:hover .waste-data-btn {
+  transform: translateY(-3px);
+  background-color: #fff !important;
+}
+
+</style>

@@ -1,42 +1,62 @@
+
 <!-- Approval window -->
 <div class="form-section" style="background-color: #f5fff9;">
     <center>
-        <!-- Approve buttons (for review) -->
-        {{#ifNotEquals wasteGen.status 'Needs Revision'}}
-            <h3 style="font-weight: normal;">Approve data entry?</h3>
+        {{#if taskStatus.isClaimedByUser}}
+            <!-- Approve buttons (for review) -->
+            {{#ifNotEquals wasteGen.status 'Needs Revision'}}
+                <!-- Unclaim button -->
+                <div class="form-section" style="background-color: #fff;">
+                    <form method="POST" action="/api/task/{{taskStatus.id}}/unclaim">
+                        <button type="submit" class="review-reject">
+                        <i class="fa-solid fa-unlock"></i>&nbsp; Unclaim Task
+                        </button>
+                    </form>
+                </div>
 
-            <button type="button" class="review-approve" onclick="showApprove()">
-                <i class="fa-solid fa-thumbs-up"></i>&nbsp; Approve
-            </button>&emsp;
+                <h3 style="font-weight: normal;">Approve data entry?</h3>
 
-            <button type="button" class="review-reject" onclick="showReject()">
-                <i class="fa-solid fa-pencil"></i>&nbsp; Suggest Edits
-            </button><br><br>
-        {{/ifNotEquals}}
+                <button type="button" class="review-approve" onclick="showApprove()">
+                    <i class="fa-solid fa-thumbs-up"></i>&nbsp; Approve
+                </button>&emsp;
 
-        <!-- Show if entry is on 'Needs Revision' status -->
-        {{#ifEquals wasteGen.status 'Needs Revision'}}
-            <div class="form-section waiting-card">
-                This entry was <b>marked for revision</b>.<br>
-                Waiting for changes on submitter's end.
-            </div>
-        {{/ifEquals}}
+                <button type="button" class="review-reject" onclick="showReject()">
+                    <i class="fa-solid fa-pencil"></i>&nbsp; Suggest Edits
+                </button><br><br>
+            {{/ifNotEquals}}
 
-        <!-- If revision entry counts exist, then show revision log -->
-        {{#if (gt revisionEntryCount 0)}}
-        <h3>EDIT HISTORY</h3>
-            <div class="form-section revision-window">
-                <table>
-                    {{#each revisionLogs}}
-                    <tr>
-                        <td>{{uppercase lastname}}, {{firstname}} </td>
-                        <td>{{textDateTime created_at}} </td>
-                        <td>{{action}} </td>
-                        <td>{{comment}} </td>
-                    </tr>
-                    {{/each}}
-                </table>
-            </div>
+            <!-- Show if entry is on 'Needs Revision' status -->
+            {{#ifEquals wasteGen.status 'Needs Revision'}}
+                <div class="form-section waiting-card">
+                    This entry was <b>marked for revision</b>.<br>
+                    Waiting for changes on submitter's end.
+                </div>
+            {{/ifEquals}}
+
+            <!-- If revision entry counts exist, then show revision log -->
+            {{#if (gt revisionEntryCount 0)}}
+            <h3>EDIT HISTORY</h3>
+                <div class="form-section revision-window">
+                    <table>
+                        {{#each revisionLogs}}
+                        <tr>
+                            <td>{{uppercase lastname}}, {{firstname}} </td>
+                            <td>{{textDateTime created_at}} </td>
+                            <td>{{action}} </td>
+                            <td>{{comment}} </td>
+                        </tr>
+                        {{/each}}
+                    </table>
+                </div>
+            {{/if}}
+        {{else}}
+            <!-- Show claim button -->
+            <h3>Claim this task?</h3>
+            <form method="POST" action="/api/task/{{taskStatus.id}}/claim">
+                <button type="submit" class="review-approve">
+                <i class="fa-solid fa-hand"></i>&nbsp; Claim Task
+                </button>
+            </form>
         {{/if}}
     </center>
 </div>

@@ -164,3 +164,13 @@ Handlebars.registerHelper('or', function(a, b, options) {
   }
   return options.inverse(this); // Otherwise, skip the block
 });
+
+// Or condition (inline version)
+Handlebars.registerHelper('orValue', function (a, b) {
+  return a || b;
+});
+
+// Not (!) helper
+Handlebars.registerHelper('not', function (value) {
+  return !value;
+});

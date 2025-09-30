@@ -175,7 +175,7 @@ export async function submitForm(user_id, title, region_id, province_id, municip
             }
        }
 
-       return { success: true, message: "Form submitted successfully!" };
+       return { success: true, message: "Form submitted successfully!", data_entry_id };
 
    } catch (error) {
        console.error("Database error:", error);
@@ -747,34 +747,57 @@ export async function getDataForReview(currentUser, status, limit, offset) {
     return result
 }
 
-// Get pending entries (both for Review and Revision)
+// Get pending data AND list of tasks
+// First priority: current users, followed by unclaimed tasks.
+// Tasks claimed by others go last
 export async function getPendingData(currentUser, limit, offset) {
-    const [result] = await sql.query(`
-        SELECT
-            dat.data_entry_id, dat.user_id, dat.title, dat.location_name,
-            u.lastname, u.firstname, u.company_name,
-            dat.region_id, dat.province_id, dat.municipality_id,
-            dat.date_submitted, dat.collection_start, dat.collection_end,
-            dat.status,
-            rl.latest_revision_date
-        FROM data_entry dat
-        JOIN user u ON u.user_id = dat.user_id
-        LEFT JOIN (
-            SELECT data_entry_id, MAX(created_at) AS latest_revision_date
-            FROM data_entry_revision_log
-            GROUP BY data_entry_id
-        ) rl ON rl.data_entry_id = dat.data_entry_id
-        WHERE (dat.status = 'Pending Review' OR dat.status = 'Revised')
-          AND dat.user_id != ?
-        ORDER BY 
-            CASE 
-                WHEN dat.status = 'Pending Review' THEN dat.date_submitted
-                WHEN dat.status = 'Revised' THEN rl.latest_revision_date
-            END DESC
-        LIMIT ? OFFSET ?
-    `, [currentUser, limit, offset])
+  const [result] = await sql.query(`
+    SELECT
+        dat.data_entry_id,
+        dat.user_id,
+        dat.title,
+        dat.location_name,
+        u.lastname,
+        u.firstname,
+        u.company_name,
+        dat.region_id,
+        dat.province_id,
+        dat.municipality_id,
+        dat.date_submitted,
+        dat.collection_start,
+        dat.collection_end,
+        dat.status,
+        rl.latest_revision_date,
+        rt.status AS task_status,
+        rt.claimed_by,
+        staff.firstname AS staff_firstname,
+        staff.lastname AS staff_lastname
+    FROM data_entry dat
+    JOIN user u ON u.user_id = dat.user_id
+    LEFT JOIN (
+        SELECT data_entry_id, MAX(created_at) AS latest_revision_date
+        FROM data_entry_revision_log
+        GROUP BY data_entry_id
+    ) rl ON rl.data_entry_id = dat.data_entry_id
+    LEFT JOIN review_tasks rt ON rt.data_entry_id = dat.data_entry_id
+    LEFT JOIN user staff ON staff.user_id = rt.claimed_by
+    WHERE (dat.status = 'Pending Review' OR dat.status = 'Revised')
+      AND dat.user_id != ?
+    ORDER BY 
+        CASE 
+            WHEN rt.claimed_by = ? THEN 0        -- Current user's claimed entries
+            WHEN rt.status = 'Unclaimed' THEN 1  -- Unclaimed
+            WHEN rt.status = 'Claimed' THEN 2    -- Claimed by others
+            ELSE 3
+        END,
+        CASE 
+            WHEN dat.status = 'Pending Review' THEN dat.date_submitted
+            WHEN dat.status = 'Revised' THEN rl.latest_revision_date
+        END DESC
+    LIMIT ? OFFSET ?
+  `, [currentUser, currentUser, limit, offset]);
 
-    return result
+  return result;
 }
 
 // Get *number* of entries to review (for notifications)
@@ -870,6 +893,32 @@ export async function getCoordinates(locationName) {
     DATA REVIEW
 --------------------------------------- */
 
+// Determine whether current user has claimed the task or not
+export async function getTaskClaimStatus(entryId, currentUser) {
+  const [result] = await sql.query(`
+    SELECT 
+      rt.id,
+      rt.data_entry_id,
+      rt.claimed_by,
+      rt.status,
+      staff.firstname AS staff_firstname,
+      staff.lastname AS staff_lastname
+    FROM review_tasks rt
+    LEFT JOIN user staff ON staff.user_id = rt.claimed_by
+    WHERE rt.data_entry_id = ?
+  `, [entryId]);
+
+  if (!result || result.length === 0) {
+    return { status: 'Unclaimed', isClaimedByUser: false };
+  }
+
+  const task = result[0];
+  return {
+    ...task,
+    isClaimedByUser: task.claimed_by === currentUser
+  };
+}
+
 // Change status of data entry
 export async function updateDataStatus(dataId, status) {
     await sql.query(`
@@ -929,6 +978,65 @@ export async function createLocationEntry(locationName, lat, lon) {
     
     // Return new object if successful
     return result[0].insertId
+}
+
+/* ---------------------------------------
+    DATA REVIEW TASKS
+--------------------------------------- */
+// Create task when
+// 1. Data entry is submitted
+// 2. Data entry is re-submitted for review (revised)
+export async function createTask(data_entry_id) {
+    const result = await sql.query(`
+        INSERT INTO greencycle.review_tasks (data_entry_id)
+        VALUES (?)
+    `, [data_entry_id])
+    
+    // Return new object if successful
+    return result.insertId
+}
+
+// export async function getTasks()
+
+// When a user claims a task
+// "AND" condition prevents two users from claiming simultaneously
+export async function claimTask(taskId, claimed_by) {
+    await sql.query(`
+        UPDATE greencycle.review_tasks
+        SET claimed_by = ?, status = 'Claimed'
+        WHERE id = ? AND (status = 'Unclaimed' OR claimed_by IS NULL)
+    `, [claimed_by, taskId], function (err, result) {
+        if (err) throw err;
+        console.log(result.affectedRows + " record(s) updated");
+    })
+}
+
+// When a user unclaims a task
+export async function unclaimTask(taskId) {
+    await sql.query(`
+        UPDATE greencycle.review_tasks
+        SET claimed_by = NULL, status = 'Unclaimed'
+        WHERE id = ?
+    `, [taskId], function (err, result) {
+        if (err) throw err;
+        console.log(result.affectedRows + " record(s) updated");
+    })
+}
+
+// Delete task when completed
+export async function completeTask(taskId) {
+    await sql.query(`DELETE FROM greencycle.review_tasks WHERE id = ?`, [taskId]);
+}
+
+// Get task id by data entry id
+export async function getTaskByEntryId(data_entry_id) {
+  const [rows] = await sql.query(`
+    SELECT id FROM greencycle.review_tasks
+    WHERE data_entry_id = ?
+    LIMIT 1
+  `, [data_entry_id]);
+
+  return rows.length > 0 ? rows[0].id : null;
 }
 
 /* ---------------------------------------
