@@ -1,338 +1,1600 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Dashboard</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+ <head>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+
 <main class="dashboard-container">
+    <div class="dashboard-controls">
+        <button id="customize-btn" class="customize-btn customize-btn-left">
+            <i class="fas fa-cog"></i> Customize
+        </button>
+    </div>
+    
+    <div class="customize-mode-controls" style="display: none;">
+        <button id="save-layout-btn" class="save-btn">
+            <i class="fas fa-save"></i> Save
+        </button>
+        <button id="cancel-customize-btn" class="cancel-btn">
+            <i class="fas fa-times"></i> Cancel
+        </button>
+        <button id="reset-layout-btn" class="reset-btn">
+            <i class="fas fa-refresh"></i> Reset
+        </button>
+    </div>
 
-  <!-- Dashboard Controls -->
-  <div class="dashboard-controls">
-    <button id="customize-btn" class="customize-btn customize-btn-left">
-      <i class="fas fa-cog"></i> Customize
-    </button>
-  </div>
-
-  <!-- Customize Mode Controls -->
-  <div class="customize-mode-controls" style="display: none;">
-    <button id="save-layout-btn" class="save-btn">
-      <i class="fas fa-save"></i> Save
-    </button>
-    <button id="cancel-customize-btn" class="cancel-btn">
-      <i class="fas fa-times"></i> Cancel
-    </button>
-    <button id="reset-layout-btn" class="reset-btn">
-      <i class="fas fa-refresh"></i> Reset
-    </button>
-  </div>
-
-  <!-- Welcome Section -->
-  <section class="welcome-card widget-item" data-widget="welcome">
-    <h1>Welcome, <span id="welcome-name">{{user.firstname}}</span>!</h1>
-    <p class="welcome-subtitle">Here's your personalized dashboard overview</p>
-  </section>
-
-  <!-- Widget Container -->
-  <div id="widget-container" class="widget-container">
-
-    <!-- Quick Stats -->
-    <section class="section widget-item stats-widget" data-widget="quick-stats">
-      <div class="widget-header">
-        <h2><i class="fas fa-chart-bar"></i> Quick Stats</h2>
-        <div class="widget-controls" style="display: none;">
-          <button class="widget-remove-btn"><i class="fas fa-times"></i></button>
-          <button class="widget-drag-handle"><i class="fas fa-grip-vertical"></i></button>
-        </div>
-      </div>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon success"><i class="fas fa-check-circle"></i></div>
-          <div class="stat-content"><h3>12</h3><p>Approved Submissions</p></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon pending"><i class="fas fa-clock"></i></div>
-          <div class="stat-content"><h3>5</h3><p>Pending Review</p></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon warning"><i class="fas fa-exclamation-triangle"></i></div>
-          <div class="stat-content"><h3>3</h3><p>Compliance Warnings</p></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon notification"><i class="fas fa-bell"></i></div>
-          <div class="stat-content"><h3>7</h3><p>Notifications</p></div>
-        </div>
-      </div>
+    <section class="welcome-card widget-item" data-widget="welcome">
+        <h1>Welcome, <span id="welcome-name">{{user.firstname}}</span>!</h1>
+        <p class="welcome-subtitle">Here's your personalized dashboard overview</p>
     </section>
 
-    <!-- Recent Activity -->
-    <section class="section widget-item activity-widget" data-widget="recent-activity">
-      <div class="widget-header">
-        <h2><i class="fas fa-history"></i> Recent Activity</h2>
-        <div class="widget-controls" style="display: none;">
-          <button class="widget-remove-btn"><i class="fas fa-times"></i></button>
-          <button class="widget-drag-handle"><i class="fas fa-grip-vertical"></i></button>
-        </div>
-      </div>
-      <div class="activity-list">
-        <div class="activity-item"><div class="activity-icon success"><i class="fas fa-check"></i></div><div class="activity-content"><p><strong>Data submission approved</strong></p><span class="activity-time">2 hours ago</span></div></div>
-        <div class="activity-item"><div class="activity-icon info"><i class="fas fa-upload"></i></div><div class="activity-content"><p><strong>New report submitted</strong></p><span class="activity-time">1 day ago</span></div></div>
-        <div class="activity-item"><div class="activity-icon warning"><i class="fas fa-edit"></i></div><div class="activity-content"><p><strong>Report needs revision</strong></p><span class="activity-time">3 days ago</span></div></div>
-        <div class="activity-item"><div class="activity-icon success"><i class="fas fa-certificate"></i></div><div class="activity-content"><p><strong>Compliance check passed</strong></p><span class="activity-time">1 week ago</span></div></div>
-      </div>
-    </section>
+    <div id="widget-container" class="widget-container">
+        
+        <div class="widget-row row-1">
+            <section class="section widget-item stats-widget compact" data-widget="quick-stats">
+                <div class="widget-header">
+                    <h2><i class="fas fa-chart-bar"></i> Quick Stats</h2>
+                    <div class="widget-controls" style="display: none;">
+                        <button class="widget-remove-btn" title="Remove Widget">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <button class="widget-drag-handle" title="Drag to Reorder">
+                            <i class="fas fa-grip-vertical"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="stats-grid-compact">
+                    <div class="stat-card-compact">
+                        <div class="stat-icon-compact success"><i class="fas fa-check-circle"></i></div>
+                        <div class="stat-content-compact">
+                            <h3>{{#if approvedSubmissions}}{{approvedSubmissions}}{{else}}0{{/if}}</h3>
+                            <p>Approved</p>
+                        </div>
+                    </div>
+                    <div class="stat-card-compact">
+                        <div class="stat-icon-compact pending"><i class="fas fa-clock"></i></div>
+                        <div class="stat-content-compact">
+                            <h3>{{#if pendingSubmissions}}{{pendingSubmissions}}{{else}}0{{/if}}</h3>
+                            <p>Pending</p>
+                        </div>
+                    </div>
+                    <div class="stat-card-compact">
+                        <div class="stat-icon-compact warning"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="stat-content-compact">
+                            <h3>{{#if cmpTotalCount}}{{cmpTotalCount}}{{else}}0{{/if}}</h3>
+                            <p>Warnings</p>
+                        </div>
+                    </div>
+                    <div class="stat-card-compact">
+                        <div class="stat-icon-compact alert"><i class="fas fa-bell"></i></div>
+                        <div class="stat-content-compact">
+                            <h3>{{#if notifCount}}{{notifCount}}{{else}}0{{/if}}</h3>
+                            <p>Alerts</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-    <!-- Top Contributors -->
-    <section class="section top-contributors-section widget-item" data-widget="top-contributors">
-      <div class="widget-header">
-        <h2 class="section-heading"><i class="fas fa-chart-line"></i> Top Waste Contributors</h2>
-        <div class="widget-controls" style="display: none;">
-          <button class="widget-remove-btn"><i class="fas fa-times"></i></button>
-          <button class="widget-drag-handle"><i class="fas fa-grip-vertical"></i></button>
+            <section class="section widget-item actions-widget compact" data-widget="quick-actions">
+                <div class="widget-header">
+                    <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
+                    <div class="widget-controls" style="display: none;">
+                        <button class="widget-remove-btn" title="Remove Widget">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <button class="widget-drag-handle" title="Drag to Reorder">
+                            <i class="fas fa-grip-vertical"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="quick-actions-grid-compact">
+                    <a href="/dashboard/submit-report" class="action-btn-compact primary">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>New Entry</span>
+                    </a>
+                    <a href="/dashboard/data/user/revision" class="action-btn-compact warning">
+                        <i class="fas fa-edit"></i>
+                        <span>Review</span>
+                        {{#if revisionCount}}{{#ifNotEquals revisionCount 0}}<span class="action-badge">{{revisionCount}}</span>{{/ifNotEquals}}{{/if}}
+                    </a>
+                    <a href="/dashboard/notifications" class="action-btn-compact info">
+                        <i class="fas fa-bell"></i>
+                        <span>Alerts</span>
+                        {{#if notifCount}}{{#ifNotEquals notifCount 0}}<span class="action-badge">{{notifCount}}</span>{{/ifNotEquals}}{{/if}}
+                    </a>
+                    <a href="/dashboard/data/all" class="action-btn-compact secondary">
+                        <i class="fas fa-table"></i>
+                        <span>Browse</span>
+                    </a>
+                </div>
+            </section>
         </div>
-      </div>
-      <div class="table-section">
-        <div class="table-wrapper contributor-card">
-          <h3 class="table-title"><i class="fas fa-industry"></i> Top Waste Sectors</h3>
-          <div class="table-container">
-            <table class="dashboard-table">
-              <thead><tr><th>Sector</th><th>Submissions</th></tr></thead>
-              <tbody>
-                <tr><td>Manufacturing</td><td><span class="badge">15</span></td></tr>
-                <tr><td>Retail</td><td><span class="badge">10</span></td></tr>
-                <tr><td>Healthcare</td><td><span class="badge">8</span></td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div class="table-wrapper contributor-card">
-          <h3 class="table-title"><i class="fas fa-recycle"></i> Top Waste Supertypes</h3>
-          <div class="table-container">
-            <table class="dashboard-table">
-              <thead><tr><th>Waste Supertype</th><th>Volume</th></tr></thead>
-              <tbody>
-                <tr><td>Plastics</td><td><span class="badge secondary">120 kg</span></td></tr>
-                <tr><td>Organic</td><td><span class="badge secondary">95 kg</span></td></tr>
-                <tr><td>Metal</td><td><span class="badge secondary">70 kg</span></td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- Quick Actions -->
-    <section class="section widget-item actions-widget" data-widget="quick-actions">
-      <div class="widget-header">
-        <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
-        <div class="widget-controls" style="display: none;">
-          <button class="widget-remove-btn"><i class="fas fa-times"></i></button>
-          <button class="widget-drag-handle"><i class="fas fa-grip-vertical"></i></button>
-        </div>
-      </div>
-      <div class="quick-actions-grid">
-        <a href="/dashboard/submit-report" class="action-btn primary"><i class="fas fa-plus-circle"></i><span>New Submission</span></a>
-        <a href="/dashboard/data/user/revision" class="action-btn warning"><i class="fas fa-edit"></i><span>Review Pending</span><span class="action-badge">5</span></a>
-        <a href="/dashboard/notifications" class="action-btn info"><i class="fas fa-bell"></i><span>Check Alerts</span><span class="action-badge">7</span></a>
-        <a href="/dashboard/data/all" class="action-btn secondary"><i class="fas fa-table"></i><span>Browse Data</span></a>
-      </div>
-    </section>
+        <div class="widget-row row-2">
+            <section class="section widget-item activity-widget compact" data-widget="recent-activity">
+                <div class="widget-header">
+                    <h2><i class="fas fa-history"></i> Recent Activity</h2>
+                    <div class="widget-controls" style="display: none;">
+                        <button class="widget-remove-btn" title="Remove Widget">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <button class="widget-drag-handle" title="Drag to Reorder">
+                            <i class="fas fa-grip-vertical"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="activity-list-compact">
+                    <div class="activity-item-compact">
+                        <div class="activity-icon-compact success"><i class="fas fa-check"></i></div>
+                        <div class="activity-content-compact">
+                            <p><strong>Data submission approved</strong></p>
+                            <span class="activity-time">2 hours ago</span>
+                        </div>
+                    </div>
+                    <div class="activity-item-compact">
+                        <div class="activity-icon-compact info"><i class="fas fa-upload"></i></div>
+                        <div class="activity-content-compact">
+                            <p><strong>New report submitted</strong></p>
+                            <span class="activity-time">1 day ago</span>
+                        </div>
+                    </div>
+                    <div class="activity-item-compact">
+                        <div class="activity-icon-compact warning"><i class="fas fa-edit"></i></div>
+                        <div class="activity-content-compact">
+                            <p><strong>Report needs revision</strong></p>
+                            <span class="activity-time">3 days ago</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-    <!-- Pending Tasks -->
-    <section class="section widget-item tasks-widget" data-widget="pending-tasks">
-      <div class="widget-header">
-        <h2><i class="fas fa-tasks"></i> Pending Tasks</h2>
-        <div class="widget-controls" style="display: none;">
-          <button class="widget-remove-btn"><i class="fas fa-times"></i></button>
-          <button class="widget-drag-handle"><i class="fas fa-grip-vertical"></i></button>
+            <section class="section widget-item tasks-widget compact" data-widget="pending-tasks">
+                <div class="widget-header">
+                    <h2><i class="fas fa-tasks"></i> Pending Tasks</h2>
+                    <div class="widget-controls" style="display: none;">
+                        <button class="widget-remove-btn" title="Remove Widget">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <button class="widget-drag-handle" title="Drag to Reorder">
+                            <i class="fas fa-grip-vertical"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="task-list-compact">
+                    {{#if revisionCount}}{{#ifNotEquals revisionCount 0}}
+                    <div class="task-item-compact priority-high">
+                        <div class="task-icon-compact"><i class="fas fa-exclamation-circle"></i></div>
+                        <div class="task-content-compact">
+                            <h4>Review Required</h4>
+                            <p>{{revisionCount}} submission(s) need attention</p>
+                            <a href="/dashboard/data/user/revision" class="task-action">Review Now</a>
+                        </div>
+                    </div>
+                    {{/ifNotEquals}}{{/if}}
+                    
+                    {{#if cmpTotalCount}}{{#ifNotEquals cmpTotalCount 0}}
+                    <div class="task-item-compact priority-medium">
+                        <div class="task-icon-compact"><i class="fas fa-shield-alt"></i></div>
+                        <div class="task-content-compact">
+                            <h4>Compliance Warnings</h4>
+                            <p>{{cmpTotalCount}} issue(s) to address</p>
+                            <a href="/dashboard/noncompliance" class="task-action">View Details</a>
+                        </div>
+                    </div>
+                    {{/ifNotEquals}}{{/if}}
+                    
+                    {{#unless revisionCount}}{{#unless cmpTotalCount}}
+                    <div class="task-item-compact priority-low">
+                        <div class="task-icon-compact"><i class="fas fa-check-circle"></i></div>
+                        <div class="task-content-compact">
+                            <h4>All Caught Up!</h4>
+                            <p>No pending tasks at the moment</p>
+                        </div>
+                    </div>
+                    {{/unless}}{{/unless}}
+                </div>
+            </section>
         </div>
-      </div>
-      <div class="task-list">
-        <div class="task-item priority-high">
-          <div class="task-icon"><i class="fas fa-exclamation-circle"></i></div>
-          <div class="task-content">
-            <h4>Review Required Submissions</h4>
-            <p>5 submissions need your attention</p>
-            <a href="/dashboard/data/user/revision" class="task-action">Review Now</a>
-          </div>
-        </div>
-        <div class="task-item priority-medium">
-          <div class="task-icon"><i class="fas fa-shield-alt"></i></div>
-          <div class="task-content">
-            <h4>Compliance Warnings</h4>
-            <p>3 compliance issues to address</p>
-            <a href="/dashboard/noncompliance" class="task-action">View Details</a>
-          </div>
-        </div>
-        <div class="task-item priority-low">
-          <div class="task-icon"><i class="fas fa-book"></i></div>
-          <div class="task-content">
-            <h4>Review Guidelines</h4>
-            <p>Stay updated with waste classification changes</p>
-            <a href="/dashboard/guide" class="task-action">Read Guide</a>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- System Alerts -->
-    <section class="section widget-item alerts-widget" data-widget="system-alerts">
-      <div class="widget-header">
-        <h2><i class="fas fa-bullhorn"></i> System Alerts</h2>
-        <div class="widget-controls" style="display: none;">
-          <button class="widget-remove-btn"><i class="fas fa-times"></i></button>
-          <button class="widget-drag-handle"><i class="fas fa-grip-vertical"></i></button>
-        </div>
-      </div>
-      <div class="alerts-container">
-        <div class="alert-item info"><div class="alert-icon"><i class="fas fa-info-circle"></i></div><div class="alert-content"><h4>System Maintenance</h4><p>Scheduled maintenance on Sunday, 2:00 AM - 4:00 AM</p></div></div>
-        <div class="alert-item success"><div class="alert-icon"><i class="fas fa-check-circle"></i></div><div class="alert-content"><h4>New Feature Available</h4><p>Bulk data import feature is now live</p></div></div>
-      </div>
-    </section>
+        <section class="section top-contributors-section widget-item compact" data-widget="top-contributors">
+            <div class="widget-header">
+                <h2 class="section-heading">
+                    <i class="fas fa-chart-line"></i> Top Waste Contributors
+                </h2>
+                <div class="widget-controls" style="display: none;">
+                    <button class="widget-remove-btn" title="Remove Widget">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <button class="widget-drag-handle" title="Drag to Reorder">
+                        <i class="fas fa-grip-vertical"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="table-section-compact">
+                <div class="table-wrapper contributor-card">
+                    <h3 class="table-title-compact"><i class="fas fa-industry"></i> Top Waste Sectors</h3>
+                    <div class="table-container">
+                        <table class="dashboard-table-compact">
+                            <thead>
+                                <tr>
+                                    <th>Sector</th>
+                                    <th>Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{#each topSectors}}
+                                    <tr>
+                                        <td>{{name}}</td>
+                                        <td><span class="badge">{{#if count}}{{count}}{{else}}0{{/if}}</span></td>
+                                    </tr>
+                                {{else}}
+                                    <tr>
+                                        <td colspan="2" style="text-align: center; color: #6c757d;">No data available</td>
+                                    </tr>
+                                {{/each}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
 
-    <!-- Staff Dashboard -->
-    <section class="section widget-item staff-widget" data-widget="staff-dashboard">
-      <div class="widget-header">
-        <h2><i class="fas fa-users-cog"></i> Staff Dashboard</h2>
-        <div class="widget-controls" style="display: none;">
-          <button class="widget-remove-btn"><i class="fas fa-times"></i></button>
-          <button class="widget-drag-handle"><i class="fas fa-grip-vertical"></i></button>
-        </div>
-      </div>
-      <div class="staff-metrics">
-        <div class="metric-row">
-          <div class="metric-item single">
-            <span class="metric-label">Pending Reviews</span>
-            <span class="metric-value warning">2</span>
-          </div>
-        </div>
-        <div class="staff-actions">
-          <a href="/dashboard/data/submissions/pending" class="staff-btn"><i class="fas fa-clipboard-list"></i> Review Queue<span class="staff-badge">2</span></a>
-          <a href="/control-panel" class="staff-btn admin"><i class="fas fa-cogs"></i> Control Panel</a>
-        </div>
-      </div>
-    </section>
+                <div class="table-wrapper contributor-card">
+                    <h3 class="table-title-compact"><i class="fas fa-recycle"></i> Top Waste Supertypes</h3>
+                    <div class="table-container">
+                        <table class="dashboard-table-compact">
+                            <thead>
+                                <tr>
+                                    <th>Waste Supertype</th>
+                                    <th>Volume</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{#each topWasteTypes}}
+                                    <tr>
+                                        <td>{{supertype_name}}</td>
+                                        <td><span class="badge secondary">{{#if volume}}{{volume}}{{else}}0{{/if}}</span></td>
+                                    </tr>
+                                {{else}}
+                                    <tr>
+                                        <td colspan="2" style="text-align: center; color: #6c757d;">No data available</td>
+                                    </tr>
+                                {{/each}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-  </div>
+        {{#ifNotEquals user.supertype 2}}
+        <div class="widget-row row-4">
+            <section class="section widget-item staff-widget compact" data-widget="staff-dashboard">
+                <div class="widget-header">
+                    <h2><i class="fas fa-users-cog"></i> Staff Dashboard</h2>
+                    <div class="widget-controls" style="display: none;">
+                        <button class="widget-remove-btn" title="Remove Widget">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <button class="widget-drag-handle" title="Drag to Reorder">
+                            <i class="fas fa-grip-vertical"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="staff-content-compact">
+                    <div class="staff-metric-compact">
+                        <span class="metric-label">Pending Reviews</span>
+                        <span class="metric-value-large warning">{{#if pendingData}}{{pendingData}}{{else}}0{{/if}}</span>
+                    </div>
+                    <div class="staff-actions-compact">
+                        <a href="/dashboard/data/submissions/pending" class="staff-btn-compact">
+                            <i class="fas fa-clipboard-list"></i> Review Queue
+                            {{#if pendingData}}{{#ifNotEquals pendingData 0}}<span class="staff-badge">{{pendingData}}</span>{{/ifNotEquals}}{{/if}}
+                        </a>
+                        <a href="/control-panel" class="staff-btn-compact admin">
+                            <i class="fas fa-cogs"></i> Control Panel
+                        </a>
+                    </div>
+                </div>
+            </section>
 
-  <!-- Add Widgets Panel -->
-  <div id="widget-panel" class="widget-panel" style="display: none;">
-    <h3><i class="fas fa-plus"></i> Add Widgets</h3>
-    <div id="available-widgets" class="available-widgets"></div>
-  </div>
+            <section class="section widget-item alerts-widget compact" data-widget="system-alerts">
+                <div class="widget-header">
+                    <h2><i class="fas fa-bullhorn"></i> System Alerts</h2>
+                    <div class="widget-controls" style="display: none;">
+                        <button class="widget-remove-btn" title="Remove Widget">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <button class="widget-drag-handle" title="Drag to Reorder">
+                            <i class="fas fa-grip-vertical"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="alerts-container-compact">
+                    <div class="alert-item-compact info">
+                        <div class="alert-icon-compact"><i class="fas fa-info-circle"></i></div>
+                        <div class="alert-content-compact">
+                            <h4>System Maintenance</h4>
+                            <p>Scheduled: Sunday, 2:00 AM - 4:00 AM</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+        {{else}}
+        <section class="section widget-item alerts-widget compact full-width" data-widget="system-alerts">
+            <div class="widget-header">
+                <h2><i class="fas fa-bullhorn"></i> System Alerts</h2>
+                <div class="widget-controls" style="display: none;">
+                    <button class="widget-remove-btn" title="Remove Widget">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <button class="widget-drag-handle" title="Drag to Reorder">
+                        <i class="fas fa-grip-vertical"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="alerts-container-compact">
+                <div class="alert-item-compact info">
+                    <div class="alert-icon-compact"><i class="fas fa-info-circle"></i></div>
+                    <div class="alert-content-compact">
+                        <h4>System Maintenance</h4>
+                        <p>Scheduled maintenance on Sunday, 2:00 AM - 4:00 AM</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {{/ifNotEquals}}
+    </div>
+
+    <div id="widget-panel" class="widget-panel" style="display: none;">
+        <h3><i class="fas fa-plus"></i> Add Widgets</h3>
+        <div id="available-widgets" class="available-widgets">
+        </div>
+    </div>
 </main>
 
 <style>
-/* full CSS preserved from your original with fixes */
-a{text-decoration:none;color:inherit}
-.dashboard-container{max-width:1100px;margin:40px auto;padding:0 20px;position:relative}
-.welcome-card{background:linear-gradient(135deg,#d4edda,#c3e6cb);color:#155724;padding:35px;border-radius:15px;box-shadow:0 6px 20px rgba(0,0,0,.08);margin-bottom:40px;text-align:center;border:1px solid #b8dabc}
-.welcome-card h1{font-size:2.2rem;margin:0 0 8px;font-weight:700}
-.welcome-subtitle{margin:0;font-size:1.1rem;opacity:.8}
-.section{background:#fff;border-radius:12px;padding:25px;box-shadow:0 4px 12px rgba(0,0,0,.06);border:1px solid #e9ecef;margin-bottom:40px}
-.stats-widget{background:linear-gradient(135deg,#f8f9ff,#e8f2ff);border:1px solid #d1ecf1}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px}
-.stat-card{background:#fff;padding:20px;border-radius:10px;display:flex;align-items:center;gap:15px;box-shadow:0 2px 8px rgba(0,0,0,.04);border:1px solid #e3f2fd}
-.stat-icon{width:50px;height:50px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#127009;color:#fff;font-size:1.4rem}
-.stat-icon.pending{background:#ffc107}.stat-icon.warning{background:#dc3545}.stat-icon.notification{background:#17a2b8}
-.stat-content h3{font-size:2rem;font-weight:700;margin:0;color:#2c3e50}
-.stat-content p{margin:0;color:#6c757d;font-size:.9rem}
-.activity-widget{background:linear-gradient(135deg,#fff5f5,#ffe8e8);border:1px solid #f8d7da}
-.activity-list{display:flex;flex-direction:column;gap:15px}
-.activity-item{display:flex;align-items:center;gap:12px;padding:12px;background:#fff;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.04)}
-.activity-icon{width:35px;height:35px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;color:#fff}
-.activity-icon.success{background:#28a745}.activity-icon.info{background:#17a2b8}.activity-icon.warning{background:#ffc107;color:#333}
-.actions-widget{background:linear-gradient(135deg,#f0fff4,#e6fffa);border:1px solid #b8f5cd}
-.quick-actions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:15px}
-.action-btn{display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px;background:#fff;border-radius:10px;text-decoration:none;color:#333;transition:.2s;box-shadow:0 2px 8px rgba(0,0,0,.06);border:2px solid transparent;position:relative}
-.action-btn:hover{transform:translateY(-3px);box-shadow:0 4px 15px rgba(0,0,0,.1)}
-.action-btn.primary{border-color:#127009}.action-btn.warning{border-color:#ffc107}.action-btn.info{border-color:#17a2b8}.action-btn.secondary{border-color:#6c757d}
-.action-badge{position:absolute;top:-5px;right:-5px;background:#dc3545;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700}
-.tasks-widget{background:linear-gradient(135deg,#fffbf0,#fff3cd);border:1px solid #ffeaa7}
-.task-list{display:flex;flex-direction:column;gap:15px}
-.task-item{display:flex;gap:15px;padding:15px;background:#fff;border-radius:10px;border-left:4px solid #ddd;box-shadow:0 2px 6px rgba(0,0,0,.04)}
-.task-item.priority-high{border-left-color:#dc3545}.task-item.priority-medium{border-left-color:#ffc107}.task-item.priority-low{border-left-color:#17a2b8}
-.task-icon{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#f8f9fa;color:#6c757d}
-.task-content h4{margin:0 0 8px;font-size:1.1rem;color:#2c3e50}
-.task-content p{margin:0 0 10px;color:#6c757d;font-size:.9rem}
-.task-action{color:#127009;font-weight:600;text-decoration:none;font-size:.9rem}
-.task-action:hover{text-decoration:underline}
-.alerts-widget{background:linear-gradient(135deg,#f0f8ff,#e3f2fd);border:1px solid #b3e5fc}
-.alerts-container{display:flex;flex-direction:column;gap:12px}
-.alert-item{display:flex;gap:12px;padding:12px;background:#fff;border-radius:8px;border-left:4px solid #17a2b8}
-.alert-item.success{border-left-color:#28a745}
-.alert-icon{color:#17a2b8;font-size:1.2rem}
-.alert-content h4{margin:0 0 4px;font-size:1rem;color:#2c3e50}
-.alert-content p{margin:0;color:#6c757d;font-size:.85rem}
-.staff-widget{background:linear-gradient(135deg,#fff0e6,#ffeaa7);border:1px solid #f39c12}
-.metric-row{display:flex;justify-content:center;margin-bottom:20px}
-.metric-item{padding:20px;background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.05);min-width:160px;text-align:center;border:2px solid #f39c12}
-.metric-label{display:block;font-size:.9rem;color:#6c757d;margin-bottom:8px;font-weight:500}
-.metric-value{font-size:2rem;font-weight:700;color:#2c3e50}
-.metric-value.warning{color:#e67e22}
-.staff-actions{display:flex;gap:15px;flex-wrap:wrap}
-.staff-btn{display:flex;align-items:center;gap:8px;padding:12px 20px;background:#fff;border:2px solid #c95f00;border-radius:8px;color:#c95f00;font-weight:600;transition:.2s;position:relative}
-.staff-btn:hover{background:#c95f00;color:#fff}
-.staff-btn.admin{border-color:#e67e22;color:#e67e22}
-.staff-btn.admin:hover{background:#e67e22;color:#fff}
-.staff-badge{position:absolute;top:-5px;right:-5px;background:#dc3545;color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700}
-.top-contributors-section{background:linear-gradient(135deg,#e9fff1,#d4f5d2);border:2px solid #99e0b5;border-radius:18px;padding:35px 30px;box-shadow:0 6px 16px rgba(0,128,0,.1)}
-.section-heading{font-size:2rem;font-weight:800;margin-bottom:25px;color:#0e5a0b;display:flex;align-items:center;gap:12px}
-.table-wrapper.contributor-card{background:#fff;padding:24px;border:2px solid #b9f2cc;border-radius:14px;box-shadow:0 4px 10px rgba(0,100,0,.05)}
-.table-title{font-size:1.3rem;font-weight:700;margin-bottom:15px;color:#0f7d2d;display:flex;align-items:center;gap:8px}
-.dashboard-table{width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden}
-.dashboard-table th,.dashboard-table td{padding:12px 16px;text-align:left;border-bottom:1px solid #e3f7ec}
-.dashboard-table th{background:#0f7d2d;color:#fff;font-weight:600;font-size:.9rem}
-.badge{background:#127009;color:#fff;padding:3px 8px;border-radius:12px;font-size:.8rem;font-weight:600}
-.badge.secondary{background:#6c757d}
-.dashboard-controls{position:absolute;top:0;right:0;z-index:1000;display:flex;gap:10px;align-items:center}
-.dashboard-controls button{padding:8px 12px;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:600;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
-.customize-btn{background:#127009;color:#fff}.customize-btn:hover{background:#0a4a06}
-.save-btn{background:#28a745;color:#fff}.save-btn:hover{background:#1e7e34}
-.cancel-btn{background:#dc3545;color:#fff}.cancel-btn:hover{background:#c82333}
-.reset-btn{background:#ffc107;color:#333}.reset-btn:hover{background:#e0a800}
-.widget-item.dragging{opacity:.6;border:2px dashed #127009}
-.widget-panel{margin-top:20px;background:#fff;border:1px solid #ccc;padding:20px;border-radius:10px}
-.available-widgets button{margin:5px;padding:8px 12px;border:none;background:#127009;color:#fff;border-radius:6px;cursor:pointer}
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.dashboard-container {
+  max-width: 1600px;
+  margin: 10px auto;
+  padding: 0 20px;
+  position: relative;
+}
+
+.welcome-card {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  color: #155724;
+  padding: 18px 30px;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+  margin-bottom: 15px;
+  text-align: center;
+  border: 1px solid #b8dabc;
+}
+
+.welcome-card h1 {
+  font-size: 1.6rem;
+  margin: 0 0 3px 0;
+  font-weight: 700;
+}
+
+.welcome-subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.widget-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.widget-row {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+
+.row-1 {
+  grid-template-columns: 1.2fr 0.8fr;
+}
+
+.row-2, .row-4 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.section {
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border: 1px solid #e9ecef;
+  height: fit-content;
+}
+
+.section.compact {
+  padding: 10px;
+}
+
+.widget-header h2 {
+  font-size: 0.95rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #2c3e50;
+}
+
+.stats-widget.compact {
+  background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
+  border: 1px solid #d1ecf1;
+}
+
+.stats-grid-compact {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.stat-card-compact {
+  background: white;
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  border: 1px solid #e3f2fd;
+}
+
+.stat-icon-compact {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.stat-icon-compact.success { background: #28a745; }
+.stat-icon-compact.pending { background: #ffc107; }
+.stat-icon-compact.warning { background: #dc3545; }
+.stat-icon-compact.alert { background: #17a2b8; }
+
+.stat-content-compact {
+  text-align: center;
+}
+
+.stat-content-compact h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0;
+  color: #2c3e50;
+}
+
+.stat-content-compact p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.7rem;
+}
+
+.actions-widget.compact {
+  background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%);
+  border: 1px solid #b8f5cd;
+}
+
+.quick-actions-grid-compact {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.action-btn-compact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  background: white;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #333;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  border: 2px solid transparent;
+  position: relative;
+  font-size: 0.8rem;
+}
+
+.action-btn-compact:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.action-btn-compact.primary { border-color: #127009; }
+.action-btn-compact.primary:hover { background: #f0fff4; }
+.action-btn-compact.warning { border-color: #ffc107; }
+.action-btn-compact.warning:hover { background: #fffbf0; }
+.action-btn-compact.info { border-color: #17a2b8; }
+.action-btn-compact.info:hover { background: #f0fdff; }
+.action-btn-compact.secondary { border-color: #6c757d; }
+.action-btn-compact.secondary:hover { background: #f8f9fa; }
+
+.action-btn-compact i {
+  font-size: 1.2rem;
+}
+
+.action-btn-compact span {
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.action-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #dc3545;
+  color: white;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: bold;
+}
+
+.activity-widget.compact {
+  background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+  border: 1px solid #f8d7da;
+}
+
+.activity-list-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.activity-item-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+
+.activity-icon-compact {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: white;
+  flex-shrink: 0;
+}
+
+.activity-icon-compact.success { background: #28a745; }
+.activity-icon-compact.info { background: #17a2b8; }
+.activity-icon-compact.warning { background: #ffc107; color: #333; }
+
+.activity-content-compact p {
+  margin: 0 0 2px 0;
+  font-size: 0.8rem;
+}
+
+.activity-time {
+  font-size: 0.65rem;
+  color: #6c757d;
+}
+
+.tasks-widget.compact {
+  background: linear-gradient(135deg, #fffbf0 0%, #fff3cd 100%);
+  border: 1px solid #ffeaa7;
+}
+
+.task-list-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.task-item-compact {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: white;
+  border-radius: 6px;
+  border-left: 3px solid #ddd;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+
+.task-item-compact.priority-high { border-left-color: #dc3545; }
+.task-item-compact.priority-medium { border-left-color: #ffc107; }
+.task-item-compact.priority-low { border-left-color: #28a745; }
+
+.task-icon-compact {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+  color: #6c757d;
+  flex-shrink: 0;
+}
+
+.task-content-compact h4 {
+  margin: 0 0 3px 0;
+  font-size: 0.85rem;
+  color: #2c3e50;
+}
+
+.task-content-compact p {
+  margin: 0 0 4px 0;
+  color: #6c757d;
+  font-size: 0.75rem;
+}
+
+.task-action {
+  color: #127009;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.75rem;
+}
+
+.task-action:hover {
+  text-decoration: underline;
+}
+
+.staff-widget.compact {
+  background: linear-gradient(135deg, #fff0e6 0%, #ffeaa7 100%);
+  border: 1px solid #f39c12;
+}
+
+.staff-content-compact {
+  margin-top: 8px;
+}
+
+.staff-metric-compact {
+  text-align: center;
+  padding: 10px;
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border: 2px solid #f39c12;
+}
+
+.staff-metric-compact .metric-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.metric-value-large {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.metric-value-large.warning { color: #e67e22; }
+
+.staff-actions-compact {
+  display: flex;
+  gap: 8px;
+}
+
+.staff-btn-compact {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 10px;
+  background: white;
+  border: 2px solid #c95f00;
+  border-radius: 6px;
+  color: #c95f00;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.75rem;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.staff-btn-compact:hover {
+  background: #c95f00;
+  color: white;
+}
+
+.staff-btn-compact.admin {
+  border-color: #e67e22;
+  color: #e67e22;
+}
+
+.staff-btn-compact.admin:hover {
+  background: #e67e22;
+}
+
+.staff-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #dc3545;
+  color: white;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: bold;
+}
+
+.alerts-widget.compact {
+  background: linear-gradient(135deg, #f0f8ff 0%, #e3f2fd 100%);
+  border: 1px solid #b3e5fc;
+}
+
+.alerts-widget.full-width {
+  grid-column: 1 / -1;
+}
+
+.alerts-container-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.alert-item-compact {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: white;
+  border-radius: 6px;
+  border-left: 3px solid #17a2b8;
+}
+
+.alert-item-compact.info { border-left-color: #17a2b8; }
+.alert-item-compact.success { border-left-color: #28a745; }
+
+.alert-icon-compact {
+  color: #17a2b8;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.alert-content-compact h4 {
+  margin: 0 0 2px 0;
+  font-size: 0.8rem;
+  color: #2c3e50;
+}
+
+.alert-content-compact p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.7rem;
+}
+
+.top-contributors-section.compact {
+  background: linear-gradient(135deg, #e9fff1 0%, #d4f5d2 100%);
+  border: 2px solid #99e0b5;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 3px 10px rgba(0, 128, 0, 0.1);
+}
+
+.section-heading {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+  color: #0e5a0b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-section-compact {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.table-wrapper.contributor-card {
+  background-color: #ffffff;
+  padding: 10px;
+  border: 1px solid #b9f2cc;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 100, 0, 0.05);
+}
+
+.table-title-compact {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #0f7d2d;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dashboard-table-compact {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.dashboard-table-compact th,
+.dashboard-table-compact td {
+  padding: 5px 8px;
+  text-align: left;
+  border-bottom: 1px solid #e3f7ec;
+  font-size: 0.75rem;
+}
+
+.dashboard-table-compact th {
+  background-color: #0f7d2d;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.7rem;
+}
+
+.dashboard-table-compact tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.badge {
+  background: #127009;
+  color: white;
+  padding: 2px 5px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.badge.secondary {
+  background: #6c757d;
+}
+
+.dashboard-controls {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1001;
+}
+
+.customize-btn-left {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(18, 112, 9, 0.3);
+  background: #127009;
+  color: white;
+  border: 2px solid #0a4a06;
+}
+
+.customize-btn-left:hover {
+  background: #0a4a06;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(18, 112, 9, 0.4);
+}
+
+.customize-btn-left:active {
+  transform: translateY(-1px);
+}
+
+.customize-mode-controls {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1001;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.customize-mode-controls button {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+}
+
+.save-btn {
+  background: #28a745;
+  color: white;
+}
+
+.save-btn:hover {
+  background: #1e7e34;
+  transform: translateY(-2px);
+}
+
+.cancel-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background: #5a6268;
+}
+
+.reset-btn {
+  background: #dc3545;
+  color: white;
+}
+
+.reset-btn:hover {
+  background: #c82333;
+}
+
+.widget-item {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.widget-item.dragging {
+  opacity: 0.6;
+  transform: rotate(2deg);
+  z-index: 999;
+}
+
+.widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.widget-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.widget-controls button {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 5px 7px;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s ease;
+  font-size: 0.75rem;
+}
+
+.widget-controls button:hover {
+  background: #f8f9fa;
+  color: #333;
+  border-color: #aaa;
+}
+
+.widget-remove-btn:hover {
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+.widget-drag-handle {
+  cursor: grab;
+}
+
+.widget-drag-handle:active {
+  cursor: grabbing;
+}
+
+.widget-panel {
+  position: fixed;
+  left: 20px;
+  top: 120px;
+  background: white;
+  border: 2px solid #127009;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  max-width: 220px;
+  z-index: 999;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.widget-panel h3 {
+  margin: 0 0 12px 0;
+  color: #127009;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.available-widgets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.available-widget {
+  padding: 10px;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+}
+
+.available-widget:hover {
+  background: #e9ecef;
+  transform: translateX(3px);
+  border-color: #127009;
+}
+
+.available-widget i {
+  margin-right: 6px;
+  color: #127009;
+  width: 14px;
+  text-align: center;
+}
+
+.customize-mode .widget-item:not([data-widget="welcome"]) {
+  border: 2px dashed #127009;
+  background: rgba(18, 112, 9, 0.02);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 15px;
+}
+
+.customize-mode .widget-controls {
+  display: flex !important;
+}
+
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 50%;
+  transform: translateX(50%);
+  z-index: 9999;
+  padding: 10px 16px;
+  border-radius: 6px;
+  color: white;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  animation: slideInDown 0.3s ease-out;
+  font-size: 0.9rem;
+}
+
+.notification-success {
+  background: #28a745;
+}
+
+.notification-error {
+  background: #dc3545;
+}
+
+.notification-info {
+  background: #007bff;
+}
+
+.notification.fade-out {
+  animation: fadeOut 0.3s ease-in forwards;
+}
+
+.widget-removing {
+  animation: slideOut 0.4s ease-in-out forwards;
+}
+
+.widget-adding {
+  animation: slideIn 0.4s ease-in-out forwards;
+}
+
+@keyframes slideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+    max-height: 500px;
+    margin-bottom: 20px;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-100%);
+    max-height: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+    max-height: 0;
+    margin-bottom: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+    max-height: 500px;
+    margin-bottom: 20px;
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateX(50%) translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(50%) translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.stat-card-compact:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.activity-item-compact:hover {
+  transform: translateX(3px);
+}
+
+.task-item-compact:hover {
+  transform: translateX(3px);
+}
+
+@media (max-width: 1400px) {
+  .row-1 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 1200px) {
+  .dashboard-container {
+    max-width: 100%;
+  }
+  
+  .table-section-compact {
+    grid-template-columns: 1fr;
+  }
+  
+  .row-1 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-controls {
+    position: relative;
+    top: auto;
+    left: auto;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .customize-mode-controls {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin-bottom: 15px;
+    justify-content: center;
+  }
+  
+  .widget-panel {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    top: auto;
+    bottom: 20px;
+    max-width: none;
+  }
+  
+  .widget-row {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .stats-grid-compact {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .quick-actions-grid-compact {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .table-section-compact {
+    grid-template-columns: 1fr;
+  }
+  
+  .staff-actions-compact {
+    flex-direction: column;
+  }
+}
 </style>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
 <script>
-const customizeBtn=document.getElementById("customize-btn");
-const customizeControls=document.querySelector(".customize-mode-controls");
-const widgetContainer=document.getElementById("widget-container");
-const widgetPanel=document.getElementById("widget-panel");
-const availableWidgets=document.getElementById("available-widgets");
-let removedWidgets=[];
-customizeBtn.onclick=()=>{customizeBtn.style.display="none";customizeControls.style.display="flex";document.querySelectorAll(".widget-controls").forEach(c=>c.style.display="flex")};
-document.getElementById("cancel-customize-btn").onclick=()=>{customizeBtn.style.display="flex";customizeControls.style.display="none";document.querySelectorAll(".widget-controls").forEach(c=>c.style.display="none")};
-document.getElementById("save-layout-btn").onclick=()=>{customizeBtn.style.display="flex";customizeControls.style.display="none";document.querySelectorAll(".widget-controls").forEach(c=>c.style.display="none")};
-document.getElementById("reset-layout-btn").onclick=()=>location.reload();
-document.querySelectorAll(".widget-item").forEach(w=>{
-  const removeBtn=w.querySelector(".widget-remove-btn");
-  if(removeBtn) removeBtn.onclick=()=>{removedWidgets.push(w);w.remove();updateWidgetPanel()}
-  w.setAttribute("draggable",true);
-  w.addEventListener("dragstart",()=>w.classList.add("dragging"));
-  w.addEventListener("dragend",()=>w.classList.remove("dragging"))
-});
-widgetContainer.addEventListener("dragover",e=>{
-  e.preventDefault();
-  const dragging=document.querySelector(".dragging");
-  const after=getDragAfterElement(widgetContainer,e.clientY);
-  if(after==null)widgetContainer.appendChild(dragging);else widgetContainer.insertBefore(dragging,after)
-});
-function getDragAfterElement(container,y){
-  const els=[...container.querySelectorAll(".widget-item:not(.dragging)")];
-  return els.reduce((closest,child)=>{
-    const box=child.getBoundingClientRect();const offset=y-box.top-box.height/2;
-    if(offset<0&&offset>closest.offset)return{offset:offset,element:child};else return closest
-  },{offset:Number.NEGATIVE_INFINITY}).element
-}
-function updateWidgetPanel(){
-  availableWidgets.innerHTML="";
-  if(removedWidgets.length>0){widgetPanel.style.display="block";removedWidgets.forEach(w=>{const b=document.createElement("button");b.innerText=w.querySelector("h2,h3").innerText;b.onclick=()=>{widgetContainer.appendChild(w);removedWidgets=removedWidgets.filter(x=>x!==w);updateWidgetPanel()};availableWidgets.appendChild(b)})}
-  else widgetPanel.style.display="none"
-}
+(function() {
+  class DashboardCustomizer {
+    constructor() {
+      this.isCustomizing = false;
+      this.sortable = null;
+      this.removedWidgets = [];
+      this.originalLayout = [];
+      this.userRole = null;
+      this.widgetDefinitions = {
+        'quick-stats': { name: 'Quick Stats', icon: 'fas fa-chart-bar', roles: ['all'] },
+        'recent-activity': { name: 'Recent Activity', icon: 'fas fa-history', roles: ['all'] },
+        'top-contributors': { name: 'Top Contributors', icon: 'fas fa-chart-line', roles: ['all'] },
+        'quick-actions': { name: 'Quick Actions', icon: 'fas fa-bolt', roles: ['all'] },
+        'pending-tasks': { name: 'Pending Tasks', icon: 'fas fa-tasks', roles: ['all'] },
+        'system-alerts': { name: 'System Alerts', icon: 'fas fa-bullhorn', roles: ['all'] },
+        'staff-dashboard': { name: 'Staff Dashboard', icon: 'fas fa-users-cog', roles: ['staff', 'admin'] }
+      };
+      
+      window.dashboardCustomizerInitialized = true;
+      this.init();
+    }
+    
+    init() {
+      this.detectUserRole();
+      this.setupEventListeners();
+      this.loadSavedLayout();
+      this.saveOriginalLayout();
+    }
+    
+    detectUserRole() {
+      const staffWidget = document.querySelector('[data-widget="staff-dashboard"]');
+      this.userRole = staffWidget ? 'staff' : 'user';
+    }
+    
+    setupEventListeners() {
+      const customizeBtn = document.getElementById('customize-btn');
+      const saveBtn = document.getElementById('save-layout-btn');
+      const cancelBtn = document.getElementById('cancel-customize-btn');
+      const resetBtn = document.getElementById('reset-layout-btn');
+      
+      if (customizeBtn) customizeBtn.addEventListener('click', () => this.enterCustomizeMode());
+      if (saveBtn) saveBtn.addEventListener('click', () => this.saveLayout());
+      if (cancelBtn) cancelBtn.addEventListener('click', () => this.cancelCustomize());
+      if (resetBtn) resetBtn.addEventListener('click', () => this.resetLayout());
+      
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('.widget-remove-btn')) {
+          e.preventDefault();
+          const widget = e.target.closest('.widget-item');
+          this.removeWidget(widget);
+        }
+      });
+      
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('.available-widget')) {
+          const widgetType = e.target.closest('.available-widget').dataset.widget;
+          this.addWidget(widgetType);
+        }
+      });
+    }
+    
+    saveOriginalLayout() {
+      const widgets = document.querySelectorAll('.widget-item:not([data-widget="welcome"])');
+      this.originalLayout = Array.from(widgets).map(widget => ({
+        type: widget.dataset.widget,
+        element: widget.cloneNode(true)
+      }));
+    }
+    
+    enterCustomizeMode() {
+      this.isCustomizing = true;
+      document.body.classList.add('customize-mode');
+      
+      const customizeBtn = document.getElementById('customize-btn');
+      const customizeModeControls = document.querySelector('.customize-mode-controls');
+      const widgetPanel = document.getElementById('widget-panel');
+      
+      if (customizeBtn) customizeBtn.style.display = 'none';
+      if (customizeModeControls) customizeModeControls.style.display = 'flex';
+      if (widgetPanel) widgetPanel.style.display = 'block';
+      
+      this.initSortable();
+      this.updateAvailableWidgets();
+      this.showNotification('Customize mode activated!', 'info');
+    }
+    
+    exitCustomizeMode() {
+      this.isCustomizing = false;
+      document.body.classList.remove('customize-mode');
+      
+      const customizeBtn = document.getElementById('customize-btn');
+      const customizeModeControls = document.querySelector('.customize-mode-controls');
+      const widgetPanel = document.getElementById('widget-panel');
+      
+      if (customizeBtn) customizeBtn.style.display = 'flex';
+      if (customizeModeControls) customizeModeControls.style.display = 'none';
+      if (widgetPanel) widgetPanel.style.display = 'none';
+      
+      if (this.sortable) {
+        this.sortable.destroy();
+        this.sortable = null;
+      }
+    }
+    
+    initSortable() {
+      const container = document.getElementById('widget-container');
+      if (!container || !window.Sortable) return;
+      
+      this.sortable = new Sortable(container, {
+        handle: '.widget-drag-handle',
+        animation: 200,
+        ghostClass: 'dragging',
+        filter: '[data-widget="welcome"]',
+        onStart: (evt) => evt.item.classList.add('dragging'),
+        onEnd: (evt) => evt.item.classList.remove('dragging')
+      });
+    }
+    
+    removeWidget(widgetElement) {
+      const widgetType = widgetElement.dataset.widget;
+      if (widgetType === 'welcome') {
+        this.showNotification('Welcome widget cannot be removed.', 'error');
+        return;
+      }
+      
+      this.removedWidgets.push({
+        type: widgetType,
+        element: widgetElement.cloneNode(true)
+      });
+      
+      widgetElement.classList.add('widget-removing');
+      setTimeout(() => {
+        widgetElement.remove();
+        this.updateAvailableWidgets();
+      }, 400);
+    }
+    
+    addWidget(widgetType) {
+      const removedIndex = this.removedWidgets.findIndex(w => w.type === widgetType);
+      if (removedIndex === -1) return;
+      
+      const widgetData = this.removedWidgets[removedIndex];
+      const container = document.getElementById('widget-container');
+      const newWidget = widgetData.element.cloneNode(true);
+      
+      newWidget.classList.add('widget-adding');
+      container.appendChild(newWidget);
+      this.removedWidgets.splice(removedIndex, 1);
+      
+      setTimeout(() => {
+        newWidget.classList.remove('widget-adding');
+        this.updateAvailableWidgets();
+      }, 400);
+    }
+    
+    updateAvailableWidgets() {
+      const availableContainer = document.getElementById('available-widgets');
+      if (!availableContainer) return;
+      
+      availableContainer.innerHTML = '';
+      
+      this.removedWidgets.forEach(widget => {
+        const widgetDef = this.widgetDefinitions[widget.type];
+        if (!widgetDef) return;
+        
+        if (widget.type === 'staff-dashboard' && this.userRole !== 'staff') {
+          return;
+        }
+        
+        if (widgetDef.roles && !widgetDef.roles.includes('all')) {
+          if (!widgetDef.roles.includes(this.userRole)) {
+            return;
+          }
+        }
+        
+        const widgetElement = document.createElement('div');
+        widgetElement.className = 'available-widget';
+        widgetElement.dataset.widget = widget.type;
+        widgetElement.innerHTML = `<i class="${widgetDef.icon}"></i><span>${widgetDef.name}</span>`;
+        availableContainer.appendChild(widgetElement);
+      });
+      
+      if (this.removedWidgets.length === 0 || availableContainer.children.length === 0) {
+        availableContainer.innerHTML = '<p style="color: #666; font-style: italic; margin: 0; text-align: center;">All widgets active</p>';
+      }
+    }
+    
+    saveLayout() {
+      const widgets = Array.from(document.querySelectorAll('.widget-item')).map(widget => ({
+        type: widget.dataset.widget,
+        visible: true
+      }));
+      
+      const layout = {
+        widgets: widgets,
+        removedWidgets: this.removedWidgets.map(w => w.type),
+        userRole: this.userRole,
+        timestamp: new Date().toISOString()
+      };
+      
+      try {
+        const storageKey = `dashboardLayout_${this.userRole}`;
+        localStorage.setItem(storageKey, JSON.stringify(layout));
+        this.exitCustomizeMode();
+        this.showNotification('Layout saved successfully!', 'success');
+      } catch (error) {
+        this.showNotification('Error saving layout', 'error');
+      }
+    }
+    
+    cancelCustomize() {
+      this.restoreOriginalLayout();
+      this.removedWidgets = [];
+      this.exitCustomizeMode();
+      this.showNotification('Changes cancelled', 'info');
+    }
+    
+    resetLayout() {
+      if (confirm('Reset dashboard to default layout?')) {
+        try {
+          const storageKey = `dashboardLayout_${this.userRole}`;
+          localStorage.removeItem(storageKey);
+          location.reload();
+        } catch (error) {
+          this.showNotification('Error resetting layout', 'error');
+        }
+      }
+    }
+    
+    restoreOriginalLayout() {
+      const container = document.getElementById('widget-container');
+      if (!container) return;
+      
+      const welcomeWidget = container.querySelector('[data-widget="welcome"]');
+      container.innerHTML = '';
+      if (welcomeWidget) container.appendChild(welcomeWidget);
+      this.originalLayout.forEach(widget => {
+        container.appendChild(widget.element.cloneNode(true));
+      });
+    }
+    
+    loadSavedLayout() {
+      try {
+        const storageKey = `dashboardLayout_${this.userRole}`;
+        const savedLayout = localStorage.getItem(storageKey);
+        if (!savedLayout) return;
+        
+        const layout = JSON.parse(savedLayout);
+        this.applySavedLayout(layout);
+      } catch (error) {
+        console.error('Error loading saved layout:', error);
+      }
+    }
+    
+    applySavedLayout(layout) {
+      const container = document.getElementById('widget-container');
+      if (!container) return;
+      
+      const welcomeWidget = document.querySelector('[data-widget="welcome"]');
+      
+      if (layout.removedWidgets) {
+        layout.removedWidgets.forEach(widgetType => {
+          const widget = container.querySelector(`[data-widget="${widgetType}"]`);
+          if (widget) {
+            this.removedWidgets.push({
+              type: widgetType,
+              element: widget.cloneNode(true)
+            });
+            widget.remove();
+          }
+        });
+      }
+      
+      if (layout.widgets) {
+        const orderedWidgets = [];
+        if (welcomeWidget) orderedWidgets.push(welcomeWidget);
+        
+        layout.widgets.forEach(savedWidget => {
+          if (savedWidget.type === 'welcome') return;
+          const widget = container.querySelector(`[data-widget="${savedWidget.type}"]`);
+          if (widget && savedWidget.visible) {
+            orderedWidgets.push(widget);
+          }
+        });
+        
+        container.innerHTML = '';
+        orderedWidgets.forEach(widget => container.appendChild(widget));
+      }
+    }
+    
+    showNotification(message, type = 'info') {
+      const existingNotifications = document.querySelectorAll('.notification');
+      existingNotifications.forEach(notif => notif.remove());
+      
+      const notification = document.createElement('div');
+      notification.className = `notification notification-${type}`;
+      notification.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+        <span>${message}</span>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.classList.add('fade-out');
+        setTimeout(() => {
+          if (notification.parentNode) notification.parentNode.removeChild(notification);
+        }, 300);
+      }, 3000);
+    }
+  }
+  
+  function initCustomizer() {
+    try {
+      if (typeof Sortable !== 'undefined') {
+        new DashboardCustomizer();
+      } else {
+        setTimeout(initCustomizer, 200);
+      }
+    } catch (error) {
+      console.error('Error initializing Dashboard Customizer:', error);
+    }
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCustomizer);
+  } else {
+    initCustomizer();
+  }
+  
+  window.addEventListener('load', () => {
+    if (!window.dashboardCustomizerInitialized) {
+      initCustomizer();
+    }
+  });
+})();
 </script>
-</body>
-</html>
