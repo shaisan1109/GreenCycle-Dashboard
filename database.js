@@ -1147,42 +1147,62 @@ export async function getWasteComplianceStatus(dataEntryId) {
   const [rows] = await sql.query(`
     SELECT
         ws.name AS supertype_name,
-        cq.quota_weight,
+        cq.quota_weight AS target_rate,   -- this is the mandated % target
         COALESCE(SUM(wc.waste_amount), 0) AS total_collected_weight,
-        CASE
-            WHEN COALESCE(SUM(wc.waste_amount), 0) >= cq.quota_weight THEN 'Compliant'
-            ELSE 'Non-Compliant'
-        END AS compliance_status
+        de.annual AS total_generation
     FROM compliance_quotas cq
     JOIN waste_supertype ws ON cq.waste_supertype_id = ws.id
     LEFT JOIN waste_type wt ON wt.supertype_id = ws.id
-    LEFT JOIN data_waste_composition wc ON wc.type_id = wt.id
-    LEFT JOIN data_entry de ON wc.data_entry_id = de.data_entry_id
-    WHERE de.data_entry_id = ?
-    GROUP BY ws.id, cq.quota_weight
-  `, [dataEntryId]);
+    LEFT JOIN data_waste_composition wc ON wc.type_id = wt.id AND wc.data_entry_id = ?
+    JOIN data_entry de ON de.data_entry_id = ?
+    GROUP BY ws.id, cq.quota_weight, de.annual
+  `, [dataEntryId, dataEntryId]);
 
-  return rows;
+  return rows.map(r => {
+    const diversionPct = r.total_generation > 0 
+      ? (r.total_collected_weight / r.total_generation) * 100 
+      : 0;
+
+    return {
+      supertype_name: r.supertype_name,
+      total_collected_weight: Number(r.total_collected_weight).toFixed(3),
+      total_generation: Number(r.total_generation).toFixed(3),
+      diversion_pct: diversionPct.toFixed(2),
+      target_rate: r.target_rate,
+      compliance_status: diversionPct >= r.target_rate ? 'Compliant' : 'Non-Compliant'
+    };
+  });
 }
 
 export async function getSectorComplianceStatus(dataEntryId) {
   const [rows] = await sql.query(`
     SELECT
         s.name AS sector_name,
-        scq.quota_weight,
+        scq.quota_weight AS target_rate,   -- mandated % target
         COALESCE(SUM(wc.waste_amount), 0) AS total_collected_weight,
-        CASE
-            WHEN COALESCE(SUM(wc.waste_amount), 0) >= scq.quota_weight THEN 'Compliant'
-            ELSE 'Non-Compliant'
-        END AS compliance_status
+        de.annual AS total_generation
     FROM sector_compliance_quotas scq
     JOIN sector s ON s.id = scq.sector_id
     LEFT JOIN data_waste_composition wc 
-    ON wc.sector_id = scq.sector_id AND wc.data_entry_id = ?
-    GROUP BY s.id, scq.quota_weight
-  `, [dataEntryId]);
+      ON wc.sector_id = scq.sector_id AND wc.data_entry_id = ?
+    JOIN data_entry de ON de.data_entry_id = ?
+    GROUP BY s.id, scq.quota_weight, de.annual
+  `, [dataEntryId, dataEntryId]);
 
-  return rows;
+  return rows.map(r => {
+    const diversionPct = r.total_generation > 0
+      ? (r.total_collected_weight / r.total_generation) * 100
+      : 0;
+
+    return {
+      sector_name: r.sector_name,
+      total_collected_weight: Number(r.total_collected_weight).toFixed(3),
+      total_generation: Number(r.total_generation).toFixed(3),
+      diversion_pct: diversionPct.toFixed(2),
+      target_rate: r.target_rate,
+      compliance_status: diversionPct >= r.target_rate ? 'Compliant' : 'Non-Compliant'
+    };
+  });
 }
 
 export async function getWasteComplianceStatusFromSummary(title, region, province, locationCode, author, company, startDate, endDate) {
@@ -1204,9 +1224,6 @@ export async function getWasteComplianceStatusFromSummary(title, region, provinc
         ${startDate ? 'AND de.collection_start >= ?' : ''}
         ${endDate ? 'AND de.collection_end <= ?' : ''}
     ),
-    entry_count AS (
-      SELECT COUNT(*) AS total_entries FROM matching_entries
-    ),
     waste_totals AS (
       SELECT
         wt.supertype_id,
@@ -1215,20 +1232,29 @@ export async function getWasteComplianceStatusFromSummary(title, region, provinc
       JOIN waste_type wt ON wc.type_id = wt.id
       WHERE wc.data_entry_id IN (SELECT data_entry_id FROM matching_entries)
       GROUP BY wt.supertype_id
+    ),
+    total_gen AS (
+      SELECT SUM(wc.waste_amount) AS grand_total
+      FROM data_waste_composition wc
+      WHERE wc.data_entry_id IN (SELECT data_entry_id FROM matching_entries)
     )
     SELECT
       ws.name AS supertype_name,
-      cq.quota_weight * ec.total_entries AS quota_weight,
       COALESCE(wt.total_collected_weight, 0) AS total_collected_weight,
+      g.grand_total AS total_generated,
+      ROUND(
+        (COALESCE(wt.total_collected_weight, 0) / NULLIF(g.grand_total,0)) * 100,
+        2
+      ) AS diversion_percentage,
+      cq.quota_weight AS target_percentage,
       CASE
-        WHEN COALESCE(wt.total_collected_weight, 0) >= cq.quota_weight * ec.total_entries THEN 'Compliant'
+        WHEN (COALESCE(wt.total_collected_weight, 0) / NULLIF(g.grand_total,0)) * 100 >= cq.quota_weight THEN 'Compliant'
         ELSE 'Non-Compliant'
-      END AS compliance_status,
-      ec.total_entries AS entry_count
-    FROM compliance_quotas cq
-    JOIN waste_supertype ws ON cq.waste_supertype_id = ws.id
-    JOIN entry_count ec ON 1=1
+      END AS compliance_status
+    FROM waste_supertype ws
     LEFT JOIN waste_totals wt ON wt.supertype_id = ws.id
+    CROSS JOIN total_gen g
+    JOIN compliance_quotas cq ON cq.waste_supertype_id = ws.id
   `, [
     ...(title ? [`%${title}%`] : []),
     ...(locationCode ? [locationCode, locationCode, locationCode] : []),
@@ -1238,14 +1264,10 @@ export async function getWasteComplianceStatusFromSummary(title, region, provinc
     ...(endDate ? [endDate] : [])
   ]);
 
-  if (rows.length > 0) {
-    console.log(`Matching approved entries count: ${rows[0].entry_count}`);
-  } else {
-    console.log(`No approved matching entries`);
-  }
-
   return rows;
 }
+
+
 
 export async function getSectorComplianceStatusFromSummary(title, region, province, locationCode, author, company, startDate, endDate) {
   const [rows] = await sql.query(`
@@ -1266,9 +1288,6 @@ export async function getSectorComplianceStatusFromSummary(title, region, provin
         ${startDate ? 'AND de.collection_start >= ?' : ''}
         ${endDate ? 'AND de.collection_end <= ?' : ''}
     ),
-    entry_count AS (
-      SELECT COUNT(*) AS total_entries FROM matching_entries
-    ),
     sector_totals AS (
       SELECT
         wc.sector_id,
@@ -1276,20 +1295,29 @@ export async function getSectorComplianceStatusFromSummary(title, region, provin
       FROM data_waste_composition wc
       WHERE wc.data_entry_id IN (SELECT data_entry_id FROM matching_entries)
       GROUP BY wc.sector_id
+    ),
+    total_gen AS (
+      SELECT SUM(wc.waste_amount) AS grand_total
+      FROM data_waste_composition wc
+      WHERE wc.data_entry_id IN (SELECT data_entry_id FROM matching_entries)
     )
     SELECT
       s.name AS sector_name,
-      scq.quota_weight * ec.total_entries AS quota_weight,
       COALESCE(st.total_collected_weight, 0) AS total_collected_weight,
+      g.grand_total AS total_generated,
+      ROUND(
+        (COALESCE(st.total_collected_weight, 0) / NULLIF(g.grand_total,0)) * 100,
+        2
+      ) AS diversion_percentage,
+      scq.quota_weight AS target_percentage,
       CASE
-        WHEN COALESCE(st.total_collected_weight, 0) >= scq.quota_weight * ec.total_entries THEN 'Compliant'
+        WHEN (COALESCE(st.total_collected_weight, 0) / NULLIF(g.grand_total,0)) * 100 >= scq.quota_weight THEN 'Compliant'
         ELSE 'Non-Compliant'
-      END AS compliance_status,
-      ec.total_entries AS entry_count
-    FROM sector_compliance_quotas scq
-    JOIN sector s ON s.id = scq.sector_id
-    JOIN entry_count ec ON 1=1
+      END AS compliance_status
+    FROM sector s
     LEFT JOIN sector_totals st ON st.sector_id = s.id
+    CROSS JOIN total_gen g
+    JOIN sector_compliance_quotas scq ON scq.sector_id = s.id
   `, [
     ...(title ? [`%${title}%`] : []),
     ...(locationCode ? [locationCode, locationCode, locationCode] : []),
@@ -1299,14 +1327,9 @@ export async function getSectorComplianceStatusFromSummary(title, region, provin
     ...(endDate ? [endDate] : [])
   ]);
 
-  if (rows.length > 0) {
-    console.log(`Matching approved entries count: ${rows[0].entry_count}`);
-  } else {
-    console.log(`No approved matching entries`);
-  }
-
   return rows;
 }
+
 
 
 export async function getUserWasteComplianceSummary() {

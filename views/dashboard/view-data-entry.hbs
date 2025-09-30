@@ -78,47 +78,58 @@
   </div>
 
   <!-- Compliance -->
-  <div style="width: 100%; display: flex;">
-    <div data-section="compliance-category" class="form-section" style="background-color: rgb(227, 255, 227); margin: 0 10px 10px 0 !important; width: 100%;">
-      <h2>Waste Category Compliance Status</h2>
-      <table class="user-profile">
+<div style="width: 100%; display: flex;">
+  <!-- Waste Category Compliance -->
+  <div data-section="compliance-category" class="form-section" style="background-color: rgb(227, 255, 227); margin: 0 10px 10px 0 !important; width: 100%;">
+    <h2>Waste Category Compliance Status</h2>
+    <table class="user-profile">
+      <tr>
+        <th>Waste Category</th>
+        <th>Collected</th>
+        <th>Total Generated</th>
+        <th>Diversion %</th>
+        <th>Target %</th>
+        <th>Status</th>
+      </tr>
+      {{#each wasteCompliance}}
         <tr>
-          <th>Waste Category</th>
-          <th>Collected</th>
-          <th>Quota</th>
-          <th>Status</th>
+          <td>{{supertype_name}}</td>
+          <td>{{total_collected_weight}} kg</td>
+          <td>{{total_generation}} kg</td>
+          <td>{{diversion_pct}}%</td>
+          <td>{{target_rate}}%</td>
+          <td>{{compliance_status}}</td>
         </tr>
-        {{#each wasteCompliance}}
-          <tr>
-            <td>{{supertype_name}}</td>
-            <td>{{total_collected_weight}} kg</td>
-            <td>{{quota_weight}} kg</td>
-            <td>{{compliance_status}}</td>
-          </tr>
-        {{/each}}
-      </table>
-    </div>
-
-    <div data-section="compliance-sector" class="form-section" style="background-color: rgb(227, 255, 227); margin: 0 0 10px 10px !important; width: 100%;">
-      <h2>Waste Sector Compliance Status</h2>
-      <table class="user-profile">
-        <tr>
-          <th>Sector</th>
-          <th>Collected</th>
-          <th>Quota</th>
-          <th>Status</th>
-        </tr>
-        {{#each sectorCompliance}}
-          <tr>
-            <td>{{sector_name}}</td>
-            <td>{{total_collected_weight}} kg</td>
-            <td>{{quota_weight}} kg</td>
-            <td>{{compliance_status}}</td>
-          </tr>
-        {{/each}}
-      </table>
-    </div>
+      {{/each}}
+    </table>
   </div>
+
+  <!-- Sector Compliance -->
+  <div data-section="compliance-sector" class="form-section" style="background-color: rgb(227, 255, 227); margin: 0 0 10px 10px !important; width: 100%;">
+    <h2>Waste Sector Compliance Status</h2>
+    <table class="user-profile">
+      <tr>
+        <th>Sector</th>
+        <th>Collected</th>
+        <th>Total Generated</th>
+        <th>Diversion %</th>
+        <th>Target %</th>
+        <th>Status</th>
+      </tr>
+      {{#each sectorCompliance}}
+        <tr>
+          <td>{{sector_name}}</td>
+          <td>{{total_collected_weight}} kg</td>
+          <td>{{total_generation}} kg</td>
+          <td>{{diversion_pct}}%</td>
+          <td>{{target_rate}}%</td>
+          <td>{{compliance_status}}</td>
+        </tr>
+      {{/each}}
+    </table>
+  </div>
+</div>
+
 
   <!-- Insight -->
   <hr>

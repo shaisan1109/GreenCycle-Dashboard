@@ -1,0 +1,151 @@
+<h2 class="deadline-title">⏰ Submission Deadline</h2>
+
+<div class="deadline-container">
+  <p><strong>Deadline:</strong> <span id="deadline-date"></span></p>
+
+  <div id="countdown" class="countdown">
+    <div><span id="months">0</span><small>Months</small></div>
+    <div><span id="days">0</span><small>Days</small></div>
+    <div><span id="hours">0</span><small>Hours</small></div>
+    <div><span id="minutes">0</span><small>Minutes</small></div>
+    <div><span id="seconds">0</span><small>Seconds</small></div>
+  </div>
+
+  <div id="sanction" class="sanction-box" style="display:none;">
+    <h3>⚠️ Deadline Passed</h3>
+    <p>You are now subject to a fine.</p>
+    <p><strong>Current Fine:</strong> <span class="fine">₱<span id="fine-amount">500</span></span></p>
+    <p class="fine-detail">The fine starts at ₱500 and increases by ₱500 every week you are overdue.</p>
+  </div>
+</div>
+
+<script>
+async function loadDeadline(userId) {
+  try {
+    const res = await fetch(`/api/deadline/${userId}`);
+    if (!res.ok) throw new Error("Failed to fetch deadline");
+
+    const data = await res.json();
+    console.log("Deadline API (page):", data);
+
+    if (data.exempt) {
+      document.querySelector(".deadline-container").innerHTML = "<p>✅ You are exempt from deadlines.</p>";
+      return;
+    }
+
+    if (data.submitted) {
+      document.querySelector(".deadline-container").innerHTML = "<p>✅ You’ve already submitted this month!</p>";
+      return;
+    }
+
+    const deadline = new Date(data.deadline);
+    document.getElementById("deadline-date").textContent = deadline.toLocaleString();
+
+    function updateCountdown() {
+      const now = new Date();
+      const distance = deadline - now;
+
+      if (distance <= 0) {
+        document.getElementById("countdown").innerHTML = "<strong>⏰ Deadline reached!</strong>";
+
+        // Fine calculation
+        const overdueTime = now - deadline;
+        const weeksOverdue = Math.floor(overdueTime / (1000 * 60 * 60 * 24 * 7));
+        const fine = 500 * (weeksOverdue + 1);
+
+        document.getElementById("sanction").style.display = "block";
+        document.getElementById("fine-amount").innerText = fine;
+        return;
+      }
+
+      const months = Math.floor(distance / (1000 * 60 * 60 * 24 * 30));
+      const days = Math.floor((distance % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      document.getElementById("months").innerText = months;
+      document.getElementById("days").innerText = days;
+      document.getElementById("hours").innerText = hours;
+      document.getElementById("minutes").innerText = minutes;
+      document.getElementById("seconds").innerText = seconds;
+    }
+
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+  } catch (err) {
+    console.error("Deadline page error:", err);
+    document.querySelector(".deadline-container").innerHTML = "<p>⚠️ Error loading deadline.</p>";
+  }
+}
+
+// Inject logged-in user ID from server
+loadDeadline({{#if user}}{{user.id}}{{else}}0{{/if}});
+</script>
+
+<style>
+.deadline-title {
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+  text-align: left; /* Title aligned left */
+}
+
+.deadline-container {
+  max-width: 600px;
+  margin: auto;
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 12px;
+  box-shadow: 0px 3px 8px rgba(0,0,0,0.1);
+  text-align: left; /* Everything else aligned left */
+}
+
+.countdown {
+  display: flex;
+  justify-content: space-around;
+  margin: 20px 0;
+  font-size: 1.5rem;
+}
+
+.countdown div {
+  text-align: center;
+}
+
+.countdown span {
+  font-weight: bold;
+  font-size: 2rem;
+  color: #333;
+}
+
+.countdown small {
+  display: block;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.sanction-box {
+  background: #ffe5e5;
+  border: 2px solid red;
+  border-radius: 10px;
+  padding: 15px;
+  margin-top: 20px;
+  text-align: center; /* Only the sanction centered */
+  color: #a30000;
+}
+
+.sanction-box h3 {
+  margin: 0 0 10px;
+}
+
+.fine {
+  font-size: 1.6rem;
+  color: #d00000;
+}
+
+.fine-detail {
+  font-size: 0.9rem;
+  margin-top: 10px;
+  color: #444;
+}
+
+</style>
