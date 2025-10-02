@@ -1876,6 +1876,26 @@ export async function updateNotifRead(notifId, isRead) {
     })
 }
 
+// Update notif (batch version)
+export async function updateNotifReadBatch(notifIds, isRead) {
+  if (!notifIds || notifIds.length === 0) return;
+
+  const placeholders = notifIds.map(() => '?').join(',');
+  const values = [isRead, ...notifIds];
+
+  await sql.query(
+    `UPDATE greencycle.notifications
+    SET is_read = ?
+    WHERE id IN (${placeholders})
+    `,
+    values,
+    function (err, result) {
+      if (err) throw err;
+      console.log(`${result.affectedRows} notification(s) updated`);
+    }
+  );
+}
+
 // Get notif status
 export async function getNotifStatus(notifId) {
     const [result] = await sql.query(`
@@ -1891,10 +1911,21 @@ export async function deleteNotification(notifId) {
     );
 }
 
-// Delete all notifs for user
-export async function deleteAllNotifications(userId) {
-    await sql.query(
-        `DELETE FROM greencycle.notifications WHERE user_id = ?`,
-        [userId]
-    );
+// Delete multiple notifications by selection
+export async function deleteNotificationsBatch(ids) {
+  if (!ids.length) return;
+
+  const placeholders = ids.map(() => '?').join(',');
+  const query = `
+    DELETE FROM greencycle.notifications
+    WHERE id IN (${placeholders})
+  `;
+
+  try {
+    await sql.query(query, ids);
+    console.log(`${ids.length} notifications deleted`);
+  } catch (err) {
+    console.error('Error deleting notifications batch:', err);
+    throw err;
+  }
 }

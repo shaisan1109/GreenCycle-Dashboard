@@ -85,7 +85,9 @@ import {
   unclaimTask,
   createTask,
   completeTask,
-  getTaskByEntryId
+  getTaskByEntryId,
+  updateNotifReadBatch,
+  deleteNotificationsBatch
 } from './database.js'
 
 // File Upload
@@ -579,6 +581,24 @@ app.post('/notifications/read/:id', async (req, res) => {
   }
 });
 
+// Notif batch action
+app.patch('/notifications/mark-read-batch', async (req, res) => {
+  try {
+    const { ids, is_read } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'No notification IDs provided' });
+    }
+
+    await updateNotifReadBatch(ids, is_read ? 1 : 0);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Batch mark-read error:', err);
+    res.status(500).json({ success: false });
+  }
+});
+
 // Delete notif using x button
 app.delete('/notifications/delete/:id', async (req, res) => {
   const notifId = req.params.id;
@@ -588,6 +608,22 @@ app.delete('/notifications/delete/:id', async (req, res) => {
     res.status(200).json({ success: true });
   } catch (err) {
     console.error('Failed to delete notification:', err);
+    res.status(500).json({ success: false });
+  }
+});
+
+// Delete notif thru selection
+app.delete('/notifications/delete-batch', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'No IDs provided' });
+    }
+
+    await deleteNotificationsBatch(ids);
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('Batch delete error:', err);
     res.status(500).json({ success: false });
   }
 });
