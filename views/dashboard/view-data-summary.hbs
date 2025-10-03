@@ -49,6 +49,60 @@
     <p style="font-size: large;">Average data for the requested entries.</p>
 </div>
 
+<!-- Participants Section -->
+<div class="form-section" 
+     style="background-color: #f0fff4; padding: 1.5rem; border-radius: 12px; margin: 0.5rem 0;"
+     data-section="participants">
+  
+  <h2 style="color: #2d613f; font-weight: 600; margin-bottom: 1rem;">
+    <i class="fa-solid fa-users" style="margin-right: 10px; color: #4CAF50;"></i>
+   Participants Included
+  </h2>
+
+  <!-- Users -->
+  <div style="margin-bottom: 1rem;">
+    <strong style="color:#2d613f;">Users:</strong>
+    {{#if uniqueUsers.length}}
+      <ul style="list-style-type: disc; padding-left: 1.5rem; margin: 0.5rem 0;">
+        {{#each uniqueUsers}}
+          <li style="margin-bottom: 0.25rem; color: #333;">{{this}}</li>
+        {{/each}}
+      </ul>
+    {{else}}
+      <p style="margin: 0.5rem 0; color: #777;">None</p>
+    {{/if}}
+  </div>
+
+  <!-- Organizations -->
+  <div style="margin-bottom: 1rem;">
+    <strong style="color:#2d613f;">Organizations:</strong>
+    {{#if uniqueOrgs.length}}
+      <ul style="list-style-type: disc; padding-left: 1.5rem; margin: 0.5rem 0;">
+        {{#each uniqueOrgs}}
+          <li style="margin-bottom: 0.25rem; color: #333;">{{this}}</li>
+        {{/each}}
+      </ul>
+    {{else}}
+      <p style="margin: 0.5rem 0; color: #777;">None</p>
+    {{/if}}
+  </div>
+
+  <!-- Locations -->
+  <div>
+    <strong style="color:#2d613f;">Locations:</strong>
+    {{#if uniqueLocations.length}}
+      <ul style="list-style-type: disc; padding-left: 1.5rem; margin: 0.5rem 0;">
+        {{#each uniqueLocations}}
+          <li style="margin-bottom: 0.25rem; color: #333;">{{this}}</li>
+        {{/each}}
+      </ul>
+    {{else}}
+      <p style="margin: 0.5rem 0; color: #777;">None</p>
+    {{/if}}
+  </div>
+</div>
+
+
 <!-- Initial Summary -->
 <div style="display: flex;">
   <div data-section="data-info">

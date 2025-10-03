@@ -40,82 +40,79 @@
 </div>
 
 <div class="form-section">
-  <h2>User Waste Compliance Statistics</h2>
-  <table class="user-profile" style="width: 100%;">
+  <h2>Compliance Statistics</h2>
+
+  <label for="compliance-type">Select Category:</label>
+<select id="compliance-type" onchange="fetchComplianceData()">
+  <optgroup label="Waste Categories">
+    <option value="Biodegradable">Biodegradable</option>
+    <option value="Recyclable">Recyclable</option>
+    <option value="Residual">Residual</option>
+    <option value="Special/Hazardous">Special/Hazardous</option>
+  </optgroup>
+
+  <optgroup label="Waste Sectors">
+    <option value="Residential">Residential</option>
+    <option value="Commercial">Commercial</option>
+    <option value="Institutional">Institutional</option>
+    <option value="Industrial">Industrial</option>
+    <option value="Health">Health</option>
+    <option value="Agriculture and Livestock">Agriculture and Livestock</option>
+  </optgroup>
+</select>
+
+
+  <table class="user-profile" style="width:100%; margin-top: 1rem;">
     <thead>
       <tr>
         <th>User</th>
-        <th>Company</th>
-        <th>Waste Type</th>
-        <th>Quota</th>
-        <th>Collected</th>
+        <th>Organization</th>
+        <th>Diversion %</th>
+        <th>Target %</th>
+        <th>Total Collected (kg)</th>
+        <th>Total Generated (kg)</th>
         <th>Status</th>
       </tr>
     </thead>
-    <tbody>
-  {{#if wasteCompliance.length}}
-    {{#each wasteCompliance}}
-      <tr>
-        <td>{{uppercase this.lastname}}, {{this.firstname}}</td>
-        <td>{{this.company_name}}</td>
-        <td>{{this.supertype_name}}</td>
-        <td>{{this.quota_weight}} kg</td>
-        <td>{{this.total_collected_weight}} kg</td>
-        <td>
-          {{#ifEquals this.compliance_status "Compliant"}}
-            <span class="stat-approved">Compliant</span>
-          {{else}}
-            <span class="stat-revision">Non-Compliant</span>
-          {{/ifEquals}}
-        </td>
-      </tr>
-    {{/each}}
-  {{else}}
-    <tr><td colspan="6">No data available.</td></tr>
-  {{/if}}
- </tbody>
-
+    <tbody id="compliance-results">
+      <!-- dynamically filled -->
+    </tbody>
   </table>
 </div>
 
-<div class="form-section">
-  <h2>User Sector Compliance Statistics</h2>
-  <table class="user-profile" style="width: 100%;">
-    <thead>
-      <tr>
-        <th>User</th>
-        <th>Company</th>
-        <th>Sector</th>
-        <th>Quota</th>
-        <th>Collected</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody>
-  {{#if sectorCompliance.length}}
-    {{#each sectorCompliance}}
-      <tr>
-        <td>{{uppercase this.lastname}}, {{this.firstname}}</td>
-        <td>{{this.company_name}}</td>
-        <td>{{this.sector_name}}</td>
-        <td>{{this.quota_weight}} kg</td>
-        <td>{{this.total_collected_weight}} kg</td>
-        <td>
-          {{#ifEquals this.compliance_status "Compliant"}}
-            <span class="stat-approved">Compliant</span>
-          {{else}}
-            <span class="stat-revision">Non-Compliant</span>
-          {{/ifEquals}}
-        </td>
-      </tr>
-    {{/each}}
-  {{else}}
-    <tr><td colspan="6">No data available.</td></tr>
-  {{/if}}
- </tbody>
+<script>
+async function fetchComplianceData() {
+  const category = document.getElementById('compliance-type').value;
+  const res = await fetch(`/api/compliance?category=${encodeURIComponent(category)}`);
+  const data = await res.json();
 
-  </table>
-</div>
+  const tbody = document.getElementById('compliance-results');
+  tbody.innerHTML = '';
+
+  data.forEach(user => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${user.lastname.toUpperCase()}, ${user.firstname}</td>
+      <td>${user.company_name || '-'}</td>
+      <td>${user.diversion_percentage}%</td>
+      <td>${user.target_percentage}%</td>
+      <td>${user.total_collected ?? 0}</td>
+      <td>${user.total_generated ?? 0}</td>
+      <td>
+        ${user.compliance_status === 'Compliant'
+          ? '<span class="stat-approved">Compliant</span>'
+          : '<span class="stat-revision">Non-Compliant</span>'
+        }
+      </td>`;
+    tbody.appendChild(row);
+  });
+}
+
+// load default
+fetchComplianceData();
+</script>
+
+
 
 <!-- Latest Submissions + Top Contributors -->
 <div class="info-grid">

@@ -395,9 +395,9 @@ export async function updateApplicationStatus(appId, status, adminNotes) {
 // Approve application and create user
 export async function approveApplication(appId, adminNotes) {
     // Start a transaction
-    const connection = await sql.getConnection()
+    const connection = await sql.getConnection();
     try {
-        await connection.beginTransaction()
+        await connection.beginTransaction();
         
         // 1. Update application status to 'Approved'
         await connection.query(`
@@ -405,54 +405,79 @@ export async function approveApplication(appId, adminNotes) {
             SET status = 'Approved', 
                 admin_notes = ?
             WHERE application_id = ?
-        `, [adminNotes, appId])
+        `, [adminNotes, appId]);
         
         // 2. Get application data
         const [applicationData] = await connection.query(
             `SELECT * FROM user_applications WHERE application_id = ?`, 
             [appId]
-        )
+        );
         
         if (applicationData.length === 0) {
-            throw new Error('Application not found')
+            throw new Error('Application not found');
         }
         
-        const application = applicationData[0]
+        const application = applicationData[0];
         
         // Set default hashed password
-        const hashedPassword = await bcrypt.hash('ChangeMe123', 10)
+        const hashedPassword = await bcrypt.hash('ChangeMe123', 10);
 
         // 3. Create user in users table
-        // Using role_id 4 (Government) as default for client applications
-        await connection.query(`
+        const [insertResult] = await connection.query(`
             INSERT INTO user (
                 role_id, lastname, firstname, email, 
                 password, contact_no, company_name, verified
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, 1)
         `, [
-            application.role_id, // Default role for client applications (Government)
+            application.role_id,
             application.lastname,
             application.firstname,
             application.email,
-            hashedPassword, // Default password that needs to be changed on first login
+            hashedPassword,
             application.contact_no,
-            application.company_name,
-            1 // Set as verified since application is approved
-        ])
+            application.company_name
+        ]);
+
+        const newUserId = insertResult.insertId;
+
+        // 4. Populate default waste quotas for the new user
+        await connection.query(`
+            INSERT INTO compliance_quotas (waste_supertype_id, user_id, quota_weight)
+            SELECT id, ?, 20.00
+            FROM waste_supertype
+            WHERE id NOT IN (
+                SELECT waste_supertype_id 
+                FROM compliance_quotas 
+                WHERE user_id = ?
+            )
+        `, [newUserId, newUserId]);
+
+        // 5. Populate default sector quotas for the new user
+        await connection.query(`
+            INSERT INTO sector_compliance_quotas (sector_id, user_id, quota_weight)
+            SELECT id, ?, 20.00
+            FROM sector
+            WHERE id NOT IN (
+                SELECT sector_id
+                FROM sector_compliance_quotas
+                WHERE user_id = ?
+            )
+        `, [newUserId, newUserId]);
         
         // Commit the transaction
-        await connection.commit()
+        await connection.commit();
         
-        return getApplicationById(appId)
+        return getApplicationById(appId);
     } catch (error) {
         // Rollback in case of error
-        await connection.rollback()
-        throw error
+        await connection.rollback();
+        throw error;
     } finally {
-        connection.release()
+        connection.release();
     }
 }
+
 
 // Reject application 
 export async function rejectApplication(appId, adminNotes) {
@@ -1154,8 +1179,8 @@ export async function updateForm(data_entry_id, title, region_id, province_id, m
 export async function getAvgInfoWithFilters(title, locationCode, name, companyName, startDate, endDate) {
     let query = `
         SELECT
-            AVG(dat.per_capita) AS avg_per_capita,
-            AVG(dat.annual) AS avg_annual,
+            SUM(dat.per_capita) AS avg_per_capita, -- keep alias for template compatibility
+            SUM(dat.annual) AS avg_annual,         -- now totals instead of averages
             MIN(dat.collection_start) AS earliest_collection_start,
             MAX(dat.collection_end) AS latest_collection_end
         FROM data_entry dat
@@ -1171,12 +1196,12 @@ export async function getAvgInfoWithFilters(title, locationCode, name, companyNa
     }
 
     if (locationCode) {
-        conditions.push(`(dat.region_id = ? OR dat.province_id = ? OR dat.municipality_id = ? OR dat.barangay_id = ?)`);
+        conditions.push(`(dat.region_id = ? OR dat.province_id = ? OR dat.municipality_id = ? OR dat.barangay_id = ?)`); 
         params.push(locationCode, locationCode, locationCode, locationCode);
     }
 
     if (name) {
-        conditions.push(`(u.lastname LIKE ? OR u.firstname LIKE ?)`);
+        conditions.push(`(u.lastname LIKE ? OR u.firstname LIKE ?)`); 
         params.push(`%${name}%`, `%${name}%`);
     }
 
@@ -1186,7 +1211,7 @@ export async function getAvgInfoWithFilters(title, locationCode, name, companyNa
     }
 
     if (startDate && endDate) {
-        conditions.push(`(dat.collection_start >= ? AND dat.collection_end <= ?)`);
+        conditions.push(`(dat.collection_start >= ? AND dat.collection_end <= ?)`); 
         params.push(startDate, endDate);
     } else if (startDate) {
         conditions.push(`dat.collection_start >= ?`);
@@ -1201,7 +1226,7 @@ export async function getAvgInfoWithFilters(title, locationCode, name, companyNa
     }
 
     const [result] = await sql.query(query, params);
-    return result; // important: single object, not array
+    return result; // single object
 }
 
 export async function getAvgWasteCompositionWithFilters(title, locationCode, name, companyName, startDate, endDate) {
@@ -1264,16 +1289,22 @@ export async function getWasteComplianceStatus(dataEntryId) {
   const [rows] = await sql.query(`
     SELECT
         ws.name AS supertype_name,
-        cq.quota_weight AS target_rate,   -- this is the mandated % target
+        cq.quota_weight AS target_rate,   -- user-specific % target
         COALESCE(SUM(wc.waste_amount), 0) AS total_collected_weight,
         de.annual AS total_generation
-    FROM compliance_quotas cq
-    JOIN waste_supertype ws ON cq.waste_supertype_id = ws.id
-    LEFT JOIN waste_type wt ON wt.supertype_id = ws.id
-    LEFT JOIN data_waste_composition wc ON wc.type_id = wt.id AND wc.data_entry_id = ?
-    JOIN data_entry de ON de.data_entry_id = ?
+    FROM data_entry de
+    JOIN user u ON u.user_id = de.user_id
+    JOIN compliance_quotas cq 
+      ON cq.user_id = de.user_id
+    JOIN waste_supertype ws 
+      ON ws.id = cq.waste_supertype_id
+    LEFT JOIN waste_type wt 
+      ON wt.supertype_id = ws.id
+    LEFT JOIN data_waste_composition wc 
+      ON wc.type_id = wt.id AND wc.data_entry_id = de.data_entry_id
+    WHERE de.data_entry_id = ?
     GROUP BY ws.id, cq.quota_weight, de.annual
-  `, [dataEntryId, dataEntryId]);
+  `, [dataEntryId]);
 
   return rows.map(r => {
     const diversionPct = r.total_generation > 0 
@@ -1295,16 +1326,20 @@ export async function getSectorComplianceStatus(dataEntryId) {
   const [rows] = await sql.query(`
     SELECT
         s.name AS sector_name,
-        scq.quota_weight AS target_rate,   -- mandated % target
+        scq.quota_weight AS target_rate,   -- user-specific % target
         COALESCE(SUM(wc.waste_amount), 0) AS total_collected_weight,
         de.annual AS total_generation
-    FROM sector_compliance_quotas scq
-    JOIN sector s ON s.id = scq.sector_id
+    FROM data_entry de
+    JOIN user u ON u.user_id = de.user_id
+    JOIN sector_compliance_quotas scq 
+      ON scq.user_id = de.user_id
+    JOIN sector s 
+      ON s.id = scq.sector_id
     LEFT JOIN data_waste_composition wc 
-      ON wc.sector_id = scq.sector_id AND wc.data_entry_id = ?
-    JOIN data_entry de ON de.data_entry_id = ?
+      ON wc.sector_id = s.id AND wc.data_entry_id = de.data_entry_id
+    WHERE de.data_entry_id = ?
     GROUP BY s.id, scq.quota_weight, de.annual
-  `, [dataEntryId, dataEntryId]);
+  `, [dataEntryId]);
 
   return rows.map(r => {
     const diversionPct = r.total_generation > 0
@@ -1325,7 +1360,7 @@ export async function getSectorComplianceStatus(dataEntryId) {
 export async function getWasteComplianceStatusFromSummary(title, region, province, locationCode, author, company, startDate, endDate) {
   const [rows] = await sql.query(`
     WITH matching_entries AS (
-      SELECT DISTINCT de.data_entry_id
+      SELECT DISTINCT de.data_entry_id, de.annual, de.user_id
       FROM data_entry de
       JOIN user u ON de.user_id = u.user_id
       WHERE de.status = 'Approved'
@@ -1343,35 +1378,33 @@ export async function getWasteComplianceStatusFromSummary(title, region, provinc
     ),
     waste_totals AS (
       SELECT
+        me.user_id,
         wt.supertype_id,
         SUM(wc.waste_amount) AS total_collected_weight
-      FROM data_waste_composition wc
+      FROM matching_entries me
+      JOIN data_waste_composition wc ON wc.data_entry_id = me.data_entry_id
       JOIN waste_type wt ON wc.type_id = wt.id
-      WHERE wc.data_entry_id IN (SELECT data_entry_id FROM matching_entries)
-      GROUP BY wt.supertype_id
+      GROUP BY me.user_id, wt.supertype_id
     ),
     total_gen AS (
-      SELECT SUM(wc.waste_amount) AS grand_total
-      FROM data_waste_composition wc
-      WHERE wc.data_entry_id IN (SELECT data_entry_id FROM matching_entries)
+      SELECT user_id, SUM(me.annual) AS grand_total
+      FROM matching_entries me
+      GROUP BY me.user_id
     )
     SELECT
       ws.name AS supertype_name,
-      COALESCE(wt.total_collected_weight, 0) AS total_collected_weight,
+      wt.total_collected_weight,
       g.grand_total AS total_generated,
-      ROUND(
-        (COALESCE(wt.total_collected_weight, 0) / NULLIF(g.grand_total,0)) * 100,
-        2
-      ) AS diversion_percentage,
+      ROUND((COALESCE(wt.total_collected_weight, 0) / NULLIF(g.grand_total,0)) * 100, 2) AS diversion_percentage,
       cq.quota_weight AS target_percentage,
       CASE
         WHEN (COALESCE(wt.total_collected_weight, 0) / NULLIF(g.grand_total,0)) * 100 >= cq.quota_weight THEN 'Compliant'
         ELSE 'Non-Compliant'
       END AS compliance_status
     FROM waste_supertype ws
-    LEFT JOIN waste_totals wt ON wt.supertype_id = ws.id
-    CROSS JOIN total_gen g
     JOIN compliance_quotas cq ON cq.waste_supertype_id = ws.id
+    JOIN total_gen g ON g.user_id = cq.user_id
+    LEFT JOIN waste_totals wt ON wt.supertype_id = ws.id AND wt.user_id = cq.user_id
   `, [
     ...(title ? [`%${title}%`] : []),
     ...(locationCode ? [locationCode, locationCode, locationCode] : []),
@@ -1384,12 +1417,10 @@ export async function getWasteComplianceStatusFromSummary(title, region, provinc
   return rows;
 }
 
-
-
 export async function getSectorComplianceStatusFromSummary(title, region, province, locationCode, author, company, startDate, endDate) {
   const [rows] = await sql.query(`
     WITH matching_entries AS (
-      SELECT DISTINCT de.data_entry_id
+      SELECT DISTINCT de.data_entry_id, de.annual, de.user_id
       FROM data_entry de
       JOIN user u ON de.user_id = u.user_id
       WHERE de.status = 'Approved'
@@ -1407,34 +1438,32 @@ export async function getSectorComplianceStatusFromSummary(title, region, provin
     ),
     sector_totals AS (
       SELECT
+        me.user_id,
         wc.sector_id,
         SUM(wc.waste_amount) AS total_collected_weight
-      FROM data_waste_composition wc
-      WHERE wc.data_entry_id IN (SELECT data_entry_id FROM matching_entries)
-      GROUP BY wc.sector_id
+      FROM matching_entries me
+      JOIN data_waste_composition wc ON wc.data_entry_id = me.data_entry_id
+      GROUP BY me.user_id, wc.sector_id
     ),
     total_gen AS (
-      SELECT SUM(wc.waste_amount) AS grand_total
-      FROM data_waste_composition wc
-      WHERE wc.data_entry_id IN (SELECT data_entry_id FROM matching_entries)
+      SELECT user_id, SUM(me.annual) AS grand_total
+      FROM matching_entries me
+      GROUP BY me.user_id
     )
     SELECT
       s.name AS sector_name,
-      COALESCE(st.total_collected_weight, 0) AS total_collected_weight,
+      st.total_collected_weight,
       g.grand_total AS total_generated,
-      ROUND(
-        (COALESCE(st.total_collected_weight, 0) / NULLIF(g.grand_total,0)) * 100,
-        2
-      ) AS diversion_percentage,
+      ROUND((COALESCE(st.total_collected_weight, 0) / NULLIF(g.grand_total,0)) * 100, 2) AS diversion_percentage,
       scq.quota_weight AS target_percentage,
       CASE
         WHEN (COALESCE(st.total_collected_weight, 0) / NULLIF(g.grand_total,0)) * 100 >= scq.quota_weight THEN 'Compliant'
         ELSE 'Non-Compliant'
       END AS compliance_status
     FROM sector s
-    LEFT JOIN sector_totals st ON st.sector_id = s.id
-    CROSS JOIN total_gen g
     JOIN sector_compliance_quotas scq ON scq.sector_id = s.id
+    JOIN total_gen g ON g.user_id = scq.user_id
+    LEFT JOIN sector_totals st ON st.sector_id = s.id AND st.user_id = scq.user_id
   `, [
     ...(title ? [`%${title}%`] : []),
     ...(locationCode ? [locationCode, locationCode, locationCode] : []),
@@ -1447,6 +1476,182 @@ export async function getSectorComplianceStatusFromSummary(title, region, provin
   return rows;
 }
 
+export async function getSummaryParticipants(title, region, province, locationCode, author, company, startDate, endDate) {
+  const [rows] = await sql.query(`
+    SELECT DISTINCT 
+      CONCAT(u.firstname, ' ', u.lastname) AS author_name,
+      u.company_name,
+      de.region_id,
+      de.province_id,
+      de.municipality_id,
+      de.barangay_id
+    FROM data_entry de
+    JOIN user u ON de.user_id = u.user_id
+    WHERE de.status = 'Approved'
+      ${title ? 'AND de.title LIKE ?' : ''}
+      ${locationCode ? `
+        AND (
+          de.region_id = ? OR 
+          de.province_id = ? OR 
+          de.municipality_id = ? OR 
+          de.barangay_id = ?
+        )` : ''}
+      ${author ? 'AND CONCAT(u.firstname, " ", u.lastname) LIKE ?' : ''}
+      ${company ? 'AND u.company_name LIKE ?' : ''}
+      ${startDate ? 'AND de.collection_start >= ?' : ''}
+      ${endDate ? 'AND de.collection_end <= ?' : ''}
+  `, [
+    ...(title ? [`%${title}%`] : []),
+    ...(locationCode ? [locationCode, locationCode, locationCode, locationCode] : []),
+    ...(author ? [`%${author}%`] : []),
+    ...(company ? [`%${company}%`] : []),
+    ...(startDate ? [startDate] : []),
+    ...(endDate ? [endDate] : [])
+  ]);
+
+  return rows;
+}
+
+export async function groupComplianceData(wasteCompliance, sectorCompliance) {
+  const grouped = {};
+
+  wasteCompliance.forEach(item => {
+    const category = item.supertype_name;
+    if (!grouped[category]) grouped[category] = [];
+
+    const diverted = (item.total_collected_weight / item.total_generated_weight) * 100;
+
+    grouped[category].push({
+      name: `${item.firstname} ${item.lastname}`,
+      organization: item.company_name,
+      diverted: diverted.toFixed(2),
+      target: item.target_percent || 20, // fallback if null
+      status: diverted >= (item.target_percent || 20) ? "Compliant" : "Non-Compliant"
+    });
+  });
+
+  sectorCompliance.forEach(item => {
+    const sector = item.sector_name;
+    if (!grouped[sector]) grouped[sector] = [];
+
+    const diverted = (item.total_collected_weight / item.total_generated_weight) * 100;
+
+    grouped[sector].push({
+      name: `${item.firstname} ${item.lastname}`,
+      organization: item.company_name,
+      diverted: diverted.toFixed(2),
+      target: item.target_percent || 20,
+      status: diverted >= (item.target_percent || 20) ? "Compliant" : "Non-Compliant"
+    });
+  });
+
+  return grouped;
+}
+
+export async function getWasteComplianceByUser(category) {
+  const [rows] = await sql.query(`
+    WITH entry_diversions AS (
+      SELECT 
+        de.data_entry_id,
+        de.user_id,
+        wt.supertype_id,
+        de.population,
+        SUM(wc.waste_amount) AS collected,
+        de.annual AS total_generated
+      FROM data_waste_composition wc
+      JOIN data_entry de ON wc.data_entry_id = de.data_entry_id
+      JOIN waste_type wt ON wc.type_id = wt.id
+      WHERE de.status = 'Approved'
+      GROUP BY de.data_entry_id, de.user_id, wt.supertype_id, de.population, de.annual
+    ),
+    user_totals AS (
+      SELECT
+        ed.user_id,
+        ed.supertype_id,
+        SUM(ed.collected) AS total_collected,
+        SUM(ed.total_generated) AS total_generated,
+        ROUND(AVG(ed.total_generated / NULLIF(ed.population,0)),2) AS waste_per_capita
+      FROM entry_diversions ed
+      GROUP BY ed.user_id, ed.supertype_id
+    )
+    SELECT
+      u.user_id,
+      u.firstname,
+      u.lastname,
+      u.company_name,
+      ws.name AS supertype_name,
+      ROUND((ut.total_collected / NULLIF(ut.total_generated,0)) * 100, 2) AS diversion_percentage,
+      cq.quota_weight AS target_percentage,
+      ut.total_collected,
+      ut.total_generated,
+      ut.waste_per_capita,
+      CASE
+        WHEN ROUND((ut.total_collected / NULLIF(ut.total_generated,0)) * 100, 2) >= cq.quota_weight
+        THEN 'Compliant'
+        ELSE 'Non-Compliant'
+      END AS compliance_status
+    FROM user u
+    JOIN user_totals ut ON ut.user_id = u.user_id
+    JOIN waste_supertype ws ON ws.id = ut.supertype_id
+    JOIN compliance_quotas cq ON cq.waste_supertype_id = ws.id AND cq.user_id = u.user_id
+    WHERE ws.name = ?
+    ORDER BY u.lastname, u.firstname
+  `, [category]);
+
+  return rows;
+}
+
+export async function getSectorComplianceByUser(category) {
+  const [rows] = await sql.query(`
+    WITH entry_diversions AS (
+      SELECT 
+        de.data_entry_id,
+        de.user_id,
+        wc.sector_id,
+        de.population,
+        SUM(wc.waste_amount) AS collected,
+        de.annual AS total_generated
+      FROM data_waste_composition wc
+      JOIN data_entry de ON wc.data_entry_id = de.data_entry_id
+      WHERE de.status = 'Approved'
+      GROUP BY de.data_entry_id, de.user_id, wc.sector_id, de.population, de.annual
+    ),
+    user_totals AS (
+      SELECT
+        ed.user_id,
+        ed.sector_id,
+        SUM(ed.collected) AS total_collected,
+        SUM(ed.total_generated) AS total_generated,
+        ROUND(AVG(ed.total_generated / NULLIF(ed.population,0)),2) AS waste_per_capita
+      FROM entry_diversions ed
+      GROUP BY ed.user_id, ed.sector_id
+    )
+    SELECT
+      u.user_id,
+      u.firstname,
+      u.lastname,
+      u.company_name,
+      s.name AS sector_name,
+      ROUND((ut.total_collected / NULLIF(ut.total_generated,0)) * 100, 2) AS diversion_percentage,
+      scq.quota_weight AS target_percentage,
+      ut.total_collected,
+      ut.total_generated,
+      ut.waste_per_capita,
+      CASE
+        WHEN ROUND((ut.total_collected / NULLIF(ut.total_generated,0)) * 100, 2) >= scq.quota_weight
+        THEN 'Compliant'
+        ELSE 'Non-Compliant'
+      END AS compliance_status
+    FROM user u
+    JOIN user_totals ut ON ut.user_id = u.user_id
+    JOIN sector s ON s.id = ut.sector_id
+    JOIN sector_compliance_quotas scq ON scq.sector_id = s.id AND scq.user_id = u.user_id
+    WHERE s.name = ?
+    ORDER BY u.lastname, u.firstname
+  `, [category]);
+
+  return rows;
+}
 
 
 export async function getUserWasteComplianceSummary() {
@@ -1545,10 +1750,10 @@ export async function getWasteNonCompliantClients(userId) {
       u.company_name,
       ws.name AS supertype_name,
       COUNT(DISTINCT de.data_entry_id) AS entry_count,
-      cq.quota_weight * COUNT(DISTINCT de.data_entry_id) AS required_quota,
+      MAX(cq.quota_weight) * COUNT(DISTINCT de.data_entry_id) AS required_quota,
       COALESCE(SUM(wc.waste_amount), 0) AS total_collected,
       CASE
-        WHEN COALESCE(SUM(wc.waste_amount), 0) >= cq.quota_weight * COUNT(DISTINCT de.data_entry_id) THEN 'Compliant'
+        WHEN COALESCE(SUM(wc.waste_amount), 0) >= MAX(cq.quota_weight) * COUNT(DISTINCT de.data_entry_id) THEN 'Compliant'
         ELSE 'Non-Compliant'
       END AS compliance_status
     FROM user u
@@ -1557,14 +1762,16 @@ export async function getWasteNonCompliantClients(userId) {
     LEFT JOIN data_waste_composition wc ON wc.data_entry_id = de.data_entry_id
     LEFT JOIN waste_type wt ON wc.type_id = wt.id
     LEFT JOIN waste_supertype ws ON wt.supertype_id = ws.id
-    LEFT JOIN compliance_quotas cq ON cq.waste_supertype_id = ws.id
+    LEFT JOIN compliance_quotas cq 
+      ON cq.waste_supertype_id = ws.id AND cq.user_id = u.user_id
     WHERE u.user_id = ?
-    GROUP BY u.user_id, ws.id
+    GROUP BY u.user_id, ws.id, u.firstname, u.lastname, u.company_name, ws.name
     HAVING compliance_status = 'Non-Compliant'
   `, [userId]);
 
   return rows;
 }
+
 
 export async function getSectorNonCompliantClients(userId) {
   const [rows] = await sql.query(`
@@ -1625,6 +1832,58 @@ export async function updateSectorQuota(quotaId, newWeight) {
     `UPDATE sector_compliance_quotas SET quota_weight = ? WHERE quota_id = ?`,
     [newWeight, quotaId]
   );
+}
+
+// Get waste quotas for a specific user
+export async function getWasteQuotasByUser(userId) {
+  const [rows] = await sql.query(`
+    SELECT cq.quota_id, cq.quota_weight, ws.name AS waste_supertype_name
+    FROM compliance_quotas cq
+    JOIN waste_supertype ws ON ws.id = cq.waste_supertype_id
+    WHERE cq.user_id = ?
+    ORDER BY ws.name
+  `, [userId]);
+
+  return rows;
+}
+
+// Get sector quotas for a specific user
+export async function getSectorQuotasByUser(userId) {
+  const [rows] = await sql.query(`
+    SELECT scq.quota_id, scq.quota_weight, s.name AS sector_name
+    FROM sector_compliance_quotas scq
+    JOIN sector s ON s.id = scq.sector_id
+    WHERE scq.user_id = ?
+    ORDER BY s.name
+  `, [userId]);
+
+  return rows;
+}
+
+export async function createDefaultQuotasForUser(userId) {
+  // Waste quotas
+  await sql.query(`
+    INSERT INTO compliance_quotas (waste_supertype_id, user_id, quota_weight)
+    SELECT id, ?, 20.00
+    FROM waste_supertype
+    WHERE id NOT IN (
+      SELECT waste_supertype_id 
+      FROM compliance_quotas 
+      WHERE user_id = ?
+    )
+  `, [userId, userId]);
+
+  // Sector quotas
+  await sql.query(`
+    INSERT INTO sector_compliance_quotas (sector_id, user_id, quota_weight)
+    SELECT id, ?, 20.00
+    FROM sector
+    WHERE id NOT IN (
+      SELECT sector_id
+      FROM sector_compliance_quotas
+      WHERE user_id = ?
+    )
+  `, [userId, userId]);
 }
 
 export async function getTopDashboardData() {

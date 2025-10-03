@@ -88,7 +88,14 @@ import {
   getTaskByEntryId,
   updateNotifReadBatch,
   deleteNotificationsBatch,
-  getNotificationCount
+  getNotificationCount,
+  getWasteComplianceByUser,
+  getSectorComplianceByUser,
+  groupComplianceData,
+  getSummaryParticipants,
+  getWasteQuotasByUser,
+  getSectorQuotasByUser,
+  
 } from './database.js'
 
 // File Upload
@@ -696,6 +703,7 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
       const sectors = await getSectors()
       const supertypes = await getAllTypes()
       const avgData = await getAvgWasteCompositionWithFilters(title, locationCode, author, company, startDate, endDate);
+      const participants = await getSummaryParticipants(title, region, province, locationCode, author, company, startDate, endDate);
 
       console.log(avgInfo)
       console.log(avgData)
@@ -839,6 +847,20 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
         }
       });
 
+      // Map location IDs into readable names
+      const uniqueUsers = [...new Set(participants.map(p => p.author_name).filter(Boolean))];
+      const uniqueOrgs = [...new Set(participants.map(p => p.company_name).filter(Boolean))];
+
+      // Collect unique location strings
+      const uniqueLocations = [...new Set(participants.map(p => {
+        const region = getPsgcName(psgcRegions, p.region_id);
+        const province = getPsgcName(psgcProvinces, p.province_id);
+        const municipality = getPsgcName(psgcMunicipalities, p.municipality_id) || getPsgcName(psgcCities, p.municipality_id);
+        const barangay = getPsgcName(psgcBarangays, p.barangay_id) || getPsgcName(psgcMunicDistricts, p.barangay_id) || getPsgcName(psgcCities, p.barangay_id);
+
+        return [barangay, municipality, province, region].filter(Boolean).join(", ");
+      }).filter(Boolean))];
+
       res.render('dashboard/view-data-summary', {
         layout: 'dashboard',
         title: 'Data Summary | GC Dashboard',
@@ -848,6 +870,9 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
         barChartData: JSON.stringify(barChartData),
         summaryPieData: JSON.stringify(summaryData),
         detailedPieData: JSON.stringify(detailedData),
+        uniqueUsers,
+        uniqueOrgs,
+        uniqueLocations,
         legendData,
         wasteCompliances,
         sectorCompliances,
@@ -2764,8 +2789,9 @@ app.get('/control-panel/entry-statistics', async (req, res) => {
   const latestSubmissions = await getLatestSubmissions(3)
   const topRegions = await getTopReportingRegions(5)
   const monthlySubmissions = await getMonthlySubmissions()
-  const wasteCompliance = await getUserWasteComplianceSummary()
-  const sectorCompliance = await getUserSectorComplianceSummary()
+  const wasteCompliance = await   getWasteComplianceByUser();
+  const sectorCompliance = await getSectorComplianceByUser();
+  const groupedCompliance = await groupComplianceData(wasteCompliance, sectorCompliance);
 
   res.render('control-panel/entry-stats', {
     layout: 'control-panel',
@@ -2777,9 +2803,35 @@ app.get('/control-panel/entry-statistics', async (req, res) => {
     topRegions,
     monthlySubmissions: JSON.stringify(monthlySubmissions),
     wasteCompliance,
-    sectorCompliance
+    sectorCompliance,
+    groupedCompliance: JSON.stringify(groupedCompliance), // send as JSON
+    
   });
 })
+
+// Compliance API for dropdown
+app.get('/api/compliance', async (req, res) => {
+  try {
+    const category = req.query.category;
+
+    const wasteCategories = ["Biodegradable", "Recyclable", "Residual", "Special/Hazardous"];
+    const sectorCategories = ["Residential", "Commercial", "Institutional", "Industrial", "Health", "Agriculture and Livestock"];
+
+    let data = [];
+
+    if (wasteCategories.includes(category)) {
+      data = await getWasteComplianceByUser(category);
+    } else if (sectorCategories.includes(category)) {
+      data = await getSectorComplianceByUser(category);
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.error("Error fetching compliance data:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 
 // Fetch top contributors (entry stats)
 app.get('/api/control-panel/top-contributors', async (req, res) => {
@@ -2793,10 +2845,20 @@ app.get('/api/control-panel/top-regions', async (req, res) => {
   res.json(regions);
 });
 
-// Control Panel – Quota Management Page
 app.get('/control-panel/quotas', async (req, res) => {
-  const wasteQuotas = await getWasteComplianceQuotas();
-  const sectorQuotas = await getSectorComplianceQuotas();
+  const userId = req.query.user_id || null; // null = show first user or all?
+  const users = await getUsers(); // list of users for dropdown
+
+  // If no userId, default to first user
+  const selectedUserId = userId || (users.length ? users[0].user_id : null);
+
+  let wasteQuotas = [];
+  let sectorQuotas = [];
+
+  if (selectedUserId) {
+    wasteQuotas = await getWasteQuotasByUser(selectedUserId);
+    sectorQuotas = await getSectorQuotasByUser(selectedUserId);
+  }
   const wasteSupertypes = await getWasteSupertypes();
   const sectors = await getSectors();
 
@@ -2804,6 +2866,8 @@ app.get('/control-panel/quotas', async (req, res) => {
     layout: 'control-panel',
     title: 'Compliance Quotas | GC Control Panel',
     current_quotas: true,
+    users,
+    selectedUserId,
     wasteQuotas,
     sectorQuotas,
     wasteSupertypes,
@@ -2813,44 +2877,16 @@ app.get('/control-panel/quotas', async (req, res) => {
 
 app.post('/control-panel/quotas/update-waste', async (req, res) => {
   const { quota_id, quota_weight } = req.body;
-
-  const parsedWeight = parseFloat(quota_weight);
-  if (!quota_id || isNaN(parsedWeight) || parsedWeight < 0) {
-    return res.status(400).send("Invalid quota weight submitted.");
-  }
-
-  try {
-    await updateWasteQuota(quota_id, parsedWeight);
-    res.redirect('/control-panel/quotas');
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error updating quota.");
-  }
+  await updateWasteQuota(quota_id, parseFloat(quota_weight));
+  res.redirect(`/control-panel/quotas?user_id=${req.query.user_id || ''}`);
 });
 
 app.post('/control-panel/quotas/update-sector', async (req, res) => {
   const { quota_id, quota_weight } = req.body;
-
-  const parsedWeight = parseFloat(quota_weight);
-  if (!quota_id || isNaN(parsedWeight) || parsedWeight < 0) {
-    return res.status(400).send("Invalid quota weight submitted.");
-  }
-
-  try {
-    await updateSectorQuota(quota_id, parsedWeight);
-    res.redirect('/control-panel/quotas');
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error updating sector quota.");
-  }
+  await updateSectorQuota(quota_id, parseFloat(quota_weight));
+  res.redirect(`/control-panel/quotas?user_id=${req.query.user_id || ''}`);
 });
 
-
-app.post('/control-panel/quotas/update-sector', async (req, res) => {
-  const { quota_id, quota_weight } = req.body;
-  await updateSectorQuota(quota_id, quota_weight);
-  res.redirect('/control-panel/quotas');
-});
 
 // User routes
 // Get all users
@@ -2925,6 +2961,7 @@ app.get('/control-panel/user-applications', async (req, res) => {
     applications
   })
 })
+
 app.put('/users/update-role', async (req, res) => {
     const { userId, newRoleId } = req.body;
 

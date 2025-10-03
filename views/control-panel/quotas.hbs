@@ -1,4 +1,16 @@
 <h2 style="margin-bottom: 20px;">Waste Management Targets</h2>
+
+<div class="form-section">
+  <label for="quota-user">Select User:</label>
+  <select id="quota-user" onchange="fetchQuotasForUser()">
+    {{#each users}}
+      <option value="{{this.user_id}}" {{#ifEquals this.user_id ../selectedUserId}}selected{{/ifEquals}}>
+        {{this.firstname}} {{this.lastname}}
+      </option>
+    {{/each}}
+  </select>
+</div>
+
 <div class="form-section">
   <h3><i class="fas fa-recycle"></i> Waste Category Targets</h3>
   <table class="user-profile">
@@ -63,6 +75,11 @@
   function confirmUpdate(type, name) {
     return confirm(`Are you sure you want to update the quota for the ${type} "${name}"?`);
   }
+
+  function fetchQuotasForUser() {
+    const userId = document.getElementById('quota-user').value;
+    window.location.href = `/control-panel/quotas?user_id=${userId}`;
+  }
 </script>
 
 <style>
@@ -72,30 +89,38 @@
   border-collapse: collapse;
   margin-top: 0.5rem;
   font-family: 'Segoe UI', sans-serif;
+  font-size: 0.95rem;
 }
 
 .user-profile th, .user-profile td {
   padding: 0.75rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #e0e0e0;
   text-align: left;
 }
 
 .user-profile thead {
-  background-color: #f4f4f4;
+  background-color: #e9f7ef; /* light green tint */
 }
 
 .user-profile th.label {
   font-weight: bold;
-  color: #2c3e50;
+  color: #145a32; /* dark green text */
 }
 
 .user-profile input[type="number"] {
   width: 100%;
-  padding: 0.4rem 0.6rem;
-  font-size: 1rem;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.95rem;
   border-radius: 6px;
-  border: 1px solid #ccc;
+  border: 1px solid #bbb;
   background-color: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.user-profile input[type="number"]:focus {
+  outline: none;
+  border-color: #28a745;
+  box-shadow: 0 0 5px rgba(40, 167, 69, 0.4);
 }
 
 /* Form section background and padding */
@@ -107,12 +132,13 @@
   margin: 2rem auto;
   max-width: 900px;
   color: #333;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
 
 .form-section h3 {
   font-size: 1.4rem;
   margin-bottom: 1.2rem;
-  color: #127009;
+  color: #127009; /* strong green */
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -124,14 +150,20 @@
   padding: 0.5rem 1rem;
   color: white;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.95rem;
-  transition: background-color 0.2s ease;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
 .btn-submit:hover {
   background-color: #23963b;
+  transform: translateY(-1px);
+}
+
+.btn-submit:active {
+  background-color: #1e7e34;
+  transform: translateY(0);
 }
 
 /* Inline form to align input and button in same row inside cell */
@@ -145,4 +177,7 @@
   flex: 1;
 }
 
+.user-profile tbody tr:hover {
+  background-color: #f6fdf8; /* subtle green hover */
+}
 </style>

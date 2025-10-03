@@ -114,15 +114,6 @@
                 <a href="/dashboard/data/user/approved" class="{{#if current_user_report}}current{{/if}}">
                     <i class="fa-solid fa-clipboard-check nav-icon"></i> Approved Submissions
                 </a>
-                
-                <a href="/dashboard/noncompliance" class="{{#if current_noncompliance}}current{{/if}}">
-                    <i class="fa-solid fa-triangle-exclamation nav-icon"></i>&nbsp;Client Compliance Warning
-                    {{#ifNotEquals cmpTotalCount 0}}
-                        <span class="notif-badge"> {{cmpTotalCount}}</span>
-                    {{/ifNotEquals}}
-                </a>
-
-
                 <!-- Only show functions if current user is NOT a client -->
                 {{#ifNotEquals user.supertype 2}}
                     <div class="nav-divider">STAFF FUNCTIONS</div>
