@@ -344,12 +344,246 @@ dropdown.addEventListener('change', filterTable);
 
 </script>
 
-<!-- Chart script -->
+<!-- Chart + insight script -->
 <script>
 
 // ========== PIE CHART SETUP ========== //
 const summaryData = {{{summaryPieData}}},
-      detailedData = {{{detailedPieData}}};
+      detailedData = {{{detailedPieData}}},
+      barChartData = {{{barChartData}}},
+      sectorBarData = {{{sectorBarData}}},
+      sectorPieData = {{{sectorPieData}}};
+
+const supertypeDemo = {{{supertypeDemo}}};
+const grandTotal = {{{grandTotal}}};
+
+/* ----------------------------
+  Insight generator (frontend)
+  - Uses existing variables:
+    summaryData, detailedData, barChartData, sectorPieData,
+    sectorBarData, legendData, supertypeDemo, grandTotal, sectorTotals
+  - Inserts text into DOM next to charts. Non-hardcoded thresholds.
+-----------------------------*/
+
+// small helper utilities
+const rand = arr => arr[Math.floor(Math.random() * arr.length)];
+const pct = (value, total) => total ? (value / total * 100) : 0;
+const fmtKg = (n) => `${Number(n).toFixed(3)} kg`;
+
+// phrase banks for variation
+const overallPhrases = {
+  balanced: [
+    "Category distribution is even, indicating diverse waste sources and no single area of immediate concern."
+  ],
+  dominant: [
+    "One category clearly dominates the waste stream. Prioritize source reduction and targeted segregation for this category."
+  ],
+  lowReported: [
+    "Some categories show very low volumes. This may be caused by underreporting, misclassification, gaps in reporting, or genuinely low output."
+  ],
+  mixedDominant: [
+    "Multiple categories are large contributors: consider combined campaigns (e.g., recycling + organics) rather than programs for a single type."
+  ]
+};
+
+const sectorPhrases = {
+  topSector: [
+    "{sector} is the top waste-producing sector. Focus segregation training and collection points on this sector.",
+  ],
+  bottomSector: [
+    "Lower contribution from {sector} may mean limited activity or successful waste practices; confirm via further study."
+  ],
+  sectorRecyclable: [
+    "Recyclable materials are concentrated in the {sector} sector. Encourage proper segregation practices and training to boost collection rates."
+  ],
+  sectorOrganics: [
+    "This area's {sector} sector is an organics hotspot. Consider piloting community composting or food-waste collection in this area."
+  ]
+};
+
+// dynamic insight generators
+function generateOverallInsight(supertypeMapObj, grandTotalVal) {
+  const supertypes = Object.values(supertypeMapObj);
+  const nonzero = supertypes.filter(s => Number(s.totalWeight) > 0);
+  // compute percent shares
+  const shares = supertypes.map(s => ({name: s.name, value: Number(s.totalWeight), pct: pct(Number(s.totalWeight), grandTotalVal)}));
+  shares.sort((a,b)=>b.pct-a.pct);
+
+  if (grandTotalVal === 0) {
+    return "No waste data recorded for this entry. Recommend verifying data entry and resubmitting after ensuring values are recorded.";
+  }
+
+  const top = shares[0];
+  const second = shares[1] || null;
+  const topPct = top ? top.pct : 0;
+
+  // rules (non-hardcoded thresholds)
+  if (topPct < 30 && nonzero.length >= 3) {
+    // fairly balanced
+    return rand(overallPhrases.balanced) + " ";
+  }
+
+  if (topPct >= 50) {
+    // dominant
+    return `${rand(overallPhrases.dominant)} Currently, <strong>${top.name}</strong> accounts for ${top.pct.toFixed(1)}% of the total.`;
+  }
+
+  if (topPct >= 30 && topPct < 50 && second && (top.pct - second.pct) < 10) {
+    // mixed dominant
+    return rand(overallPhrases.mixedDominant) + " ";
+  }
+
+  // fallback: maybe some categories very low
+  const lowList = shares.filter(s => s.pct < 2).map(s => s.name);
+  if (lowList.length) {
+    return `${rand(overallPhrases.lowReported)} Low categories: ${lowList.join(', ')}.`;
+  }
+
+  // default
+  return "The waste composition shows a typical distribution. Continue monitoring trends and focus on the largest categories for near-term gains.";
+}
+
+// per-supertype detail (for the "Top Waste Types by Category" bar charts)
+function generateSupertypeInsight(supertypeObj, grandTotalVal) {
+  const total = Number(supertypeObj.totalWeight) || 0;
+  if (!total) {
+    return `No data recorded for <strong>${supertypeObj.name}</strong>. Verify classification and collection for this category.`;
+  }
+  const topType = [...supertypeObj.types].sort((a,b)=>Number(b.weight)-Number(a.weight))[0];
+  const topPctOfGrand = pct(Number(topType.weight), grandTotalVal);
+
+  if (topPctOfGrand >= 15) {
+    return `Within <strong>${supertypeObj.name}</strong>, <strong>${topType.name}</strong> is the largest type and contributes ${topPctOfGrand.toFixed(1)}% to the grand total.`;
+  } else if (topPctOfGrand >= 5) {
+    return `The largest type in <strong>${supertypeObj.name}</strong> is <strong>${topType.name}</strong>. Consider targeted awareness and clear on-site signage for this type to boost correct sorting.`;
+  } else {
+    return `Types under <strong>${supertypeObj.name}</strong> are relatively even in weight.`;
+  }
+}
+
+// per-sector insight
+function generateSectorInsight(sectorName, pieDataForSector, sectorTotalValue, grandTotalVal) {
+  const labels = pieDataForSector.labels || [];
+  const data = pieDataForSector.data || [];
+  const pairs = labels.map((l,i) => ({label: l, value: data[i], pct: pct(data[i], sectorTotalValue)}));
+  pairs.sort((a,b)=>b.value-a.value);
+  const top = pairs[0];
+  const sectorPctOfGrand = pct(sectorTotalValue, grandTotalVal);
+
+  if (sectorTotalValue === 0) {
+    return `${sectorName} shows no recorded waste. Verify reporting from this sector.`;
+  }
+
+  let note = '';
+  // comment about sector being top/bottom
+  if (sectorPctOfGrand >= 30) {
+    note += `The ${sectorName} sector is a major contributor, representing ${sectorPctOfGrand.toFixed(1)}% of all waste here. `;
+  } else if (sectorPctOfGrand < 5) {
+    note += `The ${sectorName} sector contributes a small share (${sectorPctOfGrand.toFixed(1)}%). `;
+  }
+
+  if (top && top.pct >= 60) {
+    note += `Within the ${sectorName} sector, ${top.label} dominates (<b>${top.pct.toFixed(1)}%</b> of sector total).`;
+  } else if (top && top.pct >= 25) {
+    note += `The top category within the ${sectorName} sector is ${top.label}.`;
+  } else {
+    note += `The sector's waste categories are fairly even.`;
+  }
+
+  return note;
+}
+
+// cross-insights: which sectors produce most of each supertype
+function generateCrossInsights(supertypeMapObj, sectorsArr, grandTotalVal) {
+  const insights = [];
+  for (const s of Object.values(supertypeMapObj)) {
+    // find highest sector contributor for this supertype
+    const sectorTotals = s.sectorTotals || {};
+    let topSectorId = null, topVal = -1;
+    for (const sid in sectorTotals) {
+      const val = Number(sectorTotals[sid] || 0);
+      if (val > topVal) { topVal = val; topSectorId = Number(sid); }
+    }
+    if (topVal <= 0) continue;
+    const sectorName = (sectorsArr.find(x=>x.id===topSectorId) || {}).name || `Sector ${topSectorId}`;
+    const pctOfSuper = pct(topVal, Number(s.totalWeight) || 1);
+    // only mention strong sector-category associations
+    if (pctOfSuper >= 45) {
+      insights.push(`A large portion (${pctOfSuper.toFixed(0)}%) of <strong>${s.name}</strong> comes from <strong>${sectorName}</strong>. Consider sector-focused interception for this category.`);
+    } else if (pctOfSuper >= 25) {
+      insights.push(`${sectorName} is an important source of ${s.name} (${pctOfSuper.toFixed(0)}% of the category).`);
+    }
+  }
+  if (!insights.length) return "No strong sector-category concentration found — waste categories are distributed across sectors.";
+  return insights.join(' ');
+}
+
+/* --------------------
+  Insert generated insights into DOM near chart areas.
+  - For the main pie: insert under #summary-legend (you already have that div)
+  - For each supertype bar tab: insert into the tab's wrapper (we create .insight-box)
+  - For each sector pie: insert into the sector wrapper
+--------------------*/
+
+function insertOverallInsight() {
+  try {
+    const overallText = generateOverallInsight(supertypeDemo || {}, Number(grandTotal || 0));
+    const container = document.getElementById('summary-legend');
+
+    if (container) {
+      let box = container.querySelector('.insight-box.overall');
+      if (!box) {
+        box = document.createElement('div');
+        box.className = 'insight-box overall';
+        box.style = 'margin-top:1rem; padding:1rem; border-left:4px solid #2e7d32;background:#f7fff8; border-radius:6px;';
+        container.appendChild(box);
+      }
+      box.innerHTML = `<h3 style="margin:0 0 0.25rem 0;color:#2d613f">Quick Recommendation</h3><div>${overallText}</div>`;
+    }
+  } catch (err) {
+    console.error('Overall insight generation failed', err);
+  }
+}
+
+// call after page loads and charts generated
+function insertPerSupertypeInsights() {
+  try {
+    const superMap = supertypeDemo || {};
+    for (const sv of Object.values(superMap)) {
+      const id = sv.name.replace(/\s+/g, '');
+      const wrapper = document.getElementById(id); // matches how you set tabDiv.id earlier
+      if (!wrapper) continue;
+      let box = wrapper.querySelector('.insight-box.supertype');
+      if (!box) {
+        box = document.createElement('div');
+        box.className = 'insight-box supertype';
+        box.style = 'min-width:260px;padding:1rem;border-radius:8px;background:#fffef8;border-left:4px solid #ff9800;';
+        wrapper.appendChild(box);
+      }
+      box.innerHTML = `<h4 style="margin:0 0 .5rem 0">${sv.name} Category</h4><div>${generateSupertypeInsight(sv, Number(grandTotal || 0))}</div>`;
+    }
+  } catch (err) { console.error(err); }
+}
+
+function insertSectorInsights() {
+  try {
+    for (const [sectorName, pieData] of Object.entries(sectorPieData || {})) {
+      const id = sectorName.replace(/\s+/g, '');
+      const wrapper = document.getElementById(id);
+      if (!wrapper) continue;
+      let box = wrapper.querySelector('.insight-box.sector');
+      if (!box) {
+        box = document.createElement('div');
+        box.className = 'insight-box sector';
+        box.style = 'min-width:260px;padding:1rem;border-radius:8px;background:#f8fbff;border-left:4px solid #2196f3;';
+        wrapper.appendChild(box);
+      }
+      const sectorTotalVal = (sectorBarData || []).find(s=>s.label===sectorName)?.value || 0;
+      box.innerHTML = `<h4 style="margin:0 0 .5rem 0">${sectorName} Sector</h4><div>${generateSectorInsight(sectorName, pieData, Number(sectorTotalVal || 0), Number(grandTotal || 0))}</div>`;
+    }
+  } catch (err) { console.error(err); }
+}
+
 let currentMode = 'summary';
 const ctx = document.getElementById('supertypePieChart').getContext('2d');
 
@@ -414,8 +648,7 @@ const createLegendHTML = (legendData, dataset) => {
 
 
 // ========== BAR CHARTS BY WASTE TYPE ========== //
-const barChartData = {{{barChartData}}},
-      container = document.getElementById('bar-charts-container');
+const container = document.getElementById('bar-charts-container');
 
 for (const [supertype, chartData] of Object.entries(barChartData)) {
   const tabDiv = document.createElement('div');
@@ -477,8 +710,7 @@ for (const [supertype, chartData] of Object.entries(barChartData)) {
 
 
 // ========== SECTOR BAR CHART ========== //
-const sectorBarData = {{{sectorBarData}}},
-      tsContainer = document.getElementById('sector-chart-container');
+const tsContainer = document.getElementById('sector-chart-container');
 
 const tsCanvas = document.createElement('canvas');
 tsCanvas.id = 'sectorBarChart';
@@ -532,8 +764,7 @@ tsWrapper.appendChild(tsLegendWrapper);
 
 
 // ========== SECTOR PIE CHARTS ========== //
-const sectorPieData = {{{sectorPieData}}},
-      sectorContainer = document.getElementById('sector-pies-container');
+const sectorContainer = document.getElementById('sector-pies-container');
 
 for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
   const tabDiv = document.createElement('div');
@@ -590,6 +821,11 @@ for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
     }
   });
 }
+
+// call these after charts are rendered
+insertOverallInsight();
+insertPerSupertypeInsights();
+insertSectorInsights();
 
 </script>
 
