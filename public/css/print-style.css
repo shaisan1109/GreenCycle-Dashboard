@@ -151,6 +151,10 @@
   display: block;
 }
 
+.insight-general {
+  background-color: #eef8f2; padding: 1.5rem; border-radius: 12px; border-left: 6px solid #4CAF50; margin-top: 2rem;
+}
+
 .filter-columns {
   display: flex;
   gap: 2rem;

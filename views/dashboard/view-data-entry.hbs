@@ -133,7 +133,7 @@
 
   <!-- Insight -->
   <hr>
-  <div data-section="insights" class="form-section" style="background-color: #eef8f2; padding: 1.5rem; border-radius: 12px; border-left: 6px solid #4CAF50; margin-top: 2rem;">
+  <div data-section="insights" class="form-section insight-general">
     <h2 style="color: #2d613f;"><i class="fa-solid fa-lightbulb" style="margin-right: 8px;"></i>General Waste Category Insights & Recommendations</h2>
     <ul style="font-size: 1.1rem; list-style-type: none; padding-left: 0;">
       {{#each recommendations}}
@@ -160,7 +160,7 @@
 
         <div id="summary-legend">
             <h2 style="margin-bottom: 0">Top Waste Categories in This Area</h2>
-            <p style="font-size: large;">This pie chart shows the distribution of waste by supertype. Each slice represents the total weight (in kilograms) of waste classified as Biodegradable, Recyclable, Residual, or Special/Hazardous. Hover over a slice to view its percentage and absolute weight.</p>
+            <p style="font-size: large;" id="summary-description">This pie chart shows the distribution of waste by supertype. Each slice represents the total weight (in kilograms) of waste classified as Biodegradable, Recyclable, Residual, or Special/Hazardous. Hover over a slice to view its percentage and absolute weight.</p>
 
             {{#each legendData}}
                 {{#if (gt value 0)}}
@@ -362,7 +362,7 @@ const grandTotal = {{{grandTotal}}};
   - Uses existing variables:
     summaryData, detailedData, barChartData, sectorPieData,
     sectorBarData, legendData, supertypeDemo, grandTotal, sectorTotals
-  - Inserts text into DOM next to charts. Non-hardcoded thresholds.
+  - Inserts text into DOM next to charts.
 -----------------------------*/
 
 // small helper utilities
@@ -453,7 +453,7 @@ function generateSupertypeInsight(supertypeObj, grandTotalVal) {
   const topPctOfGrand = pct(Number(topType.weight), grandTotalVal);
 
   if (topPctOfGrand >= 15) {
-    return `Within <strong>${supertypeObj.name}</strong>, <strong>${topType.name}</strong> is the largest type and contributes ${topPctOfGrand.toFixed(1)}% to the grand total.`;
+    return `Within <strong>${supertypeObj.name}</strong>, <strong>${topType.name}</strong> is the most dominant type, contributing ${topPctOfGrand.toFixed(1)}% to the grand total.`;
   } else if (topPctOfGrand >= 5) {
     return `The largest type in <strong>${supertypeObj.name}</strong> is <strong>${topType.name}</strong>. Consider targeted awareness and clear on-site signage for this type to boost correct sorting.`;
   } else {
@@ -528,7 +528,7 @@ function generateCrossInsights(supertypeMapObj, sectorsArr, grandTotalVal) {
 function insertOverallInsight() {
   try {
     const overallText = generateOverallInsight(supertypeDemo || {}, Number(grandTotal || 0));
-    const container = document.getElementById('summary-legend');
+    const container = document.getElementById('summary-description');
 
     if (container) {
       let box = container.querySelector('.insight-box.overall');
@@ -552,12 +552,12 @@ function insertPerSupertypeInsights() {
     for (const sv of Object.values(superMap)) {
       const id = sv.name.replace(/\s+/g, '');
       const wrapper = document.getElementById(id); // matches how you set tabDiv.id earlier
+
       if (!wrapper) continue;
-      let box = wrapper.querySelector('.insight-box.supertype');
+
+      let box = wrapper.querySelector('.bar-description');
       if (!box) {
         box = document.createElement('div');
-        box.className = 'insight-box supertype';
-        box.style = 'min-width:260px;padding:1rem;border-radius:8px;background:#fffef8;border-left:4px solid #ff9800;';
         wrapper.appendChild(box);
       }
       box.innerHTML = `<h3 style="margin:0 0 0.25rem 0;color:#2d613f">${sv.name} Category</h3><div>${generateSupertypeInsight(sv, Number(grandTotal || 0))}</div>`;
@@ -570,12 +570,12 @@ function insertSectorInsights() {
     for (const [sectorName, pieData] of Object.entries(sectorPieData || {})) {
       const id = sectorName.replace(/\s+/g, '');
       const wrapper = document.getElementById(id);
+
       if (!wrapper) continue;
-      let box = wrapper.querySelector('.insight-box.sector');
+      let box = wrapper.querySelector('.sector-pie-desc');
+
       if (!box) {
         box = document.createElement('div');
-        box.className = 'insight-box sector';
-        box.style = 'min-width:260px;padding:1rem;border-radius:8px;background:#f8fbff;border-left:4px solid #2196f3;';
         wrapper.appendChild(box);
       }
       const sectorTotalVal = (sectorBarData || []).find(s=>s.label===sectorName)?.value || 0;
@@ -668,6 +668,7 @@ for (const [supertype, chartData] of Object.entries(barChartData)) {
   const legendDiv = document.createElement('div');
   legendDiv.classList.add('bar-legend');
   legendDiv.innerHTML = `<h2 class="bar-legend-title">Top ${supertype} Waste Types</h2>` +
+    `<div class='bar-description' style='background-color: #eef8f2; padding: 1rem; border-radius: 12px; border-left: 6px solid #4CAF50; margin-bottom: 1rem; width: fit-content'></div>` +
     createLegendHTML(chartData.legend, chartData.data);
 
   wrapper.append(canvas, legendDiv);
@@ -685,7 +686,7 @@ for (const [supertype, chartData] of Object.entries(barChartData)) {
       }]
     },
     options: {
-      animation: false, 
+      animation: { duration: 0 }, 
       responsive: true,
       indexAxis: 'x',
       plugins: {
@@ -783,7 +784,9 @@ for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
 
   const legendDiv = document.createElement('div');
   legendDiv.classList.add('bar-legend');
-  legendDiv.innerHTML = `<h2 class="bar-legend-title">${sectorName} Sector</h2>` +
+  legendDiv.innerHTML = `
+    <h2 class="bar-legend-title">${sectorName} Sector</h2>` +
+    `<div class='sector-pie-desc' style='background-color: #eef8f2; padding: 1rem; border-radius: 12px; border-left: 6px solid #4CAF50; margin-bottom: 1rem; width: fit-content'></div>` + 
     createLegendHTML(pieData.labels.map((label, i) => ({
       label,
       value: pieData.data[i],
@@ -805,6 +808,7 @@ for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
       }]
     },
     options: {
+      animation: { duration: 0 },
       responsive: true,
       plugins: {
         tooltip: {
