@@ -312,15 +312,25 @@ app.engine('hbs', engine({
   extname: 'hbs',
   defaultLayout: 'main',
   helpers: {
-       ifNotEquals: function (a, b, options) {
+    ifNotEquals: function (a, b, options) {
       return a !== b ? options.fn(this) : options.inverse(this);
     },
     ifArrayNotEmpty: function (array, options) {
-    return Array.isArray(array) && array.length > 0 ? options.fn(this) : options.inverse(this);
-  },
+      return Array.isArray(array) && array.length > 0 ? options.fn(this) : options.inverse(this);
+    },
     uppercase: function (str) {
-      // console.log(`[HELPER] uppercase: ${str}`);
       return str ? str.toUpperCase() : '';
+    },
+    formatNumber: function (value) {
+      if (value == null || value === '') return '0';
+      return Number(value).toLocaleString('en-US', {
+        minimumFractionDigits: 3,
+        maximumFractionDigits: 3
+      });
+    },
+    integer: function (value) {
+      if (value == null || value === '') return '0';
+      return Number(value).toLocaleString('en-US', { maximumFractionDigits: 0 });
     }
   }
 }));
@@ -2695,12 +2705,12 @@ app.post('/dashboard/noncompliance/pdf', async (req, res) => {
 
     // Section: Waste Type Violations
     if (wasteClients.length > 0) {
-      doc.fontSize(16).fillColor('#1b5e20').text('Waste Type Non-Compliance', { underline: true });
+      doc.fontSize(16).fillColor('#c62828').text('Waste Type Non-Compliance', { underline: true });
       doc.moveDown(0.5);
 
       wasteClients.forEach(client => {
         doc
-          .fillColor('#1b5e20')
+          .fillColor('#c62828')
           .fontSize(14)
           .text(`${client.firstname} ${client.lastname} (${client.company_name})`, { underline: true });
 
@@ -2708,14 +2718,18 @@ app.post('/dashboard/noncompliance/pdf', async (req, res) => {
           .moveDown(0.3)
           .fontSize(11)
           .fillColor('#333')
-          .text(`Waste Type Monitored: ${client.supertype_name}`)
-          .text(`Number of Approved Entries: ${client.entry_count}`)
-          .text(`Required Total Quota: ${client.required_quota} kg`)
-          .text(`Actual Total Collected: ${client.total_collected} kg`)
-          .text(`Compliance Status:`, { continued: true })
-          .fillColor('red')
+          .text(`Waste Type: ${client.supertype_name || client.sector_name}`)
+          .text(`Total Submissions: ${client.entry_count}`)
+          .text(`Total Collected: ${client.total_collected} kg`)
+          .text(`Annual Generation: ${client.annual_generated} kg`)
+          .text(`Achieved: ${client.actual_percent}%`)
+          .text(`Target: ${client.target_percent}%`)
+          .text('Status:', { continued: true })
+          .fillColor(client.compliance_status === 'Compliant' ? 'green' : 'red')
           .text(`  ${client.compliance_status}`)
+          .fillColor('black') // reset back to black for next sections
           .moveDown();
+
 
         doc
           .fillColor('#2e7d32')
@@ -2745,7 +2759,7 @@ app.post('/dashboard/noncompliance/pdf', async (req, res) => {
 
       sectorClients.forEach(client => {
         doc
-          .fillColor('#b71c1c')
+          .fillColor('#c62828')
           .fontSize(14)
           .text(`${client.firstname} ${client.lastname} (${client.company_name})`, { underline: true });
 
@@ -2753,12 +2767,14 @@ app.post('/dashboard/noncompliance/pdf', async (req, res) => {
           .moveDown(0.3)
           .fontSize(11)
           .fillColor('#333')
-          .text(`Sector: ${client.sector_name}`)
-          .text(`Number of Approved Entries: ${client.entry_count}`)
-          .text(`Required Total Quota: ${client.required_quota} kg`)
-          .text(`Actual Total Collected: ${client.total_collected} kg`)
-          .text(`Compliance Status:`, { continued: true })
-          .fillColor('red')
+          .text(`Waste Type: ${client.supertype_name || client.sector_name}`)
+          .text(`Total Submissions: ${client.entry_count}`)
+          .text(`Total Collected: ${client.total_collected} kg`)
+          .text(`Annual Generation: ${client.annual_generated} kg`)
+          .text(`Achieved: ${client.actual_percent}%`)
+          .text(`Target: ${client.target_percent}%`)
+          .text('Status:', { continued: true })
+          .fillColor(client.compliance_status === 'Compliant' ? 'green' : 'red')
           .text(`  ${client.compliance_status}`)
           .moveDown();
 
