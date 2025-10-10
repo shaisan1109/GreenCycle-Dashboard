@@ -1389,22 +1389,25 @@ export async function getWasteComplianceStatusFromSummary(title, region, provinc
     total_gen AS (
       SELECT user_id, SUM(me.annual) AS grand_total
       FROM matching_entries me
-      GROUP BY me.user_id
+      GROUP BY user_id
     )
     SELECT
       ws.name AS supertype_name,
-      wt.total_collected_weight,
-      g.grand_total AS total_generated,
-      ROUND((COALESCE(wt.total_collected_weight, 0) / NULLIF(g.grand_total,0)) * 100, 2) AS diversion_percentage,
-      cq.quota_weight AS target_percentage,
+      COALESCE(SUM(wt.total_collected_weight), 0) AS total_collected_weight,
+      COALESCE(SUM(g.grand_total), 0) AS total_generated,
+      ROUND((COALESCE(SUM(wt.total_collected_weight), 0) / NULLIF(SUM(g.grand_total),0)) * 100, 2) AS diversion_percentage,
+      ROUND(AVG(cq.quota_weight), 2) AS target_percentage,
       CASE
-        WHEN (COALESCE(wt.total_collected_weight, 0) / NULLIF(g.grand_total,0)) * 100 >= cq.quota_weight THEN 'Compliant'
+        WHEN ROUND((COALESCE(SUM(wt.total_collected_weight), 0) / NULLIF(SUM(g.grand_total),0)) * 100, 2) >= ROUND(AVG(cq.quota_weight), 2)
+        THEN 'Compliant'
         ELSE 'Non-Compliant'
       END AS compliance_status
     FROM waste_supertype ws
-    JOIN compliance_quotas cq ON cq.waste_supertype_id = ws.id
-    JOIN total_gen g ON g.user_id = cq.user_id
+    LEFT JOIN compliance_quotas cq ON cq.waste_supertype_id = ws.id
     LEFT JOIN waste_totals wt ON wt.supertype_id = ws.id AND wt.user_id = cq.user_id
+    LEFT JOIN total_gen g ON g.user_id = cq.user_id
+    GROUP BY ws.id, ws.name
+    ORDER BY ws.name;
   `, [
     ...(title ? [`%${title}%`] : []),
     ...(locationCode ? [locationCode, locationCode, locationCode] : []),
@@ -1416,7 +1419,6 @@ export async function getWasteComplianceStatusFromSummary(title, region, provinc
 
   return rows;
 }
-
 export async function getSectorComplianceStatusFromSummary(title, region, province, locationCode, author, company, startDate, endDate) {
   const [rows] = await sql.query(`
     WITH matching_entries AS (
@@ -1448,22 +1450,25 @@ export async function getSectorComplianceStatusFromSummary(title, region, provin
     total_gen AS (
       SELECT user_id, SUM(me.annual) AS grand_total
       FROM matching_entries me
-      GROUP BY me.user_id
+      GROUP BY user_id
     )
     SELECT
       s.name AS sector_name,
-      st.total_collected_weight,
-      g.grand_total AS total_generated,
-      ROUND((COALESCE(st.total_collected_weight, 0) / NULLIF(g.grand_total,0)) * 100, 2) AS diversion_percentage,
-      scq.quota_weight AS target_percentage,
+      COALESCE(SUM(st.total_collected_weight), 0) AS total_collected_weight,
+      COALESCE(SUM(g.grand_total), 0) AS total_generated,
+      ROUND((COALESCE(SUM(st.total_collected_weight), 0) / NULLIF(SUM(g.grand_total),0)) * 100, 2) AS diversion_percentage,
+      ROUND(AVG(scq.quota_weight), 2) AS target_percentage,
       CASE
-        WHEN (COALESCE(st.total_collected_weight, 0) / NULLIF(g.grand_total,0)) * 100 >= scq.quota_weight THEN 'Compliant'
+        WHEN ROUND((COALESCE(SUM(st.total_collected_weight), 0) / NULLIF(SUM(g.grand_total),0)) * 100, 2) >= ROUND(AVG(scq.quota_weight), 2)
+        THEN 'Compliant'
         ELSE 'Non-Compliant'
       END AS compliance_status
     FROM sector s
-    JOIN sector_compliance_quotas scq ON scq.sector_id = s.id
-    JOIN total_gen g ON g.user_id = scq.user_id
+    LEFT JOIN sector_compliance_quotas scq ON scq.sector_id = s.id
     LEFT JOIN sector_totals st ON st.sector_id = s.id AND st.user_id = scq.user_id
+    LEFT JOIN total_gen g ON g.user_id = scq.user_id
+    GROUP BY s.id, s.name
+    ORDER BY s.name;
   `, [
     ...(title ? [`%${title}%`] : []),
     ...(locationCode ? [locationCode, locationCode, locationCode] : []),
@@ -1475,6 +1480,7 @@ export async function getSectorComplianceStatusFromSummary(title, region, provin
 
   return rows;
 }
+
 
 export async function getSummaryParticipants(title, region, province, locationCode, author, company, startDate, endDate) {
   const [rows] = await sql.query(`
@@ -1743,64 +1749,99 @@ export async function getUserSectorComplianceSummary() {
 
 export async function getWasteNonCompliantClients(userId) {
   const [rows] = await sql.query(`
+    WITH user_entries AS (
+      SELECT de.data_entry_id, de.annual
+      FROM data_entry de
+      WHERE de.user_id = ? AND de.status = 'Approved'
+    ),
+    total_gen AS (
+      SELECT SUM(annual) AS annual_generated
+      FROM user_entries
+    ),
+    waste_totals AS (
+      SELECT wt.supertype_id, SUM(wc.waste_amount) AS total_collected
+      FROM data_waste_composition wc
+      JOIN waste_type wt ON wc.type_id = wt.id
+      WHERE wc.data_entry_id IN (SELECT data_entry_id FROM user_entries)
+      GROUP BY wt.supertype_id
+    )
     SELECT
       u.user_id,
       u.firstname,
       u.lastname,
       u.company_name,
       ws.name AS supertype_name,
-      COUNT(DISTINCT de.data_entry_id) AS entry_count,
-      MAX(cq.quota_weight) * COUNT(DISTINCT de.data_entry_id) AS required_quota,
-      COALESCE(SUM(wc.waste_amount), 0) AS total_collected,
+      COUNT(DISTINCT ue.data_entry_id) AS entry_count,
+      g.annual_generated,
+      cq.quota_weight AS target_percent,
+      COALESCE(wt.total_collected, 0) AS total_collected,
+      ROUND((COALESCE(wt.total_collected, 0) / NULLIF(g.annual_generated,0)) * 100, 2) AS actual_percent,
       CASE
-        WHEN COALESCE(SUM(wc.waste_amount), 0) >= MAX(cq.quota_weight) * COUNT(DISTINCT de.data_entry_id) THEN 'Compliant'
+        WHEN ROUND((COALESCE(wt.total_collected, 0) / NULLIF(g.annual_generated,0)) * 100, 2) >= cq.quota_weight
+        THEN 'Compliant'
         ELSE 'Non-Compliant'
       END AS compliance_status
     FROM user u
-    JOIN user_roles ur ON u.role_id = ur.role_id
-    LEFT JOIN data_entry de ON de.user_id = u.user_id AND de.status = 'Approved'
-    LEFT JOIN data_waste_composition wc ON wc.data_entry_id = de.data_entry_id
-    LEFT JOIN waste_type wt ON wc.type_id = wt.id
-    LEFT JOIN waste_supertype ws ON wt.supertype_id = ws.id
-    LEFT JOIN compliance_quotas cq 
-      ON cq.waste_supertype_id = ws.id AND cq.user_id = u.user_id
+    CROSS JOIN total_gen g
+    JOIN waste_supertype ws
+    LEFT JOIN waste_totals wt ON wt.supertype_id = ws.id
+    LEFT JOIN compliance_quotas cq ON cq.waste_supertype_id = ws.id AND cq.user_id = u.user_id
+    LEFT JOIN user_entries ue ON 1=1
     WHERE u.user_id = ?
-    GROUP BY u.user_id, ws.id, u.firstname, u.lastname, u.company_name, ws.name
+    GROUP BY u.user_id, ws.id, u.firstname, u.lastname, u.company_name, ws.name, g.annual_generated, cq.quota_weight, wt.total_collected
     HAVING compliance_status = 'Non-Compliant'
-  `, [userId]);
+  `, [userId, userId]);
 
   return rows;
 }
-
 
 export async function getSectorNonCompliantClients(userId) {
   const [rows] = await sql.query(`
+    WITH user_entries AS (
+      SELECT de.data_entry_id, de.annual
+      FROM data_entry de
+      WHERE de.user_id = ? AND de.status = 'Approved'
+    ),
+    total_gen AS (
+      SELECT SUM(annual) AS annual_generated
+      FROM user_entries
+    ),
+    sector_totals AS (
+      SELECT wc.sector_id, SUM(wc.waste_amount) AS total_collected
+      FROM data_waste_composition wc
+      WHERE wc.data_entry_id IN (SELECT data_entry_id FROM user_entries)
+      GROUP BY wc.sector_id
+    )
     SELECT
-    u.user_id,
-    u.firstname,
-    u.lastname,
-    u.company_name,
-    s.name AS sector_name,
-    COUNT(DISTINCT de.data_entry_id) AS entry_count,
-    MAX(scq.quota_weight) * COUNT(DISTINCT de.data_entry_id) AS required_quota,
-    COALESCE(SUM(wc.waste_amount), 0) AS total_collected,
-    CASE
-        WHEN COALESCE(SUM(wc.waste_amount), 0) >= MAX(scq.quota_weight) * COUNT(DISTINCT de.data_entry_id)
+      u.user_id,
+      u.firstname,
+      u.lastname,
+      u.company_name,
+      s.name AS sector_name,
+      COUNT(DISTINCT ue.data_entry_id) AS entry_count,
+      g.annual_generated,
+      scq.quota_weight AS target_percent,
+      COALESCE(st.total_collected, 0) AS total_collected,
+      ROUND((COALESCE(st.total_collected, 0) / NULLIF(g.annual_generated,0)) * 100, 2) AS actual_percent,
+      CASE
+        WHEN ROUND((COALESCE(st.total_collected, 0) / NULLIF(g.annual_generated,0)) * 100, 2) >= scq.quota_weight
         THEN 'Compliant'
         ELSE 'Non-Compliant'
-    END AS compliance_status
+      END AS compliance_status
     FROM user u
-    LEFT JOIN data_entry de ON de.user_id = u.user_id AND de.status = 'Approved'
-    LEFT JOIN data_waste_composition wc ON wc.data_entry_id = de.data_entry_id
-    LEFT JOIN sector s ON wc.sector_id = s.id
-    LEFT JOIN sector_compliance_quotas scq ON scq.sector_id = s.id
+    CROSS JOIN total_gen g
+    JOIN sector s
+    LEFT JOIN sector_totals st ON st.sector_id = s.id
+    LEFT JOIN sector_compliance_quotas scq ON scq.sector_id = s.id AND scq.user_id = u.user_id
+    LEFT JOIN user_entries ue ON 1=1
     WHERE u.user_id = ?
-    GROUP BY u.user_id, s.id
+    GROUP BY u.user_id, s.id, u.firstname, u.lastname, u.company_name, s.name, g.annual_generated, scq.quota_weight, st.total_collected
     HAVING compliance_status = 'Non-Compliant'
-  `, [userId]);
+  `, [userId, userId]);
 
   return rows;
 }
+
 
 export async function getWasteComplianceQuotas() {
   const [rows] = await sql.query(`

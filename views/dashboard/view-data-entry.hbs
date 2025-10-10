@@ -94,8 +94,8 @@
       {{#each wasteCompliance}}
         <tr>
           <td>{{supertype_name}}</td>
-          <td>{{total_collected_weight}} kg</td>
-          <td>{{total_generation}} kg</td>
+          <td>{{formatNumber total_collected_weight}} kg</td>
+          <td>{{formatNumber total_generation}} kg</td>
           <td>{{diversion_pct}}%</td>
           <td>{{target_rate}}%</td>
           <td>{{compliance_status}}</td>
@@ -119,8 +119,8 @@
       {{#each sectorCompliance}}
         <tr>
           <td>{{sector_name}}</td>
-          <td>{{total_collected_weight}} kg</td>
-          <td>{{total_generation}} kg</td>
+          <td>{{formatNumber total_collected_weight}} kg</td>
+          <td>{{formatNumber total_generation}} kg</td>
           <td>{{diversion_pct}}%</td>
           <td>{{target_rate}}%</td>
           <td>{{compliance_status}}</td>
