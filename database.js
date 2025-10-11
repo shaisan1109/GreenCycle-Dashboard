@@ -2145,15 +2145,6 @@ export async function createNotification(targetUserId, msgType, message, link) {
     return id
 }
 
-// Get notifications for user
-/* export async function getNotifications(userId) {
-    const [result] = await sql.query(`
-        SELECT * FROM greencycle.notifications
-        WHERE user_id = ?
-        ORDER BY created_at DESC`, [userId])
-    return result
-} */
-
 // Get notifications for user (paginated)
 export async function getNotifications(userId, limit = 10, offset = 0) {
   const [result] = await sql.query(`

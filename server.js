@@ -862,35 +862,44 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
         };
       }
 
+      // Generate waste recommendations
       const sortedLegend = [...legendData].sort((a, b) => b.value - a.value);
 
-      /* const categoryRecommendations = sortedLegend.map((item, index) => {
-        const cat = item.label;
-        if (item.value === 0) {
-          return `${cat} has <b>no recorded data</b>. Consider reviewing your data collection or categorization practices for this category.`;
-        } else if (index === 0) {
-          return `${cat} is the <b>top contributor</b> to total waste. Prioritize <b>reduction, reuse, and proper disposal</b> strategies.`;
-        } else if (index === 1 || index === 2) {
-          return `${cat} has a <b>moderate share</b> of the waste stream. Monitor trends and <b>optimize collection methods</b>.`;
-        } else {
-          return `${cat} shows <b>minimal contribution</b>. Evaluate if underreporting or poor classification is affecting this figure.`;
-        }
-      }); */
+      // Icon mapping by category (base icons only, color will be set by priority)
+      const iconMap = {
+        'Biodegradable': 'fa-seedling',
+        'Recyclable': 'fa-recycle',
+        'Residual': 'fa-trash',
+        'Special/Hazardous': 'fa-radiation'
+      };
 
       const recommendations = sortedLegend.map((item, index) => {
         const cat = item.label;
         const value = item.value;
-
+        const iconClass = iconMap[cat] || 'fa-question-circle'; // fallback icon
+        let priorityClass = '';
+        let message = '';
 
         if (value === 0) {
-          return `<span class="low-priority"><strong>${cat}</strong> shows <strong>no recorded data</strong>. This may indicate issues in waste sorting, data logging, or community awareness. <em>We recommend auditing data entry points and reinforcing waste segregation education among constituents.</em></span>`;
+          priorityClass = 'low-priority';
+          message = `<strong>${cat}</strong> shows <strong>no recorded data</strong>. This may indicate issues in waste sorting, data logging, or community awareness. <em>We recommend auditing data entry points and reinforcing waste segregation education among constituents.</em>`;
         } else if (index === 0) {
-          return `<span class="high-priority"><strong>${cat}</strong> is the <strong>largest contributor</strong> to overall waste. <em>Focus efforts on upstream reduction, community education, alternative disposal methods (e.g., composting or recycling), and stronger enforcement of waste segregation at source.</em></span>`;
+          priorityClass = 'high-priority';
+          message = `<strong>${cat}</strong> is the <strong>largest contributor</strong> to overall waste. <em>Focus efforts on upstream reduction, community education, alternative disposal methods (e.g., composting or recycling), and stronger enforcement of waste segregation at source.</em>`;
         } else if (index === 1 || index === 2) {
-          return `<span class="mid-priority"><strong>${cat}</strong> represents a <strong>moderate proportion</strong> of total waste. <em>Monitor trends closely and implement consistent collection programs and classification training to sustain or improve performance.</em></span>`;
+          priorityClass = 'mid-priority';
+          message = `<strong>${cat}</strong> represents a <strong>moderate proportion</strong> of total waste. <em>Monitor trends closely and implement consistent collection programs and classification training to sustain or improve performance.</em>`;
         } else {
-          return `<span class="low-priority"><strong>${cat}</strong> appears to be <strong>underreported or lacking</strong>. <em>Consider targeted campaigns or infrastructure (e.g., drop-off points, incentives) to encourage proper classification and collection.</em></span>`;
+          priorityClass = 'low-priority';
+          message = `<strong>${cat}</strong> appears to be <strong>underreported or lacking</strong>. <em>Consider targeted campaigns or infrastructure (e.g., drop-off points, incentives) to encourage proper classification and collection.</em>`;
         }
+
+        return `
+          <div class="${priorityClass}" style="display: flex; align-items: flex-start; gap: 0.75rem;">
+            <i class="fas ${iconClass} insight-icon" style="font-size: 1.8rem; flex-shrink: 0; margin-top: auto; margin-bottom: auto;"></i>
+            <span>${message}</span>
+          </div>
+        `;
       });
 
       const groupedByOrg = participants.reduce((acc, p) => {
@@ -1629,21 +1638,42 @@ app.get('/dashboard/data/:id', async (req, res) => {
   // Generate waste recommendations
   const sortedLegend = [...legendData].sort((a, b) => b.value - a.value);
 
+  // Icon mapping by category (base icons only, color will be set by priority)
+  const iconMap = {
+    'Biodegradable': 'fa-seedling',
+    'Recyclable': 'fa-recycle',
+    'Residual': 'fa-trash',
+    'Special/Hazardous': 'fa-radiation'
+  };
+
   const recommendations = sortedLegend.map((item, index) => {
     const cat = item.label;
     const value = item.value;
+    const iconClass = iconMap[cat] || 'fa-question-circle'; // fallback icon
+    let priorityClass = '';
+    let message = '';
 
     if (value === 0) {
-      return `<span class="low-priority"><strong>${cat}</strong> shows <strong>no recorded data</strong>. This may indicate issues in waste sorting, data logging, or community awareness. <em>We recommend auditing data entry points and reinforcing waste segregation education among constituents.</em></span>`;
+      priorityClass = 'low-priority';
+      message = `<strong>${cat}</strong> shows <strong>no recorded data</strong>. This may indicate issues in waste sorting, data logging, or community awareness. <em>We recommend auditing data entry points and reinforcing waste segregation education among constituents.</em>`;
     } else if (index === 0) {
-      return `<span class="high-priority"><strong>${cat}</strong> is the <strong>largest contributor</strong> to overall waste. <em>Focus efforts on upstream reduction, community education, alternative disposal methods (e.g., composting or recycling), and stronger enforcement of waste segregation at source.</em></span>`;
+      priorityClass = 'high-priority';
+      message = `<strong>${cat}</strong> is the <strong>largest contributor</strong> to overall waste. <em>Focus efforts on upstream reduction, community education, alternative disposal methods (e.g., composting or recycling), and stronger enforcement of waste segregation at source.</em>`;
     } else if (index === 1 || index === 2) {
-      return `<span class="mid-priority"><strong>${cat}</strong> represents a <strong>moderate proportion</strong> of total waste. <em>Monitor trends closely and implement consistent collection programs and classification training to sustain or improve performance.</em></span>`;
+      priorityClass = 'mid-priority';
+      message = `<strong>${cat}</strong> represents a <strong>moderate proportion</strong> of total waste. <em>Monitor trends closely and implement consistent collection programs and classification training to sustain or improve performance.</em>`;
     } else {
-      return `<span class="low-priority"><strong>${cat}</strong> appears to be <strong>underreported or lacking</strong>. <em>Consider targeted campaigns or infrastructure (e.g., drop-off points, incentives) to encourage proper classification and collection.</em></span>`;
+      priorityClass = 'low-priority';
+      message = `<strong>${cat}</strong> appears to be <strong>underreported or lacking</strong>. <em>Consider targeted campaigns or infrastructure (e.g., drop-off points, incentives) to encourage proper classification and collection.</em>`;
     }
-  });
 
+    return `
+      <div class="${priorityClass}" style="display: flex; align-items: flex-start; gap: 0.75rem;">
+        <i class="fas ${iconClass} insight-icon" style="font-size: 1.8rem; flex-shrink: 0; margin-top: auto; margin-bottom: auto;"></i>
+        <span>${message}</span>
+      </div>
+    `;
+  });
 
   res.render('dashboard/view-data-entry', {
     layout: 'dashboard',

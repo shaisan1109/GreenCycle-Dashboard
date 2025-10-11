@@ -151,6 +151,24 @@
   display: block;
 }
 
+/* Shared icon style */
+.insight-icon {
+  opacity: 0.9;
+}
+
+/* Match icon color to priority text */
+.high-priority .insight-icon {
+  color: #0e5d08; /* darker green */
+}
+
+.mid-priority .insight-icon {
+  color: #a65f00; /* darker orange */
+}
+
+.low-priority .insight-icon {
+  color: #800000; /* darker red */
+}
+
 .insight-general {
   background-color: #eef8f2; padding: 1.5rem; border-radius: 12px; border-left: 6px solid #4CAF50; margin-top: 2rem;
 }
