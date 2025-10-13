@@ -685,7 +685,7 @@ app.get('/notifications/update-count', async (req, res) => {
 });
 
 // Display data summary
-app.get('/dashboard/data/summary', async (req, res, next) => {
+app.get('/dashboard/data/summary', async (req, res, next) =>{
   // Clean query before proceeding
   const cleanedQuery = {};
   for (const [key, value] of Object.entries(req.query)) {
@@ -781,84 +781,134 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
       const legendData = [];
       const barChartData = {};
       const sectorTotals = {};
-      sectors.forEach(s => sectorTotals[s.id] = 0);
+      sectors.forEach(s => (sectorTotals[s.id] = 0));
+
+      const summaryEntries = []; // collect before sorting
 
       for (const supertype of Object.values(supertypeMap)) {
         const baseColor = baseHexMap[supertype.name] || '#9e9e9e';
         const sectorSubtotals = {};
-        sectors.forEach(s => sectorSubtotals[s.id] = 0);
+        sectors.forEach(s => (sectorSubtotals[s.id] = 0));
 
         let supertypeTotal = 0;
 
-        const sortedTypes = supertype.types.map(type => {
-          const weight = type.weight;
-          const amounts = type.amounts;
+        // Sort internal types by weight
+        const sortedTypes = supertype.types
+          .map(type => {
+            const weight = type.weight;
+            const amounts = type.amounts || {};
 
-          for (const [sid, val] of Object.entries(amounts)) {
-            const sidNum = Number(sid);
-            sectorSubtotals[sidNum] += val;
-            sectorTotals[sidNum] += val;
-          }
+            for (const [sid, val] of Object.entries(amounts)) {
+              const sidNum = Number(sid);
+              const amt = Number(val);
+              sectorSubtotals[sidNum] += amt;
+              sectorTotals[sidNum] += amt;
+            }
 
-          supertypeTotal += weight;
+            supertypeTotal += weight;
 
-          return { label: type.name, value: weight };
-        }).sort((a, b) => b.value - a.value);
+            return { label: type.name, value: weight };
+          })
+          .sort((a, b) => b.value - a.value);
 
+        // Apply shaded colors
         const totalTypes = sortedTypes.length;
         sortedTypes.forEach((item, i) => {
           item.color = shadeBarColor(baseColor, i, totalTypes);
         });
 
+        // Bar chart per supertype
         barChartData[supertype.name] = {
           labels: sortedTypes.map(t => t.label),
           data: sortedTypes.map(t => t.value),
-          legend: sortedTypes
+          legend: sortedTypes,
         };
 
-        summaryData.labels.push(supertype.name);
-        summaryData.data.push(Number(supertypeTotal.toFixed(3)));
-        summaryData.backgroundColor.push(baseColor);
-        legendData.push({
-          label: supertype.name,
-          value: Number(supertypeTotal.toFixed(3)),
-          color: baseColor
+        // Collect entry for later sorting
+        summaryEntries.push({
+          name: supertype.name,
+          total: Number(supertypeTotal.toFixed(3)),
+          color: baseColor,
         });
 
+        // Add to detailed dataset
         sortedTypes.forEach((t, i) => {
           if (t.value > 0) {
             detailedData.labels.push(t.label);
             detailedData.data.push(Number(t.value.toFixed(3)));
-            detailedData.backgroundColor.push(shadeColor(baseColor, -0.3 + 0.08 * i));
+            detailedData.backgroundColor.push(
+              shadeColor(baseColor, -0.3 + 0.08 * i)
+            );
           }
+        });
+
+        // Optional: store sector subtotals and percentages on supertype object
+        for (const id in sectorSubtotals) {
+          sectorSubtotals[id] = sectorSubtotals[id].toFixed(3);
+        }
+
+        supertype.sectorTotals = sectorSubtotals;
+        supertype.totalWeight = supertypeTotal.toFixed(3);
+        supertype.percentage =
+          grandTotal > 0
+            ? ((supertypeTotal / grandTotal) * 100).toFixed(3)
+            : "0.000";
+
+        supertype.types.forEach(type => {
+          type.totalWeight = type.weight.toFixed(3);
+          type.percentage =
+            grandTotal > 0
+              ? ((type.weight / grandTotal) * 100).toFixed(3)
+              : "0.000";
         });
       }
 
-      const sectorBarData = sectors.map((sector, i) => ({
-        label: sector.name,
-        value: Number(sectorTotals[sector.id]?.toFixed(3)) || 0,
-        color: `hsl(${210 + i * 15}, 70%, 55%)`
-      })).sort((a, b) => b.value - a.value);
+      // ===== Sort and push summary results =====
+      summaryEntries.sort((a, b) => b.total - a.total);
 
+      for (const e of summaryEntries) {
+        summaryData.labels.push(e.name);
+        summaryData.data.push(e.total);
+        summaryData.backgroundColor.push(e.color);
+
+        legendData.push({
+          label: e.name,
+          value: e.total,
+          color: e.color,
+        });
+      }
+
+      // ===== Sector Bar Chart =====
+      const sectorBarData = sectors
+        .map((sector, i) => ({
+          label: sector.name,
+          value: Number(sectorTotals[sector.id]?.toFixed(3)) || 0,
+          color: `hsl(${210 + i * 15}, 70%, 55%)`,
+        }))
+        .sort((a, b) => b.value - a.value);
+
+      // ===== Sector Pie Charts =====
       const sectorPieData = {};
       for (const sector of sectors) {
         const sectorId = sector.id;
-        const rawTotals = Object.values(supertypeMap).map(supertype => {
-          let subtotal = 0;
-          for (const type of supertype.types) {
-            subtotal += Number(type.amounts?.[sectorId] || 0);
-          }
-          return {
-            label: supertype.name,
-            value: Number(subtotal.toFixed(3)),
-            color: baseHexMap[supertype.name] || '#9E9E9E'
-          };
-        }).sort((a, b) => b.value - a.value);
+        const rawTotals = Object.values(supertypeMap)
+          .map(supertype => {
+            let subtotal = 0;
+            for (const type of supertype.types) {
+              subtotal += Number(type.amounts?.[sectorId] || 0);
+            }
+            return {
+              label: supertype.name,
+              value: Number(subtotal.toFixed(3)),
+              color: baseHexMap[supertype.name] || '#9E9E9E',
+            };
+          })
+          .sort((a, b) => b.value - a.value);
 
         sectorPieData[sector.name] = {
           labels: rawTotals.map(r => r.label),
           data: rawTotals.map(r => r.value),
-          backgroundColor: rawTotals.map(r => r.color)
+          backgroundColor: rawTotals.map(r => r.color),
         };
       }
 
@@ -932,6 +982,8 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
         query: req.query, // Pass current query
         avgInfo: avgInfo[0],
         barChartData: JSON.stringify(barChartData),
+        supertypeDemo: JSON.stringify(supertypeMap),
+        grandTotal: grandTotal.toFixed(3),
         summaryPieData: JSON.stringify(summaryData),
         detailedPieData: JSON.stringify(detailedData),
         orgGroups,
