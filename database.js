@@ -29,6 +29,17 @@ export async function getUsers() {
     return result
 }
 
+export async function getOrganizations() {
+  const [rows] = await sql.query(`
+    SELECT DISTINCT company_name 
+    FROM user 
+    WHERE company_name IS NOT NULL 
+    ORDER BY company_name
+  `);
+  return rows.map(r => r.company_name);
+}
+
+
 // Get one user by email
 export async function getUserByEmail(email) {
     const [result] = await sql.query(`
@@ -1843,63 +1854,57 @@ export async function getSectorNonCompliantClients(userId) {
 }
 
 
-export async function getWasteComplianceQuotas() {
+// ✅ Get all waste quotas by organization (grouped)
+export async function getWasteQuotasByOrganization(orgName) {
   const [rows] = await sql.query(`
-SELECT cq.*, ws.name AS waste_supertype_name
-FROM compliance_quotas cq
-JOIN waste_supertype ws ON cq.waste_supertype_id = ws.id
-  `);
+    SELECT 
+      MIN(cq.quota_id) AS quota_id,
+      ws.name AS waste_supertype_name,
+      AVG(cq.quota_weight) AS quota_weight
+    FROM compliance_quotas cq
+    JOIN waste_supertype ws ON cq.waste_supertype_id = ws.id
+    WHERE cq.organization = ?
+    GROUP BY ws.name
+    ORDER BY ws.name
+  `, [orgName]);
   return rows;
 }
 
-export async function getSectorComplianceQuotas() {
+// ✅ Get all sector quotas by organization (grouped)
+export async function getSectorQuotasByOrganization(orgName) {
   const [rows] = await sql.query(`
-    SELECT scq.*, s.name AS sector_name
+    SELECT 
+      MIN(scq.quota_id) AS quota_id,
+      s.name AS sector_name,
+      AVG(scq.quota_weight) AS quota_weight
     FROM sector_compliance_quotas scq
     JOIN sector s ON scq.sector_id = s.id
-  `);
-  return rows;
-}
-
-export async function updateWasteQuota(quotaId, newWeight) {
-  await sql.query(
-    `UPDATE compliance_quotas SET quota_weight = ? WHERE quota_id = ?`,
-    [newWeight, quotaId]
-  );
-}
-
-export async function updateSectorQuota(quotaId, newWeight) {
-  await sql.query(
-    `UPDATE sector_compliance_quotas SET quota_weight = ? WHERE quota_id = ?`,
-    [newWeight, quotaId]
-  );
-}
-
-// Get waste quotas for a specific user
-export async function getWasteQuotasByUser(userId) {
-  const [rows] = await sql.query(`
-    SELECT cq.quota_id, cq.quota_weight, ws.name AS waste_supertype_name
-    FROM compliance_quotas cq
-    JOIN waste_supertype ws ON ws.id = cq.waste_supertype_id
-    WHERE cq.user_id = ?
-    ORDER BY ws.name
-  `, [userId]);
-
-  return rows;
-}
-
-// Get sector quotas for a specific user
-export async function getSectorQuotasByUser(userId) {
-  const [rows] = await sql.query(`
-    SELECT scq.quota_id, scq.quota_weight, s.name AS sector_name
-    FROM sector_compliance_quotas scq
-    JOIN sector s ON s.id = scq.sector_id
-    WHERE scq.user_id = ?
+    WHERE scq.organization = ?
+    GROUP BY s.name
     ORDER BY s.name
-  `, [userId]);
-
+  `, [orgName]);
   return rows;
 }
+
+// ✅ Update ALL users under that organization
+export async function updateWasteQuotaForOrg(orgName, wasteName, newWeight) {
+  await sql.query(`
+    UPDATE compliance_quotas cq
+    JOIN waste_supertype ws ON cq.waste_supertype_id = ws.id
+    SET cq.quota_weight = ?
+    WHERE cq.organization = ? AND ws.name = ?
+  `, [newWeight, orgName, wasteName]);
+}
+
+export async function updateSectorQuotaForOrg(orgName, sectorName, newWeight) {
+  await sql.query(`
+    UPDATE sector_compliance_quotas scq
+    JOIN sector s ON scq.sector_id = s.id
+    SET scq.quota_weight = ?
+    WHERE scq.organization = ? AND s.name = ?
+  `, [newWeight, orgName, sectorName]);
+}
+
 
 export async function createDefaultQuotasForUser(userId) {
   // Waste quotas

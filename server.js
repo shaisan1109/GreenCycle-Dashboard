@@ -27,8 +27,6 @@ import {
   getWasteGenById, getWasteCompById, getDataByStatus,
   getWasteSupertypes,
   getWasteTypes,
-  getWasteComplianceQuotas,getSectorComplianceQuotas,  updateWasteQuota,
-  updateSectorQuota,
   getDataByUser,
   getPsgcName,
   updateDataStatus,
@@ -93,9 +91,11 @@ import {
   getSectorComplianceByUser,
   groupComplianceData,
   getSummaryParticipants,
-  getWasteQuotasByUser,
-  getSectorQuotasByUser,
-  
+  getWasteQuotasByOrganization,
+  getSectorQuotasByOrganization,
+  getOrganizations,
+  updateWasteQuotaForOrg,
+updateSectorQuotaForOrg
 } from './database.js'
 
 // File Upload
@@ -3044,46 +3044,44 @@ app.get('/api/control-panel/top-regions', async (req, res) => {
 });
 
 app.get('/control-panel/quotas', async (req, res) => {
-  const userId = req.query.user_id || null; // null = show first user or all?
-  const users = await getUsers(); // list of users for dropdown
+  const org = req.query.org || null;
+  const orgList = await getOrganizations();
 
-  // If no userId, default to first user
-  const selectedUserId = userId || (users.length ? users[0].user_id : null);
+  const selectedOrg = org || (orgList.length ? orgList[0] : null);
 
   let wasteQuotas = [];
   let sectorQuotas = [];
 
-  if (selectedUserId) {
-    wasteQuotas = await getWasteQuotasByUser(selectedUserId);
-    sectorQuotas = await getSectorQuotasByUser(selectedUserId);
+  if (selectedOrg) {
+    wasteQuotas = await getWasteQuotasByOrganization(selectedOrg);
+    sectorQuotas = await getSectorQuotasByOrganization(selectedOrg);
   }
-  const wasteSupertypes = await getWasteSupertypes();
-  const sectors = await getSectors();
 
   res.render('control-panel/quotas', {
     layout: 'control-panel',
     title: 'Compliance Quotas | GC Control Panel',
     current_quotas: true,
-    users,
-    selectedUserId,
+    orgList,
+    selectedOrg,
     wasteQuotas,
-    sectorQuotas,
-    wasteSupertypes,
-    sectors
+    sectorQuotas
   });
 });
 
 app.post('/control-panel/quotas/update-waste', async (req, res) => {
-  const { quota_id, quota_weight } = req.body;
-  await updateWasteQuota(quota_id, parseFloat(quota_weight));
-  res.redirect(`/control-panel/quotas?user_id=${req.query.user_id || ''}`);
+  const { quota_id, quota_weight, waste_name } = req.body;
+  const org = req.query.org;
+  await updateWasteQuotaForOrg(org, waste_name, parseFloat(quota_weight));
+  res.redirect(`/control-panel/quotas?org=${encodeURIComponent(org)}`);
+});
+app.post('/control-panel/quotas/update-sector', async (req, res) => {
+  const { quota_id, quota_weight, sector_name } = req.body;
+  const org = req.query.org;
+  await updateSectorQuotaForOrg(org, sector_name, parseFloat(quota_weight));
+  res.redirect(`/control-panel/quotas?org=${encodeURIComponent(org)}`);
 });
 
-app.post('/control-panel/quotas/update-sector', async (req, res) => {
-  const { quota_id, quota_weight } = req.body;
-  await updateSectorQuota(quota_id, parseFloat(quota_weight));
-  res.redirect(`/control-panel/quotas?user_id=${req.query.user_id || ''}`);
-});
+
 
 
 // User routes

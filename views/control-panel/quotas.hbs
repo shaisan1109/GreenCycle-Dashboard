@@ -1,11 +1,11 @@
 <h2 style="margin-bottom: 20px;">Waste Management Targets</h2>
 
 <div class="form-section">
-  <label for="quota-user">Select User:</label>
-  <select id="quota-user" onchange="fetchQuotasForUser()">
-    {{#each users}}
-      <option value="{{this.user_id}}" {{#ifEquals this.user_id ../selectedUserId}}selected{{/ifEquals}}>
-        {{this.firstname}} {{this.lastname}}
+  <label for="quota-org">Select Organization:</label>
+  <select id="quota-org" onchange="fetchQuotasForOrg()">
+    {{#each orgList}}
+      <option value="{{this}}" {{#ifEquals this ../selectedOrg}}selected{{/ifEquals}}>
+        {{this}}
       </option>
     {{/each}}
   </select>
@@ -22,20 +22,30 @@
       </tr>
     </thead>
     <tbody>
-      {{#each wasteQuotas}}
-      <tr>
-        <td>{{this.waste_supertype_name}}</td>
-        <td>
-          <form method="POST" action="/control-panel/quotas/update-waste" class="inline-form" onsubmit="return confirmUpdate('waste supertype', '{{this.waste_supertype_name}}')">
-            <input type="hidden" name="quota_id" value="{{this.quota_id}}">
-            <input type="number" name="quota_weight" value="{{this.quota_weight}}" step="0.01" min="0" max="100" required> %
-        </td>
-        <td>
-            <button type="submit" class="btn-submit">Update</button>
-          </form>
-        </td>
-      </tr>
-      {{/each}}
+      {{#if wasteQuotas.length}}
+        {{#each wasteQuotas}}
+        <tr>
+          <td>{{this.waste_supertype_name}}</td>
+          <td>
+            <form method="POST" action="/control-panel/quotas/update-waste?org={{../selectedOrg}}" 
+      class="inline-form" 
+      onsubmit="return confirmUpdate('waste category', '{{this.waste_supertype_name}}')">
+  <input type="hidden" name="quota_id" value="{{this.quota_id}}">
+  <input type="hidden" name="waste_name" value="{{this.waste_supertype_name}}">
+  <input type="number" name="quota_weight" value="{{this.quota_weight}}" step="0.01" min="0" max="100" required> %
+
+          </td>
+          <td>
+              <button type="submit" class="btn-submit">Update</button>
+            </form>
+          </td>
+        </tr>
+        {{/each}}
+      {{else}}
+        <tr>
+          <td colspan="3" style="text-align:center; color:#777;">No waste category quotas found for this organization.</td>
+        </tr>
+      {{/if}}
     </tbody>
   </table>
   <p style="font-size:0.9rem; color:#555;">*Set the mandated collection/diversion rate targets for each waste category.*</p>
@@ -52,20 +62,30 @@
       </tr>
     </thead>
     <tbody>
-      {{#each sectorQuotas}}
-      <tr>
-        <td>{{this.sector_name}}</td>
-        <td>
-          <form method="POST" action="/control-panel/quotas/update-sector" class="inline-form" onsubmit="return confirmUpdate('sector', '{{this.sector_name}}')">
-            <input type="hidden" name="quota_id" value="{{this.quota_id}}">
-            <input type="number" name="quota_weight" value="{{this.quota_weight}}" step="0.01" min="0" max="100" required> %
-        </td>
-        <td>
-            <button type="submit" class="btn-submit">Update</button>
-          </form>
-        </td>
-      </tr>
-      {{/each}}
+      {{#if sectorQuotas.length}}
+        {{#each sectorQuotas}}
+        <tr>
+          <td>{{this.sector_name}}</td>
+          <td>
+            <form method="POST" action="/control-panel/quotas/update-sector?org={{../selectedOrg}}" 
+      class="inline-form" 
+      onsubmit="return confirmUpdate('sector', '{{this.sector_name}}')">
+  <input type="hidden" name="quota_id" value="{{this.quota_id}}">
+  <input type="hidden" name="sector_name" value="{{this.sector_name}}">
+  <input type="number" name="quota_weight" value="{{this.quota_weight}}" step="0.01" min="0" max="100" required> %
+
+          </td>
+          <td>
+              <button type="submit" class="btn-submit">Update</button>
+            </form>
+          </td>
+        </tr>
+        {{/each}}
+      {{else}}
+        <tr>
+          <td colspan="3" style="text-align:center; color:#777;">No sector quotas found for this organization.</td>
+        </tr>
+      {{/if}}
     </tbody>
   </table>
   <p style="font-size:0.9rem; color:#555;">*Set the mandated collection/diversion rate targets for each sector.*</p>
@@ -76,9 +96,9 @@
     return confirm(`Are you sure you want to update the quota for the ${type} "${name}"?`);
   }
 
-  function fetchQuotasForUser() {
-    const userId = document.getElementById('quota-user').value;
-    window.location.href = `/control-panel/quotas?user_id=${userId}`;
+  function fetchQuotasForOrg() {
+    const org = document.getElementById('quota-org').value;
+    window.location.href = `/control-panel/quotas?org=${encodeURIComponent(org)}`;
   }
 </script>
 
