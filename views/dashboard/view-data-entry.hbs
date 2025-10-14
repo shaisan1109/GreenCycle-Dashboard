@@ -372,18 +372,14 @@ const fmtKg = (n) => `${Number(n).toFixed(3)} kg`;
 
 // phrase banks for variation
 const overallPhrases = {
-  balanced: [
-    "All major categories are nearly proportional, indicating a balanced waste composition with no single dominant source."
-  ],
-  dominant: [
-    "One category dominates the waste stream. Prioritize source reduction and targeted segregation for this category."
-  ],
-  lowReported: [
-    "Some categories show very low or missing volumes. This may be caused by underreporting, misclassification, gaps in reporting, or genuinely low output."
-  ],
-  mixedDominant: [
-    "Several categories contribute significant amounts. Consider combined campaigns (e.g., recycling + organics) rather than programs for a single type."
-  ]
+  balanced:
+    "All major categories are nearly proportional, indicating a balanced waste composition with no single dominant source.<br>",
+  dominant:
+    "One category dominates the waste stream. Prioritize source reduction and targeted segregation for this category.<br>",
+  lowReported:
+    "Some categories show very low or missing volumes. This may be caused by underreporting, misclassification, gaps in reporting, or genuinely low output.<br>",
+  mixedDominant:
+    "Several categories contribute significant amounts. Consider combined campaigns (e.g., recycling + organics) rather than programs for a single type.<br>"
 };
 
 // dynamic insight generators
@@ -408,41 +404,55 @@ function generateOverallInsight(supertypeMapObj, grandTotalVal) {
   const deviations = shares.map(s => Math.abs(s.pct - avgPct));
   const allBalanced = deviations.every(d => d < 5); // 5% deviation tolerance
 
-  // CASE 1: Evenly distributed
+  const lowList = shares.filter(s => s.pct < 2).map(s => s.name);
+  const tinyList = shares.filter(s => s.pct < 10).map(s => s.name); // condition 6 pointer
+
+  // Helper for full summary
+  const fullBreakdown = shares.map(s => `${s.name}: ${s.pct.toFixed(1)}%`).join(', ');
+
+  // CASE 1: Evenly distributed (Condition 5)
   if (allBalanced && nonzero.length > 2) {
-    let text = rand(overallPhrases.balanced);
-    const lowList = shares.filter(s => s.pct < 2).map(s => s.name);
+    let text = overallPhrases.balanced;
     if (lowList.length) text += ` However, some categories appear minimal: ${lowList.join(', ')}.`;
+    if (tinyList.length === 1) text += ` The category ${tinyList[0]} is noticeably small compared to others.`;
     return text;
   }
 
-  // CASE 2: One dominant
+  // CASE 2: One dominant (Conditions 1 and 2)
   if (top.pct >= 50) {
-    let text = `${rand(overallPhrases.dominant)} Currently, <strong>${top.name}</strong> represents ${top.pct.toFixed(1)}% of the total.`;
-    const lowList = shares.filter(s => s.pct < 2).map(s => s.name);
+    let text = `${overallPhrases.dominant} Currently, <strong>${top.name}</strong> represents ${top.pct.toFixed(1)}% of the total.`;
     if (lowList.length) text += ` Some low categories: ${lowList.join(', ')}.`;
+    if (tinyList.length === 1) text += ` ${tinyList[0]} appears significantly underrepresented.`;
     return text;
   }
 
-  // CASE 3: Multiple dominate
+  // CASE 3: Two share dominance (Conditions 3a & 3b)
   const strongList = shares.filter(s => s.pct >= 20);
   if (strongList.length >= 2 && strongList.length < shares.length) {
-    let text = `${rand(overallPhrases.mixedDominant)} <br><b>Major categories: ${strongList.map(s => s.name).join(', ')}</b>`;
-    const lowList = shares.filter(s => s.pct < 2).map(s => s.name);
-    if (lowList.length) text += ` Underrepresented: ${lowList.join(', ')}.`;
+    let text = `${overallPhrases.mixedDominant} <br><b>Major categories: ${strongList.map(s => s.name).join(', ')}</b>`;
+    if (lowList.length) text += ` Lower: ${lowList.join(', ')}.`;
+    if (tinyList.length === 1) text += ` The category ${tinyList[0]} has a notably small portion.`;
     return text;
   }
 
-  // CASE 4: Mainly low/underreported
-  const lowList = shares.filter(s => s.pct < 2).map(s => s.name);
+  // CASE 4: Mainly low/underreported (Condition 4)
   if (lowList.length === shares.length) {
-    return "All categories show minimal values — likely incomplete or unreported data.";
+    return "All categories show minimal values; likely incomplete or unreported data.";
   }
   if (lowList.length) {
-    return `${rand(overallPhrases.lowReported)} Notably low: ${lowList.join(', ')}.`;
+    let text = `${overallPhrases.lowReported} Notably low: ${lowList.join(', ')}.`;
+    return text;
   }
 
-  // Default
+  // CASE 7: All different (varied but not extreme)
+  const uniquePattern = new Set(shares.map(s => Math.round(s.pct / 5) * 5)).size === shares.length;
+  if (uniquePattern && !allBalanced && top.pct < 50) {
+    let text = "Each category has a distinct share, showing a varied waste composition with no single type dominating.";
+    if (tinyList.length) text += ` The category ${tinyList.join(', ')} has smaller proportions than others.`;
+    return text;
+  }
+
+  // Default fallback
   return "The waste composition shows a mixed pattern without extreme concentrations. Continue tracking for shifts over time.";
 }
 
@@ -454,43 +464,69 @@ function generateSupertypeInsight(supertypeObj, grandTotalVal) {
     return `No data recorded for <strong>${supertypeObj.name}</strong>. Verify reporting for this category.`;
   }
 
+  const pct = (v, t) => (t ? (v / t) * 100 : 0);
+
   const pairs = types.map(t => ({
     name: t.name,
     value: Number(t.weight),
     pct: pct(Number(t.weight), total)
-  })).sort((a,b)=>b.pct - a.pct);
+  })).sort((a, b) => b.pct - a.pct);
 
   const top = pairs[0];
   const second = pairs[1] || null;
-  const avgPct = pairs.reduce((a,b)=>a+b.pct,0)/pairs.length;
+  const avgPct = pairs.reduce((a, b) => a + b.pct, 0) / pairs.length;
   const allBalanced = pairs.every(p => Math.abs(p.pct - avgPct) < 5);
   const lowList = pairs.filter(p => p.pct < 2).map(p => p.name);
 
   // Even distribution
   if (allBalanced && pairs.length > 2) {
     let text = `Types under <strong>${supertypeObj.name}</strong> are evenly distributed.`;
-    if (lowList.length) text += ` Some appear underreported: ${lowList.join(', ')}.`;
+    if (lowList.length) text += ` Lower types: ${lowList.join(', ')}.`;
     return text;
   }
 
   // One dominant
-  if (top.pct >= 50) {
+  if (top.pct >= 50 && pairs.length > 1) {
     let text = `<strong>${top.name}</strong> dominates this category (${top.pct.toFixed(1)}%).`;
     if (lowList.length) text += ` Low types: ${lowList.join(', ')}.`;
+    text += ` Other categories follow as: ${pairs.slice(1).map(p => `${p.name} (${p.pct.toFixed(1)}%)`).join(', ')}.`;
+    return text;
+  }
+
+  // Two share dominance
+  if (pairs.length >= 2 && top.pct + second.pct > 50 && top.pct < 50) {
+    let text = `Two main types lead in <strong>${supertypeObj.name}</strong>: ${top.name} (${top.pct.toFixed(1)}%) and ${second.name} (${second.pct.toFixed(1)}%).`;
+    text += ` Remaining types contribute smaller shares: ${pairs.slice(2).map(p => `${p.name} (${p.pct.toFixed(1)}%)`).join(', ')}.`;
+    if (lowList.length) text += ` Lower types: ${lowList.join(', ')}.`;
     return text;
   }
 
   // Multiple dominant
   const highList = pairs.filter(p => p.pct >= 20);
   if (highList.length >= 2 && highList.length < pairs.length) {
-    let text = `Several types stand out within <strong>${supertypeObj.name}</strong>: ${highList.map(p=>p.name).join(', ')}.`;
-    if (lowList.length) text += ` Underreported types: ${lowList.join(', ')}.`;
+    let text = `Several types stand out within <strong>${supertypeObj.name}</strong>: ${highList.map(p => p.name).join(', ')}.`;
+    if (lowList.length) text += ` Lower types: ${lowList.join(', ')}.`;
+    return text;
+  }
+
+  // Gradual decrease (smooth slope)
+  const isGradual = pairs.every((p, i, arr) => !i || arr[i - 1].pct - p.pct < 8);
+  if (isGradual && !allBalanced && pairs.length > 3) {
+    let text = `A gradual decrease is observed in <strong>${supertypeObj.name}</strong>, where values decline smoothly from ${top.name} (${top.pct.toFixed(1)}%) to ${pairs[pairs.length - 1].name} (${pairs[pairs.length - 1].pct.toFixed(1)}%).`;
+    return text;
+  }
+
+  // Stepped decrease (noticeable drops)
+  const hasSteps = pairs.some((p, i) => i && pairs[i - 1].pct - p.pct >= 10);
+  if (hasSteps && !isGradual) {
+    let text = `<strong>${supertypeObj.name}</strong> shows a stepped pattern (distinct groups of higher and lower types).`;
+    text += ` Major contributors: ${pairs.slice(0, 2).map(p => `${p.name} (${p.pct.toFixed(1)}%)`).join(', ')}; smaller groups follow at much lower percentages.`;
     return text;
   }
 
   // Mostly low
-  if (lowList.length) {
-    return `Most types under <strong>${supertypeObj.name}</strong> are minimal — likely low generation or incomplete entries (${lowList.join(', ')}).`;
+  if (lowList.length && lowList.length >= pairs.length - 1) {
+    return `Most types under <strong>${supertypeObj.name}</strong> are minimal. This may be caused by low generation or incomplete entries (${lowList.join(', ')}).`;
   }
 
   // Default
@@ -512,38 +548,137 @@ function generateSectorInsight(sectorName, pieDataForSector, sectorTotalValue, g
     return `${sectorName} has no recorded waste. Please check reporting completeness.`;
   }
 
+  // Helper to bold and format list with "and"
+  const formatList = arr => {
+    if (!arr.length) return '';
+    const bolded = arr.map(l => `<b>${l}</b>`);
+    if (bolded.length === 1) return bolded[0];
+    if (bolded.length === 2) return `${bolded[0]} and ${bolded[1]}`;
+    return `${bolded.slice(0, -1).join(', ')}, and ${bolded[bolded.length - 1]}`;
+  };
+
   const avgPct = pairs.reduce((a,b)=>a+b.pct,0)/pairs.length;
   const allBalanced = pairs.every(p => Math.abs(p.pct - avgPct) < 5);
   const top = pairs[0];
   const second = pairs[1] || null;
   const lowList = pairs.filter(p => p.pct < 2).map(p => p.label);
+  const tinyList = pairs.filter(p => p.pct < 10).map(p => p.label); // Condition 6 helper
 
   let insight = '';
 
-  // Even
+  // CASE 1: Evenly distributed (Condition 5)
   if (allBalanced && pairs.length > 2) {
-    insight = `Waste in the ${sectorName} sector is evenly distributed among categories.`;
-  }
-  // One dominates
-  else if (top.pct >= 50) {
-    insight = `<strong>${top.label}</strong> dominates waste in the ${sectorName} sector (${top.pct.toFixed(1)}%).`;
-  }
-  // Multiple dominate
-  else if (pairs.filter(p=>p.pct>=20).length >= 2) {
-    const majors = pairs.filter(p=>p.pct>=20).map(p=>p.label);
-    insight = `Dominant waste types in the <b>${sectorName}</b> sector: ${majors.join(', ')}.`;
-  }
-  // Default
-  else {
-    insight = `The ${sectorName} sector has mixed contributions across categories.`;
+    insight = `Waste in the ${sectorName} sector is evenly distributed among all categories.`;
+    if (lowList.length) insight += ` However, some categories appear minimal: ${formatList(lowList)}.`;
+    if (tinyList.length === 1) insight += ` The ${formatList(tinyList)} category is noticeably small compared to others.`;
   }
 
-  // Always check for low items
-  if (lowList.length) {
-    insight += ` Some categories are very low (<2%): ${lowList.join(', ')}.`;
+  // CASE 2: One dominant (Conditions 1 and 2)
+  else if (top.pct >= 50) {
+    insight = `<b>${top.label}</b> dominates waste generation in the ${sectorName} sector (${top.pct.toFixed(1)}%).`;
+    if (lowList.length) insight += ` Other categories remain minimal: ${formatList(lowList)}.`;
+    if (tinyList.length === 1) insight += ` The category ${formatList(tinyList)} shows an especially small share.`;
+  }
+
+  // CASE 3: Two share dominance (Conditions 3a & 3b)
+  else if (pairs.filter(p => p.pct >= 20).length >= 2 && pairs.filter(p => p.pct >= 20).length < pairs.length) {
+    const majors = pairs.filter(p => p.pct >= 20).map(p => p.label);
+    insight = `Dominant waste types in the ${sectorName} sector are ${formatList(majors)}, sharing most of the total volume.`;
+    if (lowList.length) insight += ` Smaller portions are seen in ${formatList(lowList)}.`;
+    if (tinyList.length === 1) insight += ` The category ${formatList(tinyList)} has a noticeably small share.`;
+  }
+
+  // CASE 4: All/mostly low (Condition 4)
+  else if (lowList.length === pairs.length) {
+    insight = `All categories in the ${sectorName} sector show minimal proportions. This may indicate incomplete or underreported data.`;
+  } else if (lowList.length) {
+    insight = `Most waste types in the ${sectorName} sector have relatively low proportions. Notably low: ${formatList(lowList)}.`;
+  }
+
+  // CASE 7: All different (varied but not extreme)
+  else {
+    const uniquePattern = new Set(pairs.map(p => Math.round(p.pct / 5) * 5)).size === pairs.length;
+    if (uniquePattern && !allBalanced && top.pct < 50) {
+      insight = `Waste distribution in the ${sectorName} sector varies across all categories with no clear dominant type.`;
+      if (tinyList.length) insight += ` The category ${formatList(tinyList)} appears smaller in comparison.`;
+    } else {
+      insight = `The ${sectorName} sector shows a mixed pattern across categories without clear extremes.`;
+      if (tinyList.length) insight += ` ${formatList(tinyList)} remains relatively small.`;
+    }
   }
 
   return insight;
+}
+
+// sector overview (for the "Waste by Sector" horizontal bar chart)
+function generateSectorOverviewInsight(sectorBarArr, grandTotalVal) {
+  const validSectors = (sectorBarArr || []).filter(s => Number(s.value) > 0);
+  if (!validSectors.length || grandTotalVal === 0) {
+    return "No sector data recorded. Please verify that sector totals were generated correctly.";
+  }
+
+  const pct = (v, t) => (t ? (v / t) * 100 : 0);
+
+  const shares = validSectors.map(s => ({
+    name: s.label,
+    value: Number(s.value),
+    pct: pct(Number(s.value), grandTotalVal)
+  })).sort((a, b) => b.pct - a.pct);
+
+  const top = shares[0];
+  const second = shares[1] || null;
+  const topPct = top ? top.pct : 0;
+  const lowList = shares.filter(s => s.pct < 2).map(s => s.name);
+  const avgPct = shares.reduce((a, b) => a + b.pct, 0) / shares.length;
+  const allBalanced = shares.every(s => Math.abs(s.pct - avgPct) < 5);
+
+  // Case 1: No data
+  if (grandTotalVal === 0) {
+    return "No waste totals found. Cannot determine sector distribution.";
+  }
+
+  // Case 2: Even / balanced spread
+  if (allBalanced && shares.length >= 3) {
+    return "Waste generation is fairly balanced across sectors; no single area stands out as dominant.";
+  }
+
+  // Case 3: One sector overwhelmingly dominant
+  if (topPct >= 50) {
+    let text = `<strong>${top.name}</strong> is the largest contributor, producing ${top.pct.toFixed(1)}% of all recorded waste.`;
+    if (lowList.length) text += ` Sectors with low generation include ${lowList.join(', ')}.`;
+    return text;
+  }
+
+  // Case 4: Two or more sectors are high and close
+  if (topPct >= 30 && topPct < 50 && second && Math.abs(top.pct - second.pct) < 10) {
+    let text = `Waste generation is shared across multiple sectors, led by <strong>${top.name}</strong> and <strong>${second.name}</strong>.`;
+    if (lowList.length) text += ` Some smaller sectors include ${lowList.join(', ')}.`;
+    return text;
+  }
+
+  // Case 5: Gradual decrease (smooth slope)
+  const isGradual = shares.every((s, i, arr) => !i || arr[i - 1].pct - s.pct < 8);
+  if (isGradual && !allBalanced && shares.length > 3) {
+    let text = `A gradual decline in waste generation is observed across sectors, with ${top.name} contributing the most and ${shares[shares.length - 1].name} the least.`;
+    if (lowList.length) text += ` Some sectors have minimal values such as ${lowList.join(', ')}.`;
+    return text;
+  }
+
+  // Case 6: Stepped decrease (clear drops)
+  const hasSteps = shares.some((s, i) => i && shares[i - 1].pct - s.pct >= 10);
+  if (hasSteps && !isGradual) {
+    let text = `Waste generation by sector follows a stepped pattern where certain sectors contribute significantly more than others.`;
+    if (lowList.length) text += ` The smallest contributors are ${lowList.join(', ')}.`;
+    return text;
+  }
+
+  // Case 7: Some sectors appear low or missing
+  if (lowList.length) {
+    return `Some sectors show minimal contribution (below 2%): ${lowList.join(', ')}.`;
+  }
+
+  // Default / fallback
+  return "Sector contributions appear proportionate. Continue monitoring to identify future trends.";
 }
 
 /* --------------------
@@ -610,54 +745,6 @@ function insertSectorInsights() {
       box.innerHTML = `<h3 style="margin:0 0 0.25rem 0;color:#2d613f">${sectorName} Sector</h3><div>${generateSectorInsight(sectorName, pieData, Number(sectorTotalVal || 0), Number(grandTotal || 0))}</div>`;
     }
   } catch (err) { console.error(err); }
-}
-
-// sector overview (for the "Waste by Sector" horizontal bar chart)
-function generateSectorOverviewInsight(sectorBarArr, grandTotalVal) {
-  const validSectors = (sectorBarArr || []).filter(s => Number(s.value) > 0);
-  if (!validSectors.length || grandTotalVal === 0) {
-    return "No sector data recorded. Please verify that sector totals were generated correctly.";
-  }
-
-  const shares = validSectors.map(s => ({
-    name: s.label,
-    value: Number(s.value),
-    pct: pct(Number(s.value), grandTotalVal)
-  }));
-  shares.sort((a, b) => b.pct - a.pct);
-
-  const top = shares[0];
-  const second = shares[1] || null;
-  const topPct = top ? top.pct : 0;
-
-  // Case 1: No data
-  if (grandTotalVal === 0) {
-    return "No waste totals found. Cannot determine sector distribution.";
-  }
-
-  // Case 2: Even / balanced spread
-  if (topPct < 30 && validSectors.length >= 3) {
-    return "Waste generation is fairly balanced across sectors; no single area stands out as dominant.";
-  }
-
-  // Case 3: One sector overwhelmingly dominant
-  if (topPct >= 50) {
-    return `<strong>${top.name}</strong> is the largest contributor, producing ${top.pct.toFixed(1)}% of all recorded waste.`;
-  }
-
-  // Case 4: Two or more sectors are high and close
-  if (topPct >= 30 && topPct < 50 && second && (top.pct - second.pct) < 10) {
-    return `Waste generation is shared across multiple sectors, led by <strong>${top.name}</strong> and <strong>${second.name}</strong>.`;
-  }
-
-  // Case 5: Some sectors appear low or missing
-  const lowList = shares.filter(s => s.pct < 2).map(s => s.name);
-  if (lowList.length) {
-    return `Some sectors show minimal contribution (< 2%): ${lowList.join(', ')}.`;
-  }
-
-  // Default / fallback
-  return "Sector contributions appear proportionate. Continue monitoring to identify future trends.";
 }
 
 function insertSectorOverviewInsight() {
