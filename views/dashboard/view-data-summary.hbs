@@ -37,16 +37,183 @@
                 {{query.endDate}} {{#ifEquals query.endDate undefined}}--{{/ifEquals}}
             </div>
         </div>
+
+        <!-- Additional Metrics Filters -->
+        <div class="filter-column">
+            <label>Waste Type</label>
+            {{query.wasteType}} {{#ifEquals query.wasteType undefined}}ALL{{/ifEquals}}
+
+            <label>Status</label>
+            {{query.status}} {{#ifEquals query.status undefined}}ALL{{/ifEquals}}
+
+            <label>Sector</label>
+            {{query.sector}} {{#ifEquals query.sector undefined}}ALL{{/ifEquals}}
+        </div>
+    </div>
+
+    <!-- Button to open modal -->
+    <div style="text-align: center; margin-top: 1.5rem;">
+        <button id="customizeReportBtn" class="btn-customize">
+            <i class="fa-solid fa-sliders"></i> Customize Report Parameters
+        </button>
     </div>
 </div>
 
-<!-- Display charts for aggregated data (UPDATE UI FOR THIS) -->
+<!-- Modal -->
+<div id="reportModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fa-solid fa-chart-line"></i> Customize Report Parameters</h2>
+            <span class="close">&times;</span>
+        </div>
+        
+        <div class="modal-body">
+            <!-- Current Filters -->
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="color: #2d613f; margin-bottom: 0.5rem;"><i class="fa-solid fa-filter"></i> Current Filters Applied:</h3>
+                <div class="filter-tags">
+                    {{#if regionName}}<span class="filter-tag">Region: {{regionName}}</span>{{/if}}
+                    {{#if provinceName}}<span class="filter-tag">Province: {{provinceName}}</span>{{/if}}
+                    {{#if municipalityName}}<span class="filter-tag">City: {{municipalityName}}</span>{{/if}}
+                    {{#if query.startDate}}<span class="filter-tag">From: {{query.startDate}}</span>{{/if}}
+                    {{#if query.endDate}}<span class="filter-tag">To: {{query.endDate}}</span>{{/if}}
+                    {{#if query.aggregation}}<span class="filter-tag">Aggregation: {{query.aggregation}}</span>{{/if}}
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- Additional Filters -->
+            <h3 style="color: #2d613f; margin-bottom: 1rem;"><i class="fa-solid fa-sliders"></i> Additional Metric Filters:</h3>
+            <div class="filter-grid">
+                <div>
+                    <label><i class="fa-solid fa-recycle"></i> Waste Type</label>
+                    <select id="modal-wasteType">
+                        <option value="">All Types</option>
+                        <option value="Biodegradable" {{#ifEquals query.wasteType "Biodegradable"}}selected{{/ifEquals}}>Biodegradable</option>
+                        <option value="Recyclable" {{#ifEquals query.wasteType "Recyclable"}}selected{{/ifEquals}}>Recyclable</option>
+                        <option value="Residual" {{#ifEquals query.wasteType "Residual"}}selected{{/ifEquals}}>Residual</option>
+                        <option value="Special/Hazardous" {{#ifEquals query.wasteType "Special/Hazardous"}}selected{{/ifEquals}}>Special/Hazardous</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label><i class="fa-solid fa-building"></i> Sector</label>
+                    <select id="modal-sector">
+                        <option value="">All Sectors</option>
+                        <option value="Residential" {{#ifEquals query.sector "Residential"}}selected{{/ifEquals}}>Residential</option>
+                        <option value="Commercial" {{#ifEquals query.sector "Commercial"}}selected{{/ifEquals}}>Commercial</option>
+                        <option value="Institutional" {{#ifEquals query.sector "Institutional"}}selected{{/ifEquals}}>Institutional</option>
+                        <option value="Industrial" {{#ifEquals query.sector "Industrial"}}selected{{/ifEquals}}>Industrial</option>
+                        <option value="Health" {{#ifEquals query.sector "Health"}}selected{{/ifEquals}}>Health</option>
+                        <option value="Agriculture and Livestock" {{#ifEquals query.sector "Agriculture and Livestock"}}selected{{/ifEquals}}>Agriculture and Livestock</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label><i class="fa-solid fa-check-circle"></i> Compliance Status</label>
+                    <select id="modal-compliance">
+                        <option value="">All Entries</option>
+                        <option value="compliant" {{#ifEquals query.compliance "compliant"}}selected{{/ifEquals}}>Compliant Only</option>
+                        <option value="non-compliant" {{#ifEquals query.compliance "non-compliant"}}selected{{/ifEquals}}>Non-Compliant Only</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label><i class="fa-solid fa-calendar-days"></i> Time Aggregation</label>
+                    <select id="modal-aggregation">
+                        <option value="daily" {{#ifEquals query.aggregation "daily"}}selected{{/ifEquals}}>Daily Summary</option>
+                        <option value="weekly" {{#ifEquals query.aggregation "weekly"}}selected{{/ifEquals}}>Weekly Summary</option>
+                        <option value="monthly" {{#ifEquals query.aggregation "monthly"}}selected{{/ifEquals}}>Monthly Summary</option>
+                    </select>
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- Metrics to Include -->
+            <h3 style="color: #2d613f; margin-bottom: 1rem;"><i class="fa-solid fa-list-check"></i> Sections to Include in Report:</h3>
+            <div class="checkbox-grid">
+                <label>
+                    <input type="checkbox" name="section" value="participants" checked>
+                    <span><i class="fa-solid fa-users"></i> Participants</span>
+                </label>
+                <label>
+                    <input type="checkbox" name="section" value="data-info" checked>
+                    <span><i class="fa-solid fa-dumpster"></i> Waste Generation</span>
+                </label>
+                <label>
+                    <input type="checkbox" name="section" value="trends" checked>
+                    <span><i class="fa-solid fa-chart-line"></i> Trends Over Time</span>
+                </label>
+                <label>
+                    <input type="checkbox" name="section" value="compliance-category" checked>
+                    <span><i class="fa-solid fa-clipboard-check"></i> Category Compliance</span>
+                </label>
+                <label>
+                    <input type="checkbox" name="section" value="compliance-sector" checked>
+                    <span><i class="fa-solid fa-industry"></i> Sector Compliance</span>
+                </label>
+                <label>
+                    <input type="checkbox" name="section" value="insights" checked>
+                    <span><i class="fa-solid fa-lightbulb"></i> Insights</span>
+                </label>
+                <label>
+                    <input type="checkbox" name="section" value="top-categories" checked>
+                    <span><i class="fa-solid fa-chart-pie"></i> Top Categories Chart</span>
+                </label>
+                <label>
+                    <input type="checkbox" name="section" value="top-cats" checked>
+                    <span><i class="fa-solid fa-chart-bar"></i> Category Breakdown</span>
+                </label>
+                <label>
+                    <input type="checkbox" name="section" value="top-sectors" checked>
+                    <span><i class="fa-solid fa-chart-column"></i> Top Sectors Chart</span>
+                </label>
+                <label>
+                    <input type="checkbox" name="section" value="cats-per-sector" checked>
+                    <span><i class="fa-solid fa-chart-simple"></i> Sector Breakdown</span>
+                </label>
+                <label>
+                    <input type="checkbox" name="section" value="map" checked>
+                    <span><i class="fa-solid fa-map-location-dot"></i> Location Map</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-secondary" id="resetBtn">
+                <i class="fa-solid fa-rotate-left"></i> Reset to Default
+            </button>
+            <button class="btn-secondary" id="exportPdfBtn">
+                <i class="fa-solid fa-file-pdf"></i> Export as PDF
+            </button>
+            <button class="btn-secondary" id="cancelBtn">
+                <i class="fa-solid fa-xmark"></i> Cancel
+            </button>
+            <button class="btn-primary" id="applyBtn">
+                <i class="fa-solid fa-check"></i> Apply Filters
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Display charts for aggregated data -->
 <!-- Title Card -->
 <div class="form-section title-card" style="text-align: center;" data-section="data-title">
     <h1 style="margin-bottom: 0.25rem;">
       GreenCycle Dashboard – Data Summary
     </h1>
-    <p style="font-size: large;">Average data for the requested entries.</p>
+    <p style="font-size: large;">
+        {{#if query.aggregation}}
+            {{#ifEquals query.aggregation "daily"}}Daily{{/ifEquals}}
+            {{#ifEquals query.aggregation "weekly"}}Weekly{{/ifEquals}}
+            {{#ifEquals query.aggregation "monthly"}}Monthly{{/ifEquals}}
+            aggregated data for the requested entries.
+        {{else}}
+            Overall summary data for the requested entries.
+        {{/if}}
+    </p>
 </div>
 
 <!-- Participants Section -->
@@ -133,7 +300,61 @@
   </div>
 
   <!-- Map view -->
-  <div id="map" style="margin-bottom: 10px; flex: 1;"></div>
+  <div id="map" style="margin-bottom: 10px; flex: 1;" data-section="map"></div>
+</div>
+
+<!-- NEW: Trends Over Time Section -->
+<div class="form-section" style="background-color: #f8f9ff; padding: 2rem; border-radius: 12px; border-left: 6px solid #2196F3;" data-section="trends">
+  <h2 style="color: #1565C0; font-weight: 600; margin-bottom: 1rem;">
+    <i class="fa-solid fa-chart-line" style="margin-right: 10px; color: #2196F3;"></i>
+    Trends Over Time
+    <span style="font-size: 0.9rem; color: #666; font-weight: 400;">
+      ({{#ifEquals query.aggregation "daily"}}Daily{{/ifEquals}}{{#ifEquals query.aggregation "weekly"}}Weekly{{/ifEquals}}{{#ifEquals query.aggregation "monthly"}}Monthly{{/ifEquals}} View)
+    </span>
+  </h2>
+  
+  <p style="color: #555; margin-bottom: 1.5rem;">
+    Visualize waste generation patterns over time. Use the aggregation filter in the customize button to switch between daily, weekly, or monthly views.
+  </p>
+
+  <!-- Trend Charts Container -->
+  <div id="trend-charts-wrapper">
+    <!-- Total Waste Trend with Regression -->
+    <div class="trend-chart-box">
+      <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
+        <i class="fa-solid fa-trash"></i> Total Waste Generation Trend with Projection
+      </h3>
+      <canvas id="trendTotalWaste" style="max-height: 300px;"></canvas>
+      <div style="margin-top: 1rem; padding: 1rem; background: #e8f5e9; border-radius: 6px; font-size: 0.9rem;">
+        <strong style="color: #2d613f;">📊 Trend Analysis:</strong>
+        <span id="regressionStats" style="color: #555;"></span>
+      </div>
+    </div>
+
+    <!-- Per Capita Trend -->
+    <div class="trend-chart-box">
+      <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
+        <i class="fa-solid fa-user"></i> Per Capita Waste Trend
+      </h3>
+      <canvas id="trendPerCapita" style="max-height: 300px;"></canvas>
+    </div>
+
+    <!-- Waste by Category Trend -->
+    <div class="trend-chart-box">
+      <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
+        <i class="fa-solid fa-layer-group"></i> Waste by Category Over Time
+      </h3>
+      <canvas id="trendByCategory" style="max-height: 350px;"></canvas>
+    </div>
+
+    <!-- Compliance Trend -->
+    <div class="trend-chart-box">
+      <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
+        <i class="fa-solid fa-check-double"></i> Compliance Rate Trend
+      </h3>
+      <canvas id="trendCompliance" style="max-height: 300px;"></canvas>
+    </div>
+  </div>
 </div>
 
 <div style="display: flex;">
@@ -288,10 +509,325 @@
     <div id="sector-pies-container"></div>
 </div>
 
+<!-- Access to chart.js - MUST BE LOADED BEFORE CHART SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+
+<!-- Leaflet.js (for map view) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<!-- Modal Script -->
+<script>
+const modal = document.getElementById('reportModal');
+const btn = document.getElementById('customizeReportBtn');
+const closeBtn = document.querySelector('.close');
+const cancelBtn = document.getElementById('cancelBtn');
+const resetBtn = document.getElementById('resetBtn');
+const applyBtn = document.getElementById('applyBtn');
+const exportPdfBtn = document.getElementById('exportPdfBtn');
+
+btn.onclick = () => modal.style.display = 'block';
+closeBtn.onclick = () => modal.style.display = 'none';
+cancelBtn.onclick = () => modal.style.display = 'none';
+window.onclick = (e) => {
+    if (e.target == modal) modal.style.display = 'none';
+}
+
+resetBtn.onclick = () => {
+    document.getElementById('modal-wasteType').value = '';
+    document.getElementById('modal-sector').value = '';
+    document.getElementById('modal-compliance').value = '';
+    document.getElementById('modal-aggregation').value = 'daily';
+    document.querySelectorAll('input[name="section"]').forEach(cb => cb.checked = true);
+}
+
+exportPdfBtn.onclick = () => {
+    modal.style.display = 'none';
+    window.print();
+}
+
+applyBtn.onclick = () => {
+    const wasteType = document.getElementById('modal-wasteType').value;
+    const sector = document.getElementById('modal-sector').value;
+    const compliance = document.getElementById('modal-compliance').value;
+    const aggregation = document.getElementById('modal-aggregation').value;
+    
+    const selectedSections = Array.from(document.querySelectorAll('input[name="section"]:checked'))
+        .map(cb => cb.value);
+    
+    document.querySelectorAll('[data-section]').forEach(el => {
+        if (el.getAttribute('data-section') !== 'filters' && el.getAttribute('data-section') !== 'data-title') {
+            el.style.display = 'none';
+        }
+    });
+    
+    selectedSections.forEach(section => {
+        const elements = document.querySelectorAll(`[data-section="${section}"]`);
+        elements.forEach(el => el.style.display = '');
+    });
+    
+    const currentUrl = new URL(window.location.href);
+    
+    if (wasteType) currentUrl.searchParams.set('wasteType', wasteType);
+    else currentUrl.searchParams.delete('wasteType');
+    
+    if (sector) currentUrl.searchParams.set('sector', sector);
+    else currentUrl.searchParams.delete('sector');
+    
+    if (compliance) currentUrl.searchParams.set('compliance', compliance);
+    else currentUrl.searchParams.delete('compliance');
+    
+    if (aggregation) currentUrl.searchParams.set('aggregation', aggregation);
+    else currentUrl.searchParams.delete('aggregation');
+    
+    modal.style.display = 'none';
+    
+    if (wasteType || sector || compliance || aggregation) {
+        window.location.href = currentUrl.toString();
+    }
+}
+</script>
+
+<!-- Trend Charts Script -->
+<script>
+window.addEventListener('DOMContentLoaded', function () {
+  if (typeof Chart === 'undefined') {
+    console.error('Chart.js is not loaded!');
+    document.getElementById('trend-charts-wrapper').innerHTML = 
+      '<div style="padding: 2rem; text-align: center; color: #f44336;">' +
+      '<i class="fa-solid fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 1rem;"></i>' +
+      '<p style="font-size: 1.1rem;">Chart.js library failed to load. Please refresh the page.</p>' +
+      '</div>';
+    return;
+  }
+
+  const timeSeriesData = {{{timeSeriesData}}};
+  const STATIC_SAMPLE_DATA = [
+    { date: '2024-01-01', total_weight: 1250, avg_per_capita: 0.45, waste_type: 'Biodegradable', compliance_status: 'Compliant' },
+    { date: '2024-01-02', total_weight: 1320, avg_per_capita: 0.48, waste_type: 'Biodegradable', compliance_status: 'Compliant' },
+    { date: '2024-01-03', total_weight: 1180, avg_per_capita: 0.42, waste_type: 'Recyclable', compliance_status: 'Non-Compliant' },
+    { date: '2024-01-04', total_weight: 1400, avg_per_capita: 0.51, waste_type: 'Biodegradable', compliance_status: 'Compliant' }
+  ];
+
+  const dataToUse = (timeSeriesData && timeSeriesData.length > 0) ? timeSeriesData : STATIC_SAMPLE_DATA;
+
+  if (!dataToUse || dataToUse.length === 0) {
+    console.warn('No data available for charts');
+    document.getElementById('trend-charts-wrapper').innerHTML = 
+      '<div style="padding: 2rem; text-align: center; color: #999;">' +
+      '<i class="fa-solid fa-info-circle" style="font-size: 3rem; margin-bottom: 1rem;"></i>' +
+      '<p style="font-size: 1.1rem;">No time-series data available. Apply filters and select an aggregation period to view trends.</p>' +
+      '</div>';
+    return;
+  }
+
+  const aggregation = '{{query.aggregation}}' || 'daily';
+  const formatDate = (item, aggregation) => {
+    if (aggregation === 'daily') {
+      return new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    if (aggregation === 'weekly') {
+      return `Week ${item.week}, ${item.year}`;
+    }
+    if (aggregation === 'monthly') {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${months[item.month - 1]} ${item.year}`;
+    }
+    return item.date || `${item.year}-${item.month || item.week}`;
+  };
+
+  const timePeriods = [...new Set(dataToUse.map(d => formatDate(d, aggregation)))];
+
+  const calculateRegression = (xValues, yValues) => {
+    const n = xValues.length;
+    const sumX = xValues.reduce((a, b) => a + b, 0);
+    const sumY = yValues.reduce((a, b) => a + b, 0);
+    const sumXY = xValues.reduce((sum, x, i) => sum + x * yValues[i], 0);
+    const sumX2 = xValues.reduce((sum, x) => sum + x * x, 0);
+
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+
+    const yMean = sumY / n;
+    const ssTotal = yValues.reduce((sum, y) => sum + Math.pow(y - yMean, 2), 0);
+    const ssResidual = yValues.reduce((sum, y, i) => {
+      const predicted = slope * xValues[i] + intercept;
+      return sum + Math.pow(y - predicted, 2);
+    }, 0);
+    const rSquared = 1 - (ssResidual / ssTotal);
+
+    return { slope, intercept, rSquared };
+  };
+
+  const totalWasteByPeriod = timePeriods.map(period => {
+    return dataToUse
+      .filter(d => formatDate(d, aggregation) === period)
+      .reduce((sum, d) => sum + (parseFloat(d.total_weight) || 0), 0);
+  });
+
+  const xValues = Array.from({ length: totalWasteByPeriod.length }, (_, i) => i);
+  const regression = calculateRegression(xValues, totalWasteByPeriod);
+
+  const regressionLine = xValues.map(x => regression.slope * x + regression.intercept);
+  const futureX = [xValues.length, xValues.length + 1, xValues.length + 2];
+  const futureY = futureX.map(x => regression.slope * x + regression.intercept);
+  const futureLabels = ['Projection +1', 'Projection +2', 'Projection +3'];
+
+  document.getElementById('regressionStats').innerHTML =
+    `${regression.slope > 0 ? '📈 Increasing' : '📉 Decreasing'} at ${Math.abs(regression.slope).toFixed(2)} kg per period | R² = ${(regression.rSquared * 100).toFixed(1)}% | Projected in 3 periods: ${futureY[2].toFixed(2)} kg`;
+
+  new Chart(document.getElementById('trendTotalWaste').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: [...timePeriods, ...futureLabels],
+      datasets: [
+        {
+          label: 'Actual Waste (kg)',
+          data: [...totalWasteByPeriod, null, null, null],
+          borderColor: '#4CAF50',
+          backgroundColor: 'rgba(76, 175, 80, 0.1)',
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: 'Trend Line',
+          data: [...regressionLine, ...futureY],
+          borderColor: '#FF5722',
+          borderDash: [5, 5],
+          fill: false
+        },
+        {
+          label: 'Projected Waste',
+          data: [...Array(totalWasteByPeriod.length).fill(null), ...futureY],
+          borderColor: '#FFC107',
+          borderDash: [10, 5],
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            label: (context) => `${context.dataset.label}: ${context.parsed.y ? context.parsed.y.toFixed(2) : 'N/A'} kg`
+          }
+        }
+      },
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: 'Weight (kg)' } },
+        x: { title: { display: true, text: 'Time Period' } }
+      }
+    }
+  });
+
+  const perCapitaByPeriod = timePeriods.map(period => {
+    const periodData = dataToUse.filter(d => formatDate(d, aggregation) === period);
+    const total = periodData.reduce((sum, d) => sum + (parseFloat(d.avg_per_capita) || 0), 0);
+    return periodData.length ? total / periodData.length : 0;
+  });
+
+  new Chart(document.getElementById('trendPerCapita').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: timePeriods,
+      datasets: [{
+        label: 'Per Capita Waste (kg/cap-day)',
+        data: perCapitaByPeriod,
+        borderColor: '#FF9800',
+        backgroundColor: 'rgba(255, 152, 0, 0.1)',
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            label: (context) => `${context.parsed.y.toFixed(4)} kg/cap-day`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'kg/cap-day' }
+        }
+      }
+    }
+  });
+
+  const categories = ['Biodegradable', 'Recyclable', 'Residual', 'Special/Hazardous'];
+  const categoryColors = {
+    'Biodegradable': 'rgba(76, 175, 80, 0.8)',
+    'Recyclable': 'rgba(33, 150, 243, 0.8)',
+    'Residual': 'rgba(158, 158, 158, 0.8)',
+    'Special/Hazardous': 'rgba(244, 67, 54, 0.8)'
+  };
+
+  const categoryDatasets = categories.map(cat => ({
+    label: cat,
+    data: timePeriods.map(period => dataToUse
+      .filter(d => formatDate(d, aggregation) === period && d.waste_type === cat)
+      .reduce((sum, d) => sum + (parseFloat(d.total_weight) || 0), 0)
+    ),
+    backgroundColor: categoryColors[cat],
+    borderColor: categoryColors[cat].replace('0.8', '1'),
+    borderWidth: 2,
+    fill: true,
+    tension: 0.4
+  }));
+
+  new Chart(document.getElementById('trendByCategory').getContext('2d'), {
+    type: 'line',
+    data: { labels: timePeriods, datasets: categoryDatasets },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: { stacked: true, beginAtZero: true, title: { display: true, text: 'Weight (kg)' } },
+        x: { stacked: true }
+      }
+    }
+  });
+
+  const complianceByPeriod = timePeriods.map(period => {
+    const periodData = dataToUse.filter(d => formatDate(d, aggregation) === period);
+    const compliant = periodData.filter(d => d.compliance_status === 'Compliant').length;
+    return periodData.length ? (compliant / periodData.length) * 100 : 0;
+  });
+
+  new Chart(document.getElementById('trendCompliance').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: timePeriods,
+      datasets: [{
+        label: 'Compliance Rate (%)',
+        data: complianceByPeriod,
+        borderColor: '#2196F3',
+        backgroundColor: 'rgba(33, 150, 243, 0.1)',
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: { beginAtZero: true, max: 100, title: { display: true, text: 'Compliance Rate (%)' } }
+      }
+    }
+  });
+});
+</script>
+
 <!-- Pie chart script -->
 <script>
 
-// ========== PIE CHART SETUP ========== //
 const summaryData = {{{summaryPieData}}},
       detailedData = {{{detailedPieData}}},
       barChartData = {{{barChartData}}},
@@ -301,20 +837,10 @@ const summaryData = {{{summaryPieData}}},
 const supertypeDemo = {{{supertypeDemo}}};
 const grandTotal = {{{grandTotal}}};
 
-/* ----------------------------
-  Insight generator (frontend)
-  - Uses existing variables:
-    summaryData, detailedData, barChartData, sectorPieData,
-    sectorBarData, legendData, supertypeDemo, grandTotal, sectorTotals
-  - Inserts text into DOM next to charts.
------------------------------*/
-
-// small helper utilities
 const rand = arr => arr[Math.floor(Math.random() * arr.length)];
 const pct = (value, total) => total ? (value / total * 100) : 0;
 const fmtKg = (n) => `${Number(n).toFixed(3)} kg`;
 
-// phrase banks for variation
 const overallPhrases = {
   balanced: [
     "All major categories are nearly proportional, indicating a balanced waste composition with no single dominant source."
@@ -330,8 +856,6 @@ const overallPhrases = {
   ]
 };
 
-// dynamic insight generators
-// ---------------- OVERALL INSIGHT ----------------
 function generateOverallInsight(supertypeMapObj, grandTotalVal) {
   const supertypes = Object.values(supertypeMapObj);
   const nonzero = supertypes.filter(s => Number(s.totalWeight) > 0);
@@ -350,15 +874,11 @@ function generateOverallInsight(supertypeMapObj, grandTotalVal) {
   const second = shares[1] || null;
   const avgPct = shares.reduce((a,b)=>a+b.pct,0)/shares.length;
   const deviations = shares.map(s => Math.abs(s.pct - avgPct));
-  const allBalanced = deviations.every(d => d < 5); // 5% deviation tolerance
+  const allBalanced = deviations.every(d => d < 5);
 
   const lowList = shares.filter(s => s.pct < 2).map(s => s.name);
-  const tinyList = shares.filter(s => s.pct < 10).map(s => s.name); // condition 6 pointer
+  const tinyList = shares.filter(s => s.pct < 10).map(s => s.name);
 
-  // Helper for full summary
-  const fullBreakdown = shares.map(s => `${s.name}: ${s.pct.toFixed(1)}%`).join(', ');
-
-  // CASE 1: Evenly distributed (Condition 5)
   if (allBalanced && nonzero.length > 2) {
     let text = overallPhrases.balanced;
     if (lowList.length) text += ` However, some categories appear minimal: ${lowList.join(', ')}.`;
@@ -366,7 +886,6 @@ function generateOverallInsight(supertypeMapObj, grandTotalVal) {
     return text;
   }
 
-  // CASE 2: One dominant (Conditions 1 and 2)
   if (top.pct >= 50) {
     let text = `${overallPhrases.dominant} Currently, <strong>${top.name}</strong> represents ${top.pct.toFixed(1)}% of the total.`;
     if (lowList.length) text += ` Some low categories: ${lowList.join(', ')}.`;
@@ -374,7 +893,6 @@ function generateOverallInsight(supertypeMapObj, grandTotalVal) {
     return text;
   }
 
-  // CASE 3: Two share dominance (Conditions 3a & 3b)
   const strongList = shares.filter(s => s.pct >= 20);
   if (strongList.length >= 2 && strongList.length < shares.length) {
     let text = `${overallPhrases.mixedDominant} <br><b>Major categories: ${strongList.map(s => s.name).join(', ')}</b>`;
@@ -383,7 +901,6 @@ function generateOverallInsight(supertypeMapObj, grandTotalVal) {
     return text;
   }
 
-  // CASE 4: Mainly low/underreported (Condition 4)
   if (lowList.length === shares.length) {
     return "All categories show minimal values; likely incomplete or unreported data.";
   }
@@ -392,7 +909,6 @@ function generateOverallInsight(supertypeMapObj, grandTotalVal) {
     return text;
   }
 
-  // CASE 7: All different (varied but not extreme)
   const uniquePattern = new Set(shares.map(s => Math.round(s.pct / 5) * 5)).size === shares.length;
   if (uniquePattern && !allBalanced && top.pct < 50) {
     let text = "Each category has a distinct share, showing a varied waste composition with no single type dominating.";
@@ -400,11 +916,9 @@ function generateOverallInsight(supertypeMapObj, grandTotalVal) {
     return text;
   }
 
-  // Default fallback
   return "The waste composition shows a mixed pattern without extreme concentrations. Continue tracking for shifts over time.";
 }
 
-// ---------------- SUPERTYPE DETAIL INSIGHT ----------------
 function generateSupertypeInsight(supertypeObj, grandTotalVal) {
   const types = supertypeObj.types || [];
   const total = Number(supertypeObj.totalWeight) || 0;
@@ -426,14 +940,12 @@ function generateSupertypeInsight(supertypeObj, grandTotalVal) {
   const allBalanced = pairs.every(p => Math.abs(p.pct - avgPct) < 5);
   const lowList = pairs.filter(p => p.pct < 2).map(p => p.name);
 
-  // Even distribution
   if (allBalanced && pairs.length > 2) {
     let text = `Types under <strong>${supertypeObj.name}</strong> are evenly distributed.`;
     if (lowList.length) text += ` Lower types: ${lowList.join(', ')}.`;
     return text;
   }
 
-  // One dominant
   if (top.pct >= 50 && pairs.length > 1) {
     let text = `<strong>${top.name}</strong> dominates this category (${top.pct.toFixed(1)}%).`;
     if (lowList.length) text += ` Low types: ${lowList.join(', ')}.`;
@@ -441,7 +953,6 @@ function generateSupertypeInsight(supertypeObj, grandTotalVal) {
     return text;
   }
 
-  // Two share dominance
   if (pairs.length >= 2 && top.pct + second.pct > 50 && top.pct < 50) {
     let text = `Two main types lead in <strong>${supertypeObj.name}</strong>: ${top.name} (${top.pct.toFixed(1)}%) and ${second.name} (${second.pct.toFixed(1)}%).`;
     text += ` Remaining types contribute smaller shares: ${pairs.slice(2).map(p => `${p.name} (${p.pct.toFixed(1)}%)`).join(', ')}.`;
@@ -449,7 +960,6 @@ function generateSupertypeInsight(supertypeObj, grandTotalVal) {
     return text;
   }
 
-  // Multiple dominant
   const highList = pairs.filter(p => p.pct >= 20);
   if (highList.length >= 2 && highList.length < pairs.length) {
     let text = `Several types stand out within <strong>${supertypeObj.name}</strong>: ${highList.map(p => p.name).join(', ')}.`;
@@ -457,14 +967,12 @@ function generateSupertypeInsight(supertypeObj, grandTotalVal) {
     return text;
   }
 
-  // Gradual decrease (smooth slope)
   const isGradual = pairs.every((p, i, arr) => !i || arr[i - 1].pct - p.pct < 8);
   if (isGradual && !allBalanced && pairs.length > 3) {
     let text = `A gradual decrease is observed in <strong>${supertypeObj.name}</strong>, where values decline smoothly from ${top.name} (${top.pct.toFixed(1)}%) to ${pairs[pairs.length - 1].name} (${pairs[pairs.length - 1].pct.toFixed(1)}%).`;
     return text;
   }
 
-  // Stepped decrease (noticeable drops)
   const hasSteps = pairs.some((p, i) => i && pairs[i - 1].pct - p.pct >= 10);
   if (hasSteps && !isGradual) {
     let text = `<strong>${supertypeObj.name}</strong> shows a stepped pattern (distinct groups of higher and lower types).`;
@@ -472,16 +980,13 @@ function generateSupertypeInsight(supertypeObj, grandTotalVal) {
     return text;
   }
 
-  // Mostly low
   if (lowList.length && lowList.length >= pairs.length - 1) {
     return `Most types under <strong>${supertypeObj.name}</strong> are minimal. This may be caused by low generation or incomplete entries (${lowList.join(', ')}).`;
   }
 
-  // Default
   return `The <strong>${supertypeObj.name}</strong> category shows varied distribution across its types.`;
 }
 
-// ---------------- SECTOR INSIGHT (per sector) ----------------
 function generateSectorInsight(sectorName, pieDataForSector, sectorTotalValue, grandTotalVal) {
   const labels = pieDataForSector.labels || [];
   const data = pieDataForSector.data || [];
@@ -496,7 +1001,6 @@ function generateSectorInsight(sectorName, pieDataForSector, sectorTotalValue, g
     return `${sectorName} has no recorded waste. Please check reporting completeness.`;
   }
 
-  // Helper to bold and format list with "and"
   const formatList = arr => {
     if (!arr.length) return '';
     const bolded = arr.map(l => `<b>${l}</b>`);
@@ -510,25 +1014,22 @@ function generateSectorInsight(sectorName, pieDataForSector, sectorTotalValue, g
   const top = pairs[0];
   const second = pairs[1] || null;
   const lowList = pairs.filter(p => p.pct < 2).map(p => p.label);
-  const tinyList = pairs.filter(p => p.pct < 10).map(p => p.label); // Condition 6 helper
+  const tinyList = pairs.filter(p => p.pct < 10).map(p => p.label);
 
   let insight = '';
 
-  // CASE 1: Evenly distributed (Condition 5)
   if (allBalanced && pairs.length > 2) {
     insight = `Waste in the ${sectorName} sector is evenly distributed among all categories.`;
     if (lowList.length) insight += ` However, some categories appear minimal: ${formatList(lowList)}.`;
     if (tinyList.length === 1) insight += ` The ${formatList(tinyList)} category is noticeably small compared to others.`;
   }
 
-  // CASE 2: One dominant (Conditions 1 and 2)
   else if (top.pct >= 50) {
     insight = `<b>${top.label}</b> dominates waste generation in the ${sectorName} sector (${top.pct.toFixed(1)}%).`;
     if (lowList.length) insight += ` Other categories remain minimal: ${formatList(lowList)}.`;
     if (tinyList.length === 1) insight += ` The category ${formatList(tinyList)} shows an especially small share.`;
   }
 
-  // CASE 3: Two share dominance (Conditions 3a & 3b)
   else if (pairs.filter(p => p.pct >= 20).length >= 2 && pairs.filter(p => p.pct >= 20).length < pairs.length) {
     const majors = pairs.filter(p => p.pct >= 20).map(p => p.label);
     insight = `Dominant waste types in the ${sectorName} sector are ${formatList(majors)}, sharing most of the total volume.`;
@@ -536,14 +1037,12 @@ function generateSectorInsight(sectorName, pieDataForSector, sectorTotalValue, g
     if (tinyList.length === 1) insight += ` The category ${formatList(tinyList)} has a noticeably small share.`;
   }
 
-  // CASE 4: All/mostly low (Condition 4)
   else if (lowList.length === pairs.length) {
     insight = `All categories in the ${sectorName} sector show minimal proportions. This may indicate incomplete or underreported data.`;
   } else if (lowList.length) {
     insight = `Most waste types in the ${sectorName} sector have relatively low proportions. Notably low: ${formatList(lowList)}.`;
   }
 
-  // CASE 7: All different (varied but not extreme)
   else {
     const uniquePattern = new Set(pairs.map(p => Math.round(p.pct / 5) * 5)).size === pairs.length;
     if (uniquePattern && !allBalanced && top.pct < 50) {
@@ -558,7 +1057,6 @@ function generateSectorInsight(sectorName, pieDataForSector, sectorTotalValue, g
   return insight;
 }
 
-// sector overview (for the "Waste by Sector" horizontal bar chart)
 function generateSectorOverviewInsight(sectorBarArr, grandTotalVal) {
   const validSectors = (sectorBarArr || []).filter(s => Number(s.value) > 0);
   if (!validSectors.length || grandTotalVal === 0) {
@@ -580,31 +1078,26 @@ function generateSectorOverviewInsight(sectorBarArr, grandTotalVal) {
   const avgPct = shares.reduce((a, b) => a + b.pct, 0) / shares.length;
   const allBalanced = shares.every(s => Math.abs(s.pct - avgPct) < 5);
 
-  // Case 1: No data
   if (grandTotalVal === 0) {
     return "No waste totals found. Cannot determine sector distribution.";
   }
 
-  // Case 2: Even / balanced spread
   if (allBalanced && shares.length >= 3) {
     return "Waste generation is fairly balanced across sectors; no single area stands out as dominant.";
   }
 
-  // Case 3: One sector overwhelmingly dominant
   if (topPct >= 50) {
     let text = `<strong>${top.name}</strong> is the largest contributor, producing ${top.pct.toFixed(1)}% of all recorded waste.`;
     if (lowList.length) text += ` Sectors with low generation include ${lowList.join(', ')}.`;
     return text;
   }
 
-  // Case 4: Two or more sectors are high and close
   if (topPct >= 30 && topPct < 50 && second && Math.abs(top.pct - second.pct) < 10) {
     let text = `Waste generation is shared across multiple sectors, led by <strong>${top.name}</strong> and <strong>${second.name}</strong>.`;
     if (lowList.length) text += ` Some smaller sectors include ${lowList.join(', ')}.`;
     return text;
   }
 
-  // Case 5: Gradual decrease (smooth slope)
   const isGradual = shares.every((s, i, arr) => !i || arr[i - 1].pct - s.pct < 8);
   if (isGradual && !allBalanced && shares.length > 3) {
     let text = `A gradual decline in waste generation is observed across sectors, with ${top.name} contributing the most and ${shares[shares.length - 1].name} the least.`;
@@ -612,7 +1105,6 @@ function generateSectorOverviewInsight(sectorBarArr, grandTotalVal) {
     return text;
   }
 
-  // Case 6: Stepped decrease (clear drops)
   const hasSteps = shares.some((s, i) => i && shares[i - 1].pct - s.pct >= 10);
   if (hasSteps && !isGradual) {
     let text = `Waste generation by sector follows a stepped pattern where certain sectors contribute significantly more than others.`;
@@ -620,21 +1112,12 @@ function generateSectorOverviewInsight(sectorBarArr, grandTotalVal) {
     return text;
   }
 
-  // Case 7: Some sectors appear low or missing
   if (lowList.length) {
     return `Some sectors show minimal contribution (below 2%): ${lowList.join(', ')}.`;
   }
 
-  // Default / fallback
   return "Sector contributions appear proportionate. Continue monitoring to identify future trends.";
 }
-
-/* --------------------
-  Insert generated insights into DOM near chart areas.
-  - For the main pie: insert under #summary-legend (you already have that div)
-  - For each supertype bar tab: insert into the tab's wrapper (we create .insight-box)
-  - For each sector pie: insert into the sector wrapper
---------------------*/
 
 function insertOverallInsight() {
   try {
@@ -656,13 +1139,12 @@ function insertOverallInsight() {
   }
 }
 
-// call after page loads and charts generated
 function insertPerSupertypeInsights() {
   try {
     const superMap = supertypeDemo || {};
     for (const sv of Object.values(superMap)) {
       const id = sv.name.replace(/\s+/g, '');
-      const wrapper = document.getElementById(id); // matches how you set tabDiv.id earlier
+      const wrapper = document.getElementById(id);
 
       if (!wrapper) continue;
 
@@ -705,6 +1187,8 @@ function insertSectorOverviewInsight() {
     let box = container.querySelector('.sector-overview');
     if (!box) {
       box = document.createElement('div');
+      box.className = 'sector-overview';
+      box.style = 'margin-top:1rem; padding:1rem; border-left:4px solid #2e7d32;background:#f7fff8; border-radius:6px;';
       container.appendChild(box);
     }
 
@@ -722,7 +1206,7 @@ const ctx = document.getElementById('supertypePieChart').getContext('2d');
 
 const baseWidth = 600;
 const baseHeight = 600;
-const detailedExtraHeight = 250; // space *below* for legend
+const detailedExtraHeight = 250;
 
 const createPieChart = (data, mode) => {
   const canvas = document.getElementById('supertypePieChart');
@@ -775,7 +1259,6 @@ const createPieChart = (data, mode) => {
     plugins: [{
       id: 'multiColumnLegend',
       afterUpdate(chart) {
-        // Force pie to re-center horizontally after layout adjustments
         const chartArea = chart.chartArea;
         const centerX = (chartArea.left + chartArea.right) / 2;
         const centerY = (chartArea.top + chartArea.bottom) / 2 - (mode === 'detailed' ? 60 : 0); 
@@ -786,7 +1269,6 @@ const createPieChart = (data, mode) => {
           meta.controller.yCenter = centerY;
         });
 
-        // Skip legend override unless detailed
         if (mode !== 'detailed') return;
 
         const legend = chart.legend;
@@ -797,7 +1279,6 @@ const createPieChart = (data, mode) => {
         const firstCol = items.slice(0, mid);
         const secondCol = items.slice(mid);
 
-        // Override draw to render legend in two columns BELOW the pie
         legend.draw = function() {
           const ctx = chart.ctx;
           const font = Chart.helpers.toFont(legend.options.labels.font);
@@ -841,8 +1322,6 @@ document.getElementById('togglePieBtn').addEventListener('click', () => {
     : '<i class="fa-solid fa-chart-pie"></i>&nbsp; Back to Summary Pie Chart';
 });
 
-
-// ========== SHARED BAR CHART LEGEND FUNCTION ========== //
 const createLegendHTML = (legendData, dataset) => {
   const total = dataset.reduce((a, b) => a + b, 0);
   return legendData
@@ -861,8 +1340,6 @@ const createLegendHTML = (legendData, dataset) => {
     }).join('');
 };
 
-
-// ========== BAR CHARTS BY WASTE TYPE ========== //
 const container = document.getElementById('bar-charts-container');
 
 for (const [supertype, chartData] of Object.entries(barChartData)) {
@@ -925,8 +1402,6 @@ for (const [supertype, chartData] of Object.entries(barChartData)) {
   });
 }
 
-
-// ========== SECTOR BAR CHART ========== //
 const tsContainer = document.getElementById('sector-chart-container');
 
 const tsCanvas = document.createElement('canvas');
@@ -979,8 +1454,6 @@ const tsLegendWrapper = document.createElement('div');
 tsLegendWrapper.appendChild(tsLegendDiv);
 tsWrapper.appendChild(tsLegendWrapper);
 
-
-// ========== SECTOR PIE CHARTS ========== //
 const sectorContainer = document.getElementById('sector-pies-container');
 
 for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
@@ -1042,7 +1515,6 @@ for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
   });
 }
 
-// call these after charts are rendered
 insertOverallInsight();
 insertPerSupertypeInsights();
 insertSectorInsights();
@@ -1052,14 +1524,12 @@ insertSectorOverviewInsight();
 
 <!-- Map view script -->
 <script>
-  // Parse from server
-  const locations = {{{locations}}}; // coords
+  const locations = {{{locations}}};
 
-  // If no valid points, show alert or center at a default
   if (locations.length === 0) {
     alert("No coordinates available for the selected filters.");
   } else {
-    const map = L.map('map').setView([locations[0].latitude, locations[0].longitude], 0); // Initial center
+    const map = L.map('map').setView([locations[0].latitude, locations[0].longitude], 0);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -1075,21 +1545,13 @@ insertSectorOverviewInsight();
       }
     });
 
-    // Auto-zoom to fit all pins
     if (bounds.length > 0) {
       map.fitBounds(bounds, {
-        padding: [50, 50] // Adds padding around the edges (in pixels)
+        padding: [50, 50]
       });
     }
   }
 </script>
-
-<!-- Access to chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<!-- Leaflet.js (for map view) -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <!-- JS behind the tabs -->
 <script src="/js/tabs.js"></script>
@@ -1133,9 +1595,8 @@ insertSectorOverviewInsight();
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
-/* Header styling */
 .compliance-table th {
-  background-color: #c8e6c9; /* soft green */
+  background-color: #c8e6c9;
   color: #1b5e20;
   text-align: left;
   padding: 10px 12px;
@@ -1143,25 +1604,21 @@ insertSectorOverviewInsight();
   border-bottom: 2px solid #a5d6a7;
 }
 
-/* Body rows */
 .compliance-table td {
   padding: 9px 12px;
   border-bottom: 1px solid #e0f2e0;
   color: #2e4630;
 }
 
-/* Alternate row shading */
 .compliance-table tr:nth-child(even) {
   background-color: #f9fff9;
 }
 
-/* Hover highlight */
 .compliance-table tr:hover {
   background-color: #eef9ee;
   transition: background-color 0.15s ease-in-out;
 }
 
-/* Numeric alignment for percentage/weight columns */
 .compliance-table td:nth-child(2),
 .compliance-table td:nth-child(3),
 .compliance-table td:nth-child(4),
@@ -1169,13 +1626,11 @@ insertSectorOverviewInsight();
   text-align: right;
 }
 
-/* Status column styling */
 .compliance-table td:nth-child(6) {
   text-align: center;
   font-weight: 600;
 }
 
-/* Optional: color code the compliance status */
 .non-compliant {
   color: #c62828 !important;
 }
@@ -1204,6 +1659,267 @@ insertSectorOverviewInsight();
   padding: 1.5rem;
   border-radius: 10px;
   margin-bottom: 1rem;
+}
+
+.trend-chart-box {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.trend-chart-box h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#trend-charts-wrapper {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.btn-customize {
+    background: linear-gradient(135deg, #4CAF50 0%, #2d613f 100%);
+    color: white;
+    border: none;
+    padding: 0.875rem 2rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    transition: all 0.3s;
+}
+
+.btn-customize:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 3% auto;
+    padding: 0;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 800px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    animation: slideDown 0.3s;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #4CAF50 0%, #2d613f 100%);
+    color: white;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.close {
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close:hover {
+    color: #ffeb3b;
+}
+
+.modal-body {
+    padding: 2rem;
+    max-height: 65vh;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    padding: 1rem 2rem;
+    background-color: #f8f9fa;
+    border-radius: 0 0 12px 12px;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.filter-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.filter-tag {
+    background-color: #e8f5e9;
+    color: #2d613f;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    border: 1px solid #4CAF50;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+}
+
+.filter-grid label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #2d613f;
+}
+
+.filter-grid label i {
+    margin-right: 0.5rem;
+    color: #4CAF50;
+}
+
+.filter-grid select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.filter-grid select:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.75rem;
+}
+
+.checkbox-grid label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+}
+
+.checkbox-grid label:hover {
+    background-color: #f5f5f5;
+}
+
+.checkbox-grid input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #4CAF50;
+}
+
+.checkbox-grid label i {
+    color: #4CAF50;
+    width: 18px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #4CAF50 0%, #2d613f 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    transform: translateY(-2px);
+}
+
+hr {
+    margin: 1.5rem 0;
+    border: none;
+    border-top: 1px solid #ddd;
+}
+
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        margin: 2% auto;
+    }
+    
+    .filter-grid,
+    .checkbox-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-footer {
+        flex-direction: column;
+    }
+    
+    .btn-primary,
+    .btn-secondary {
+        width: 100%;
+    }
 }
 
 .info-grid {
@@ -1252,7 +1968,7 @@ insertSectorOverviewInsight();
 }
 
 .btn-submit:hover {
-  background-color: #28a745;
+  background-color: #218838;
 }
 
 .tab-new {
@@ -1295,7 +2011,7 @@ insertSectorOverviewInsight();
 
 .form-section h3 i {
   margin-right: 0.6rem;
-  color: #127009;;
+  color: #127009;
 }
 
 .form-section label {
@@ -1324,31 +2040,237 @@ insertSectorOverviewInsight();
   margin-top: 12px;
 }
 
-.high-priority {
-  color: #127009;
-  background-color: #c2f3ce;
-  padding: 0.75rem;
-  border-left: 4px solid #127009;
-  border-radius: 6px;
-  display: block;
+.pie-chart {
+  width: 625px;
+  height: 600px;
+  margin-bottom: 20px;
+  margin-left: 30px;
 }
 
-.mid-priority {
-  color: #cc7a00;
-  background-color: #fff4e0;
-  padding: 0.75rem;
-  border-left: 4px solid #cc7a00;
+.legend-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
   border-radius: 6px;
-  display: block;
+  color: white;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.low-priority {
-  color: #b30000;
-  background-color: #ffe6e6;
-  padding: 0.75rem;
-  border-left: 4px solid #b30000;
-  border-radius: 6px;
-  display: block;
+.legend-name {
+  display: flex;
+  flex-direction: column;
+}
+
+.legend-perc {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.legend-kg {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+#summary-legend {
+  flex: 1;
+  padding-left: 20px;
+}
+
+#summary-legend h2 {
+  color: #2d613f;
+  margin-bottom: 0.5rem;
+}
+
+#togglePieBtn {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+#togglePieBtn:hover {
+  background-color: #45a049;
+}
+
+.chart-wrapper {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 40px;
+}
+
+.bar-legend {
+  flex: 1;
+  min-width: 250px;
+}
+
+.bar-legend-title {
+  color: #2d613f;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.bar-legend-name {
+  display: flex;
+  flex-direction: column;
+}
+
+.bar-legend-perc {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.bar-legend-kg {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.tab {
+  overflow: hidden;
+  border: 1px solid #ccc;
+  background-color: #f1f1f1;
+  text-align: center;
+  border-radius: 8px 8px 0 0;
+  margin-top: 20px;
+}
+
+.tab button {
+  background-color: inherit;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  transition: 0.3s;
+  font-size: 17px;
+  font-weight: 600;
+  color: #333;
+}
+
+.tab button:hover {
+  background-color: #ddd;
+}
+
+.tab button.active {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.tabcontent {
+  display: none;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background-color: white;
+}
+
+.bar-tab {
+  overflow: hidden;
+  border: 1px solid #ccc;
+  background-color: #e8f5e9;
+  text-align: center;
+  border-radius: 8px 8px 0 0;
+  margin-top: 20px;
+}
+
+.bar-tab button {
+  background-color: inherit;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 12px 14px;
+  transition: 0.3s;
+  font-size: 15px;
+  font-weight: 600;
+  color: #2d613f;
+}
+
+.bar-tab button:hover {
+  background-color: #c8e6c9;
+}
+
+.bar-tab button.active {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.bar-tabcontent {
+  display: none;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background-color: white;
+}
+
+.sector-tab {
+  overflow: hidden;
+  border: 1px solid #ccc;
+  background-color: #e3f2fd;
+  text-align: center;
+  border-radius: 8px 8px 0 0;
+  margin-top: 20px;
+}
+
+.sector-tab button {
+  background-color: inherit;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 12px 14px;
+  transition: 0.3s;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1565C0;
+}
+
+.sector-tab button:hover {
+  background-color: #bbdefb;
+}
+
+.sector-tab button.active {
+  background-color: #2196F3;
+  color: white;
+}
+
+.sector-tabcontent {
+  display: none;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background-color: white;
+}
+
+#map {
+  height: 400px;
+  border-radius: 8px;
+  border: 2px solid #ccc;
+}
+
+@media print {
+  .modal {
+    display: none !important;
+  }
+  
+  .btn-customize {
+    display: none !important;
+  }
+  
+  body {
+    background: white;
+  }
+  
+  .form-section {
+    page-break-inside: avoid;
+  }
 }
 
 </style>
