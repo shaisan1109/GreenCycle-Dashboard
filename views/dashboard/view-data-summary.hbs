@@ -356,6 +356,27 @@
     </div>
   </div>
 </div>
+<div class="simulation-container">
+  <h2>Waste Forecast & Simulation Models</h2>
+
+  <div class="model-controls">
+    <label for="modelType">Select Model:</label>
+    <select id="modelType" onchange="updateSimulationModel()">
+      <option value="polynomial">Polynomial Regression</option>
+      <option value="arima">ARIMA Forecast</option>
+      <option value="system">System Dynamics</option>
+    </select>
+
+    <label for="forecastMonths">Months to Forecast:</label>
+    <input type="number" id="forecastMonths" min="1" max="24" value="6">
+
+    <button onclick="runSimulation()">Run Simulation</button>
+  </div>
+
+  <canvas id="simulationChart" style="max-width: 900px; margin-top: 25px;"></canvas>
+
+  <div id="simulationSummary" class="summary-box"></div>
+</div>
 
 <div style="display: flex;">
     <!-- Compliance -->
@@ -588,6 +609,186 @@ applyBtn.onclick = () => {
     }
 }
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/regression@2.0.1/dist/regression.min.js"></script>
+
+<script>
+let chartInstance;
+
+async function runSimulation() {
+  const modelType = document.getElementById("modelType").value;
+  const forecastMonths = parseInt(document.getElementById("forecastMonths").value, 10) || 12;
+
+  try {
+    // Fetch server-side hybrid simulation (returns simResult & original timeseries)
+    const resp = await fetch(`/api/simulation?forecastMonths=${forecastMonths}`);
+    const payload = await resp.json();
+    if (!payload.success) throw new Error('Simulation endpoint error');
+
+    const simResult = payload.simResult; // [{step,mean,upper,lower}, ...]
+    const ts = payload.timeSeriesData || [];
+
+    // Build labels: either real month labels from DB or default Month 1..N
+    const labels = simResult.map(s => {
+      // if timeSeriesData has date strings, you can map accordingly.
+      // Here we keep generic labels as "t+1"
+      return `t+${s.step + 1}`;
+    });
+
+    // Arrays for plotting
+    const meanSeries = simResult.map(s => Number(s.mean));
+    const upperSeries = simResult.map(s => Number(s.upper));
+    const lowerSeries = simResult.map(s => Number(s.lower));
+
+    // Generate client-side local forecast *aligned to the same horizon*
+    // We need to provide the historical portion (if any) then forecast up to horizon
+    // Determine historical values (use monthly totals from timeSeriesData if available)
+    let historical = [];
+    if (Array.isArray(ts) && ts.length > 0) {
+      // prefer total_weight if monthly aggregated
+      historical = ts.map(r => Number(r.total_weight));
+    } else {
+      // fallback: use the first N values of sim mean as proxy
+      historical = meanSeries.slice(0, Math.max(1, Math.min(6, meanSeries.length)));
+    }
+
+    const clientForecast = generateLocalForecast(historical, modelType, forecastMonths, simResult.length);
+
+    // Render chart with server sim mean+bounds and local forecast overlay
+    renderChart(labels, meanSeries, upperSeries, lowerSeries, historical, clientForecast, modelType);
+
+    // Update summary
+    updateSummary(meanSeries, clientForecast.predictedY, modelType);
+
+  } catch (err) {
+    console.error('Run Simulation error:', err);
+    alert('Simulation failed: ' + (err.message || 'unknown error'));
+  }
+}
+
+/* Local forecasts — ensure they return arrays matching server horizon length */
+function generateLocalForecast(history, modelType, forecastMonths, totalHorizon) {
+  if (modelType === 'polynomial') return runPolynomialForecast(history, forecastMonths, totalHorizon);
+  if (modelType === 'arima') return runSimpleARIMA(history, forecastMonths, totalHorizon);
+  if (modelType === 'system') return runSystemDynamics(history, forecastMonths, totalHorizon);
+  return { predictedX: [], predictedY: [] };
+}
+
+function runPolynomialForecast(history, forecastMonths, totalHorizon) {
+  // Fit to history (x = 1..n), then predict to totalHorizon
+  const points = history.map((y, i) => [i + 1, y]);
+  const result = regression.polynomial(points, { order: 2 });
+  const predictedY = [];
+  for (let i = 1; i <= totalHorizon; i++) {
+    predictedY.push(result.predict(i)[1]);
+  }
+  return { predictedX: Array.from({length: totalHorizon}, (_,i) => i+1), predictedY, model: result };
+}
+
+function runSimpleARIMA(history, forecastMonths, totalHorizon) {
+  // Very simple drift model: extend by mean delta
+  const series = history.slice();
+  const diffs = series.slice(1).map((v,i) => v - series[i]);
+  const avgDiff = diffs.length ? (diffs.reduce((a,b) => a+b,0)/diffs.length) : 0;
+  while (series.length < totalHorizon) {
+    const next = series[series.length - 1] + avgDiff;
+    series.push(next);
+  }
+  return { predictedX: Array.from({length: totalHorizon}, (_,i)=>i+1), predictedY: series };
+}
+
+function runSystemDynamics(history, forecastMonths, totalHorizon) {
+  const series = history.slice();
+  const disposalRate = 0.6;
+  const growthRate = 0.05;
+  while (series.length < totalHorizon) {
+    const last = series[series.length - 1];
+    const newWaste = last * (1 + growthRate);
+    const afterDisposal = newWaste * (1 - disposalRate);
+    series.push(last + afterDisposal);
+  }
+  return { predictedX: Array.from({length: totalHorizon}, (_,i)=>i+1), predictedY: series };
+}
+
+/* Chart renderer that overlays everything */
+function renderChart(labels, meanSeries, upperSeries, lowerSeries, historical, clientForecast, modelType) {
+  const ctx = document.getElementById("simulationChart").getContext("2d");
+  if (chartInstance) chartInstance.destroy();
+
+  const datasets = [
+    {
+      label: "Server sim mean (Monte Carlo)",
+      data: meanSeries,
+      borderColor: "#1976d2",
+      backgroundColor: "rgba(25,118,210,0.08)",
+      tension: 0.2,
+      fill: false,
+      pointRadius: 2
+    },
+    {
+      label: "95% Upper",
+      data: upperSeries,
+      borderColor: "#ff9800",
+      borderDash: [6,4],
+      fill: false,
+      pointRadius: 0
+    },
+    {
+      label: "95% Lower",
+      data: lowerSeries,
+      borderColor: "#ff9800",
+      borderDash: [6,4],
+      fill: '-1', // fill between lower/upper if supported
+      pointRadius: 0
+    },
+    {
+      label: `${modelType.toUpperCase()} (Local forecast)`,
+      data: clientForecast.predictedY,
+      borderColor: "#2e7d32",
+      borderDash: [3,3],
+      fill: false,
+      tension: 0.25
+    }
+  ];
+
+  chartInstance = new Chart(ctx, {
+    type: "line",
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "top" },
+        tooltip: { mode: 'index', intersect: false },
+        title: { display: true, text: `Waste Simulation (${modelType.toUpperCase()})` }
+      },
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+      scales: {
+        x: { title: { display: true, text: 'Time step (monthly index)' } },
+        y: { title: { display: true, text: 'Waste (kg)' }, beginAtZero: false }
+      }
+    }
+  });
+}
+
+/* summary */
+function updateSummary(meanSeries, forecasted, modelType) {
+  const summary = document.getElementById("simulationSummary");
+  const lastMean = meanSeries[meanSeries.length - 1];
+  const lastForecast = forecasted[forecasted.length - 1];
+  const pct = lastMean ? (((lastForecast - lastMean) / lastMean) * 100).toFixed(2) : '0.00';
+  summary.innerHTML = `
+    <h3>Simulation Summary</h3>
+    <p><b>Model:</b> ${modelType.toUpperCase()}</p>
+    <p><b>Final Mean (server MC):</b> ${Number(lastMean).toLocaleString()} kg</p>
+    <p><b>Final Local Forecast:</b> ${Number(lastForecast).toLocaleString()} kg</p>
+    <p><b>Change:</b> ${pct}%</p>
+  `;
+}
+</script>
+
+
+
 
 <!-- Trend Charts Script -->
 <script>
@@ -2355,6 +2556,47 @@ hr {
   .form-section {
     page-break-inside: avoid;
   }
+}
+.simulation-container {
+  background-color: #fdfdfd;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  margin: 2rem auto;
+  max-width: 950px;
+  color: #333;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.model-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+button {
+  background-color: #28a745;
+  border: none;
+  color: #fff;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #23963b;
+}
+
+.summary-box {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  background-color: #f9fff9;
+  font-family: 'Segoe UI', sans-serif;
 }
 
 </style>

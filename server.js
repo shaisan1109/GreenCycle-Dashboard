@@ -96,7 +96,8 @@ import {
   getOrganizations,
   updateWasteQuotaForOrg,
 updateSectorQuotaForOrg,
-getTimeSeriesData
+getTimeSeriesData,
+runHybridSimulation,
 } from './database.js'
 
 // File Upload
@@ -3089,6 +3090,35 @@ app.get('/control-panel/entry-statistics', async (req, res) => {
     
   });
 })
+
+// server.js — /api/simulation
+app.get('/api/simulation', async (req, res) => {
+  try {
+    const {
+      title, region, province, municipality, barangay,
+      author, company, startDate, endDate
+    } = req.query;
+
+    // Read forecastMonths from client (default 12)
+    const horizon = parseInt(req.query.forecastMonths, 10) || 12;
+
+    const locationCode = barangay || municipality || province || region || null;
+
+    // Grab monthly timeSeries data from DB (or whichever aggregation you want)
+    const timeSeriesData = await getTimeSeriesData(title, locationCode, author, company, startDate, endDate, 'monthly');
+
+    // Run hybrid simulation with requested horizon
+    // iterations could be tuned, keep it moderate for responsiveness
+    const simResult = runHybridSimulation(timeSeriesData, 1000, horizon);
+
+    // The function returns an array: [{ step:0, mean, upper, lower }, ...]
+    res.json({ success: true, horizon, simResult, timeSeriesData });
+  } catch (err) {
+    console.error('API Simulation error:', err);
+    res.status(500).json({ success: false, message: 'Simulation failed' });
+  }
+});
+
 
 // Compliance API for dropdown
 app.get('/api/compliance', async (req, res) => {

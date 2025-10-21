@@ -6,15 +6,25 @@ import mysql from 'mysql2'
 import { PSGCResource } from 'psgc-areas';
 import bcrypt from 'bcrypt'
 
-// Collection of connections to the database
-const sql = mysql.createPool({
-    host: process.env.MYSQL_HOST, // for running this on other hosts (and hiding info)
+let sql;
+
+if (process.env.MYSQL_URL) {
+  // --- Railway or provided full URL connection ---
+  sql = mysql.createPool(process.env.MYSQL_URL);
+  console.log('✅ Connected using MYSQL_URL (Railway)');
+} else {
+  // --- Local development fallback ---
+  sql = mysql.createPool({
+    host: process.env.MYSQL_HOST,
     user: process.env.MYSQL_USER,
     password: process.env.MYSQL_PASSWORD,
     database: process.env.MYSQL_DB,
     port: process.env.MYSQL_PORT
-}).promise()
+  });
+  console.log('✅ Connected using .env config (local)');
+}
 
+export default sql;
 /* ---------------------------------------
     USERS
 --------------------------------------- */
@@ -1904,7 +1914,7 @@ export async function updateSectorQuotaForOrg(orgName, sectorName, newWeight) {
     UPDATE sector_compliance_quotas scq
     JOIN sector s ON scq.sector_id = s.id
     SET scq.quota_weight = ?
-    WHERE scq.organization = ? AND s.name = ?
+jdelacruz@greencycleconsultancy.com    WHERE scq.organization = ? AND s.name = ?
   `, [newWeight, orgName, sectorName]);
 }
 
@@ -2008,7 +2018,7 @@ export async function getDeadlineTimer(userId) {
 }
 
 // Get time series data (for trend charts)
-export async function getTimeSeriesData(title, locationCode, author, company, startDate, endDate, aggregation) {
+export async function getTimeSeriesData(title, locationCode, author, company, startDate, endDate, aggregation = 'daily') {
   let dateExpr = '';
   if (aggregation === 'weekly') {
     dateExpr = `YEARWEEK(dat.collection_start, 1)`; // week number
@@ -2079,6 +2089,76 @@ export async function getTimeSeriesData(title, locationCode, author, company, st
   const [rows] = await sql.query(query, params);
   return rows;
 }
+
+// Hybrid System Dynamics + Monte Carlo
+export function runHybridSimulation(timeSeriesData, iterations = 500, horizon = 12) {
+  const results = [];
+
+  // Initial baseline from latest actual record
+  const last = timeSeriesData[timeSeriesData.length - 1];
+  const baseWaste = Number(last.total_weight);
+  const basePerCapita = Number(last.avg_per_capita);
+  const baseCompliance = last.compliance_status === 'Compliant' ? 0.7 : 0.5;
+
+  for (let i = 0; i < iterations; i++) {
+    // Monte Carlo sampling
+    const gP = randNormal(0.02, 0.005);        // population growth rate
+    const etaR = randTriangular(0.3, 0.5, 0.7);
+    const alphaEdu = Math.random() * 0.02;
+    const alphaDecay = Math.random() * 0.01;
+
+    let W = baseWaste;
+    let wpc = basePerCapita;
+    let C = baseCompliance;
+
+    const trial = [];
+
+    for (let t = 0; t < horizon; t++) {
+      const population = 1 + gP * (t + 1); // relative index
+      const R = C * etaR * W;
+      const B = 0.25 * W; // assume 25% biodegradable
+
+      // System Dynamics updates
+      W = W + (gP * population * wpc) - R - B;
+      wpc = wpc * (1 + (Math.random() * 0.01 - 0.005)); // behavioral noise
+      C = Math.min(1, Math.max(0, C + alphaEdu - alphaDecay + (Math.random() - 0.5) * 0.02));
+
+      trial.push({ step: t, totalWaste: W, compliance: C, perCapita: wpc });
+    }
+
+    results.push(trial);
+  }
+
+  return aggregateSimulation(results);
+}
+
+/* --- Helper functions --- */
+function randNormal(mean, sd) {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return mean + sd * Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+
+function randTriangular(min, mode, max) {
+  const F = (mode - min) / (max - min);
+  const rand = Math.random();
+  if (rand < F) return min + Math.sqrt(rand * (max - min) * (mode - min));
+  return max - Math.sqrt((1 - rand) * (max - min) * (max - mode));
+}
+
+function aggregateSimulation(simResults) {
+  const horizon = simResults[0].length;
+  const meanWaste = [];
+  for (let t = 0; t < horizon; t++) {
+    const wastes = simResults.map(r => r[t].totalWaste);
+    const mean = wastes.reduce((a, b) => a + b, 0) / wastes.length;
+    const sd = Math.sqrt(wastes.map(w => Math.pow(w - mean, 2)).reduce((a, b) => a + b) / wastes.length);
+    meanWaste.push({ step: t, mean, upper: mean + 1.96 * sd, lower: mean - 1.96 * sd });
+  }
+  return meanWaste;
+}
+
 
 /* ---------------------------------------
     CONTROL PANEL
