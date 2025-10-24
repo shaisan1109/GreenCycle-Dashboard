@@ -10,7 +10,7 @@ let sql;
 
 if (process.env.MYSQL_URL) {
   // --- Railway or provided full URL connection ---
-  sql = mysql.createPool(process.env.MYSQL_URL);
+  sql = mysql.createPool(process.env.MYSQL_URL).promise();
   console.log('✅ Connected using MYSQL_URL (Railway)');
 } else {
   // --- Local development fallback ---
@@ -20,11 +20,12 @@ if (process.env.MYSQL_URL) {
     password: process.env.MYSQL_PASSWORD,
     database: process.env.MYSQL_DB,
     port: process.env.MYSQL_PORT
-  });
+  }).promise();
   console.log('✅ Connected using .env config (local)');
 }
 
 export default sql;
+
 /* ---------------------------------------
     USERS
 --------------------------------------- */
