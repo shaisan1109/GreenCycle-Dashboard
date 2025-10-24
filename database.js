@@ -126,17 +126,17 @@ export async function deactivateUserByEmail(email) {
     WASTE CATEGORIES
 --------------------------------------- */
 export async function getSectors() {
-    const [result] = await sql.query(`SELECT * FROM greencycle.sector`)
+    const [result] = await sql.query(`SELECT * FROM sector`)
     return result
 }
 
 export async function getWasteSupertypes() {
-    const [result] = await sql.query(`SELECT * FROM greencycle.waste_supertype`)
+    const [result] = await sql.query(`SELECT * FROM waste_supertype`)
     return result
 }
 
 export async function getWasteTypes() {
-    const [result] = await sql.query(`SELECT * FROM greencycle.waste_type`)
+    const [result] = await sql.query(`SELECT * FROM waste_type`)
     return result
 }
 
@@ -145,8 +145,8 @@ export async function getAllTypes() {
     const [result] = await sql.query(`
         SELECT st.id AS supertype_id, st.name AS supertype_name,
             t.id AS type_id, t.name AS type_name
-        FROM greencycle.waste_supertype st
-        JOIN greencycle.waste_type t ON st.id = t.supertype_id
+        FROM waste_supertype st
+        JOIN waste_type t ON st.id = t.supertype_id
         ORDER BY st.id, t.id    
     `)
     return result
@@ -160,7 +160,7 @@ export async function submitForm(user_id, title, region_id, province_id, municip
    try {
        // Insert into date_entry table
        const [dataEntryResult] = await sql.query(
-           `INSERT INTO greencycle.data_entry (user_id, title, region_id, province_id, municipality_id, barangay_id, location_name, population, per_capita, annual, date_submitted, collection_start, collection_end, status)
+           `INSERT INTO data_entry (user_id, title, region_id, province_id, municipality_id, barangay_id, location_name, population, per_capita, annual, date_submitted, collection_start, collection_end, status)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, 'Pending Review')`, 
            [user_id, title, region_id, province_id, municipality_id, barangay_id, location_name, population, per_capita, annual, collection_start, collection_end]
        );
@@ -305,7 +305,7 @@ export async function getApplications() {
 export async function getPendingApplicationCount() {
     const [result] = await sql.query(`
         SELECT COUNT(application_id)
-        FROM greencycle.user_applications
+        FROM user_applications
         WHERE status = 'Pending Review'    
     `)
     return result[0]['COUNT(application_id)']
@@ -590,7 +590,7 @@ export async function getDataByStatusPaginated(status, limit, offset) {
 export async function getAllCompanies() {
     const [result] = await sql.query(`
         SELECT DISTINCT company_name
-        FROM greencycle.user
+        FROM user
         ORDER BY company_name`);
     return result;
 }
@@ -718,7 +718,7 @@ export async function getFilteredDataCoords(title, locationCode, name, companyNa
             c.latitude, c.longitude
         FROM data_entry dat
         JOIN user u ON u.user_id = dat.user_id
-        LEFT JOIN greencycle.coordinate c ON dat.location_name = c.location_name
+        LEFT JOIN coordinate c ON dat.location_name = c.location_name
         WHERE dat.status = 'Approved'`;
 
     const conditions = [];
@@ -851,7 +851,7 @@ export async function getPendingData(currentUser, limit, offset) {
 export async function getDataForReviewCount(currentUser, status) {
     const [result] = await sql.query(`
         SELECT COUNT(data_entry_id)
-        FROM greencycle.data_entry
+        FROM data_entry
         WHERE status = '${status}' AND NOT user_id = ${currentUser}
     `)
     return result[0]['COUNT(data_entry_id)']
@@ -921,7 +921,7 @@ export async function getWasteGenById(id) {
 export async function getWasteCompById(entryId) {
     const [result] = await sql.query(`
         SELECT sector_id, type_id, waste_amount
-        FROM greencycle.data_waste_composition
+        FROM data_waste_composition
         WHERE data_entry_id = ?
     `, [entryId])
     return result // important, to not return an array
@@ -931,7 +931,7 @@ export async function getWasteCompById(entryId) {
 export async function getCoordinates(locationName) {
     const [rows] = await sql.query(`
         SELECT latitude, longitude 
-        FROM greencycle.coordinate
+        FROM coordinate
         WHERE location_name = ?`, [locationName]);
     return rows[0]; // Only one match since location_name is unique
 }
@@ -969,7 +969,7 @@ export async function getTaskClaimStatus(entryId, currentUser) {
 // Change status of data entry
 export async function updateDataStatus(dataId, status) {
     await sql.query(`
-        UPDATE greencycle.data_entry
+        UPDATE data_entry
         SET status = ?
         WHERE data_entry_id = ?
     `, [status, dataId], function (err, result) {
@@ -982,7 +982,7 @@ export async function updateDataStatus(dataId, status) {
 export async function getEntryLocationName(id) {
     const [rows] = await sql.query(`
         SELECT location_name 
-        FROM greencycle.data_entry
+        FROM data_entry
         WHERE data_entry_id = ?`, [id]);
     return rows[0]?.location_name || null; // Only one match since ID is unique
 }
@@ -1019,7 +1019,7 @@ export async function fetchCoordinates(locationName) {
 // Insert location entry
 export async function createLocationEntry(locationName, lat, lon) {
     const result = await sql.query(`
-        INSERT INTO greencycle.coordinate (location_name, latitude, longitude)
+        INSERT INTO coordinate (location_name, latitude, longitude)
         VALUES (?, ?, ?)
     `, [locationName, lat, lon])
     
@@ -1036,7 +1036,7 @@ export async function createLocationEntry(locationName, lat, lon) {
 // 2. Data entry is re-submitted for review (revised)
 export async function createTask(data_entry_id) {
     const result = await sql.query(`
-        INSERT INTO greencycle.review_tasks (data_entry_id)
+        INSERT INTO review_tasks (data_entry_id)
         VALUES (?)
     `, [data_entry_id])
     
@@ -1050,7 +1050,7 @@ export async function createTask(data_entry_id) {
 // "AND" condition prevents two users from claiming simultaneously
 export async function claimTask(taskId, claimed_by) {
     await sql.query(`
-        UPDATE greencycle.review_tasks
+        UPDATE review_tasks
         SET claimed_by = ?, status = 'Claimed'
         WHERE id = ? AND (status = 'Unclaimed' OR claimed_by IS NULL)
     `, [claimed_by, taskId], function (err, result) {
@@ -1062,7 +1062,7 @@ export async function claimTask(taskId, claimed_by) {
 // When a user unclaims a task
 export async function unclaimTask(taskId) {
     await sql.query(`
-        UPDATE greencycle.review_tasks
+        UPDATE review_tasks
         SET claimed_by = NULL, status = 'Unclaimed'
         WHERE id = ?
     `, [taskId], function (err, result) {
@@ -1073,13 +1073,13 @@ export async function unclaimTask(taskId) {
 
 // Delete task when completed
 export async function completeTask(taskId) {
-    await sql.query(`DELETE FROM greencycle.review_tasks WHERE id = ?`, [taskId]);
+    await sql.query(`DELETE FROM review_tasks WHERE id = ?`, [taskId]);
 }
 
 // Get task id by data entry id
 export async function getTaskByEntryId(data_entry_id) {
   const [rows] = await sql.query(`
-    SELECT id FROM greencycle.review_tasks
+    SELECT id FROM review_tasks
     WHERE data_entry_id = ?
     LIMIT 1
   `, [data_entry_id]);
@@ -1104,7 +1104,7 @@ export function getPsgcName(locationSet, code) {
 // Create revision log
 export async function createRevisionEntry(data_entry_id, user_id, action, comment) {
     const result = await sql.query(`
-        INSERT INTO greencycle.data_entry_revision_log (data_entry_id, user_id, action, comment)
+        INSERT INTO data_entry_revision_log (data_entry_id, user_id, action, comment)
         VALUES (?, ?, ?, ?)
     `, [data_entry_id, user_id, action, comment])
     
@@ -1116,7 +1116,7 @@ export async function createRevisionEntry(data_entry_id, user_id, action, commen
 // Update current log ID for data entry
 export async function updateCurrentLog(dataId, newLogId) {
     await sql.query(`
-        UPDATE greencycle.data_entry
+        UPDATE data_entry
         SET current_log_id = ?
         WHERE data_entry_id = ?
     `, [newLogId, dataId], function (err, result) {
@@ -1129,7 +1129,7 @@ export async function updateCurrentLog(dataId, newLogId) {
 export async function getRevisionEntryCount(entryId) {
     const [result] = await sql.query(`
         SELECT COUNT(log_id)
-        FROM greencycle.data_entry_revision_log
+        FROM data_entry_revision_log
         WHERE data_entry_id = ${entryId}    
     `)
     return result[0]['COUNT(log_id)']
@@ -1140,8 +1140,8 @@ export async function getRevisionEntryCount(entryId) {
 export async function getRevisionEntries(entryId) {
     const [result] = await sql.query(`
         SELECT dl.action, dl.comment, dl.created_at, u.lastname, u.firstname
-        FROM greencycle.data_entry_revision_log dl
-        JOIN greencycle.user u ON dl.user_id = u.user_id
+        FROM data_entry_revision_log dl
+        JOIN user u ON dl.user_id = u.user_id
         WHERE data_entry_id = ${entryId}
         ORDER BY created_at DESC
     `)
@@ -1154,7 +1154,7 @@ export async function updateForm(data_entry_id, title, region_id, province_id, m
     try {
         // Update the main data_entry record
         await sql.query(
-            `UPDATE greencycle.data_entry 
+            `UPDATE data_entry 
              SET title = ?, region_id = ?, province_id = ?, municipality_id = ?, barangay_id = ?, location_name = ?, population = ?, per_capita = ?, annual = ?, collection_start = ?, collection_end = ?, status = 'Pending Review'
              WHERE data_entry_id = ?`,
             [title, region_id, province_id, municipality_id, barangay_id, location_name, population, per_capita, annual, collection_start, collection_end, data_entry_id]
@@ -2172,8 +2172,8 @@ export async function getTopContributors(limit) {
         SELECT 
             u.user_id, u.lastname, u.firstname,
             COUNT(dat.data_entry_id) AS entry_count
-        FROM greencycle.user AS u
-        LEFT JOIN greencycle.data_entry AS dat 
+        FROM user AS u
+        LEFT JOIN data_entry AS dat 
             ON dat.user_id = u.user_id
         GROUP BY u.user_id, u.lastname, u.firstname
         ORDER BY entry_count DESC
@@ -2221,7 +2221,7 @@ export async function getTopReportingRegions(limit) {
     // Get region entry counts from the database
     const [dbCounts] = await sql.query(`
         SELECT region_id, COUNT(data_entry_id) AS entry_count
-        FROM greencycle.data_entry
+        FROM data_entry
         GROUP BY region_id
     `);
 
@@ -2268,7 +2268,7 @@ export async function getMonthlySubmissions() {
             DATE_FORMAT(m.month_start, '%b %Y') AS month_label,
             COUNT(d.data_entry_id) AS entry_count
         FROM months m
-        LEFT JOIN greencycle.data_entry d
+        LEFT JOIN data_entry d
             ON DATE_FORMAT(d.date_submitted, '%Y-%m') = DATE_FORMAT(m.month_start, '%Y-%m')
             AND YEAR(d.date_submitted) = YEAR(CURDATE())
         GROUP BY m.month_start
@@ -2308,7 +2308,7 @@ export async function createNotification(targetUserId, msgType, message, link) {
 export async function getNotifications(userId, limit = 10, offset = 0) {
   const [result] = await sql.query(`
     SELECT *
-    FROM greencycle.notifications
+    FROM notifications
     WHERE user_id = ?
     ORDER BY created_at DESC
     LIMIT ? OFFSET ?`,
@@ -2321,7 +2321,7 @@ export async function getNotifications(userId, limit = 10, offset = 0) {
 export async function getNotificationCount(userId) {
   const [[{ total }]] = await sql.query(`
     SELECT COUNT(*) AS total
-    FROM greencycle.notifications
+    FROM notifications
     WHERE user_id = ?`,
     [userId]
   );
@@ -2332,7 +2332,7 @@ export async function getNotificationCount(userId) {
 export async function getUnreadNotifCount(userId) {
     const [result] = await sql.query(`
         SELECT COUNT(id)
-        FROM greencycle.notifications
+        FROM notifications
         WHERE user_id = ? AND is_read = 0
     `, [userId])
     return result[0]['COUNT(id)']
@@ -2341,7 +2341,7 @@ export async function getUnreadNotifCount(userId) {
 // Set notif as read
 export async function updateNotifRead(notifId, isRead) {
     await sql.query(`
-        UPDATE greencycle.notifications
+        UPDATE notifications
         SET is_read = ?
         WHERE id = ?
     `, [isRead, notifId], function (err, result) {
@@ -2358,7 +2358,7 @@ export async function updateNotifReadBatch(notifIds, isRead) {
   const values = [isRead, ...notifIds];
 
   await sql.query(
-    `UPDATE greencycle.notifications
+    `UPDATE notifications
     SET is_read = ?
     WHERE id IN (${placeholders})
     `,
@@ -2373,14 +2373,14 @@ export async function updateNotifReadBatch(notifIds, isRead) {
 // Get notif status
 export async function getNotifStatus(notifId) {
     const [result] = await sql.query(`
-        SELECT is_read FROM greencycle.notifications WHERE id = ?`, [notifId])
+        SELECT is_read FROM notifications WHERE id = ?`, [notifId])
     return result
 }
 
 // Delete notif
 export async function deleteNotification(notifId) {
     await sql.query(
-        `DELETE FROM greencycle.notifications WHERE id = ?`,
+        `DELETE FROM notifications WHERE id = ?`,
         [notifId]
     );
 }
@@ -2391,7 +2391,7 @@ export async function deleteNotificationsBatch(ids) {
 
   const placeholders = ids.map(() => '?').join(',');
   const query = `
-    DELETE FROM greencycle.notifications
+    DELETE FROM notifications
     WHERE id IN (${placeholders})
   `;
 
