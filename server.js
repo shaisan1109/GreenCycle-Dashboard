@@ -1637,8 +1637,13 @@ app.get('/dashboard/data/:id', async (req, res) => {
 
   // Retrieve location coordinates
   const coords = await getCoordinates(wasteGen.location_name)
+
+  // If location contains no coords, search for coords again
   if (!coords) {
-    console.log('ERROR: Location not found.');
+    const fetchCoords = await fetchCoordinates(wasteGen.location_name)
+
+    if(fetchCoords)
+      await createLocationEntry(wasteGen.location_name, fetchCoords.latitude, fetchCoords.longitude)
   }
 
   // Create waste map
@@ -1895,9 +1900,6 @@ app.get('/dashboard/data/:id', async (req, res) => {
 // Generate PDF report (data summary version)
 app.post("/api/data/summary/pdf", async (req, res) => {
   const { sections, query } = req.body; // array of section IDs (from modal)
-
-  console.log("DATA SUMMARY MODE")
-  console.log(query)
 
   if (!sections || !Array.isArray(sections)) {
     return res.status(400).json({ error: "Missing or invalid sections list" });

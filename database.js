@@ -996,22 +996,30 @@ export async function fetchCoordinates(locationName) {
         parts = parts.slice(0, 2); // Keep only City and Province, or just Province
     }
 
-    const formattedLocation = `${parts.join(', ')}, Philippines`;
-    const apiUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formattedLocation)}`;
-
-    try {
-        console.log(`Fetching coordinates for: ${formattedLocation}`); // Debugging output
+    // Helper: perform a Nominatim fetch
+    async function getCoords(query) {
+        const apiUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
+        console.log(`Fetching coordinates for: ${query}`);
         const response = await fetch(apiUrl);
         const data = await response.json();
+        return data.length > 0 ? { lat: data[0].lat, lon: data[0].lon } : null;
+    }
 
-        if (data.length > 0) {
-            return { latitude: data[0].lat, longitude: data[0].lon };
-        } else {
-            console.error("Location not found:", formattedLocation);
-            return null;
-        }
-    } catch (error) {
-        console.error("Error fetching coordinates:", error);
+    // First attempt: full location (e.g., "Calumpang, City of Marikina, Philippines")
+    const formattedLocation = `${parts.join(', ')}, Philippines`;
+    let coords = await getCoords(formattedLocation);
+
+    // Fallback attempt: remove the first part (e.g., "City of Marikina, Philippines")
+    if (!coords && parts.length > 1) {
+        const simplifiedLocation = `${parts.slice(1).join(', ')}, Philippines`;
+        console.warn(`Retrying with simplified location: ${simplifiedLocation}`);
+        coords = await getCoords(simplifiedLocation);
+    }
+
+    if (coords) {
+        return { latitude: coords.lat, longitude: coords.lon };
+    } else {
+        console.error("Location not found after retry:", locationName);
         return null;
     }
 }
