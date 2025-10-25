@@ -977,19 +977,3 @@ select {
     border-radius: 10px;
     margin-left: 10px;
 }
-
-#generate-btn {
-    position: fixed;
-    bottom: 20px;   /* distance from bottom */
-    right: 20px;    /* distance from right */
-    background-color: #245b3a;
-    color: white;
-    border: none;
-    padding: 15px 25px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 20px;
-    align-items: center;
-    gap: 10px;
-    z-index: 9999;
-}

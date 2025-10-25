@@ -141,7 +141,7 @@
 
             {{#if show_generate_btn}}
             <button id="generate-btn">
-                <i class="fa-solid fa-file-pdf"></i>&nbsp; Generate Report
+                <i class="fa-solid fa-file-pdf"></i>&nbsp; Generate PDF Report
             </button>
             {{/if}}
 
@@ -152,106 +152,155 @@
 <!-- PDF Generation Modal -->
 <div id="pdfModal" class="modal">
   <div class="modal-content">
-    <!-- Close button -->
-    <span class="close">&times;</span>
+    <div class="pdf-modal-header">
+      <h2 style="color: #fff;"><i class="fa-solid fa-chart-line"></i> Generate PDF Report</h2>
+      <span class="close">&times;</span>
+    </div>
 
-    <h2>Generate PDF Report</h2>
+    <!-- Current Filters -->
+    {{#ifNotEquals data_entry true}}
+      <div style="margin-bottom: 1.5rem;">
+          <h3 style="color: #2d613f; margin-bottom: 0.5rem;"><i class="fa-solid fa-filter"></i> Current Filters Applied:</h3>
+          <div class="filter-tags">
+              {{#if regionName}}<span class="filter-tag">Region: {{regionName}}</span>{{/if}}
+              {{#if provinceName}}<span class="filter-tag">Province: {{provinceName}}</span>{{/if}}
+              {{#if municipalityName}}<span class="filter-tag">City: {{municipalityName}}</span>{{/if}}
+              {{#if query.startDate}}<span class="filter-tag">From: {{query.startDate}}</span>{{/if}}
+              {{#if query.endDate}}<span class="filter-tag">To: {{query.endDate}}</span>{{/if}}
+              {{#if query.aggregation}}<span class="filter-tag">Aggregation: {{query.aggregation}}</span>{{/if}}
+          </div>
+      </div>
+      <hr>
+    {{/ifNotEquals}}
+
+    <!-- Metrics to Include -->
+    <h3 style="color: #2d613f; margin-bottom: 1rem;"><i class="fa-solid fa-list-check"></i> Sections to Include in PDF Report:</h3>
 
     <!-- Select All / Deselect All -->
     <button id="toggle-select">Select All</button>
 
     <!-- Checklist -->
     <ul class="checklist">
-    <!-- Compliance Status -->
-    <li>
+      <!-- Participants -->
+      {{#ifNotEquals data_entry true}}
+      <li>
         <label>
-        <input type="checkbox" class="super-item" data-group="compliance" checked>
-        <span>Compliance Status</span>
+          <input type="checkbox" class="super-item" data-group="participants" value="participants" checked>
+          <span>List of Participants</span>
+        </label>
+      </li>
+      {{/ifNotEquals}}
+
+      <!-- Compliance Status -->
+      <li>
+          <label>
+            <input type="checkbox" class="super-item" data-group="compliance" checked>
+            <span>Compliance Status</span>
+          </label>
+          <ul>
+            <li>
+              <label>
+                <input type="checkbox" class="sub-item" data-group="compliance" value="compliance-category" checked>
+                <span>Waste Category Compliance Status</span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input type="checkbox" class="sub-item" data-group="compliance" value="compliance-sector" checked>
+                <span>Waste Sector Compliance Status</span>
+              </label>
+            </li>
+          </ul>
+      </li>
+
+      <!-- Trends -->
+      {{#ifNotEquals data_entry true}}
+      <li>
+        <label>
+          <input type="checkbox" class="super-item" data-group="trends" value="trends" checked>
+          <span>Trends Over Time</span>
         </label>
         <ul>
-        <li>
-            <label>
-            <input type="checkbox" class="sub-item" data-group="compliance" value="compliance-category" checked>
-            <span>Waste Category Compliance Status</span>
-            </label>
-        </li>
-        <li>
-            <label>
-            <input type="checkbox" class="sub-item" data-group="compliance" value="compliance-sector" checked>
-            <span>Waste Sector Compliance Status</span>
-            </label>
-        </li>
+          <li><label><input type="checkbox" class="sub-item" data-group="trends" value="trends-wastegen" checked><span>Total Waste Generation Trend with Projection</span></label></li>
+          <li><label><input type="checkbox" class="sub-item" data-group="trends" value="trends-percapita" checked><span>Per Capita Waste Trend</span></label></li>
+          <li><label><input type="checkbox" class="sub-item" data-group="trends" value="trends-category" checked><span>Waste by Category Over Time</span></label></li>
+          <li><label><input type="checkbox" class="sub-item" data-group="trends" value="trends-compliance" checked><span>Compliance Rate Trend</span></label></li>
         </ul>
-    </li>
+      </li>
+      {{/ifNotEquals}}
 
-    <!-- Waste Category Insights -->
-    <li>
+      <!-- Waste Category Insights -->
+      <li>
         <label>
-        <input type="checkbox" class="super-item" data-group="insights" value="insights" checked>
-        <span>Waste Category Insights & Recommendations</span>
+          <input type="checkbox" class="super-item" data-group="insights" value="insights" checked>
+          <span>Waste Category Insights & Recommendations</span>
         </label>
-    </li>
+      </li>
 
-    <li>
+      <li>
         <label>
-        <input type="checkbox" class="super-item" data-group="insights" value="top-categories" checked>
-        <span>Top Waste Categories in this Area</span>
+          <input type="checkbox" class="super-item" data-group="insights" value="top-categories" checked>
+          <span>Top Waste Categories in this Area</span>
         </label>
-    </li>
+      </li>
 
-    <!-- Top Waste Categories -->
-    <li>
+      <!-- Top Waste Categories -->
+      <li>
         <label>
-        <input type="checkbox" class="super-item" data-group="top-cats" value="top-cats" checked>
-        <span>Top Waste Types by Category</span>
+          <input type="checkbox" class="super-item" data-group="top-cats" value="top-cats" checked>
+          <span>Top Waste Types by Category</span>
         </label>
         <ul>
-        <li><label><input type="checkbox" class="sub-item" data-group="top-cats" value="types-biodegradable" checked><span>Biodegradable</span></label></li>
-        <li><label><input type="checkbox" class="sub-item" data-group="top-cats" value="types-recyclable" checked><span>Recyclable</span></label></li>
-        <li><label><input type="checkbox" class="sub-item" data-group="top-cats" value="types-residual" checked><span>Residual</span></label></li>
-        <li><label><input type="checkbox" class="sub-item" data-group="top-cats" value="types-special/hazardous" checked><span>Special/Hazardous</span></label></li>
+          <li><label><input type="checkbox" class="sub-item" data-group="top-cats" value="types-biodegradable" checked><span>Biodegradable</span></label></li>
+          <li><label><input type="checkbox" class="sub-item" data-group="top-cats" value="types-recyclable" checked><span>Recyclable</span></label></li>
+          <li><label><input type="checkbox" class="sub-item" data-group="top-cats" value="types-residual" checked><span>Residual</span></label></li>
+          <li><label><input type="checkbox" class="sub-item" data-group="top-cats" value="types-special/hazardous" checked><span>Special/Hazardous</span></label></li>
         </ul>
-    </li>
+      </li>
 
-    <!-- Top Sectors -->
-    <li>
+      <!-- Top Sectors -->
+      <li>
         <label>
-        <input type="checkbox" class="super-item" data-group="sectors" value="top-sectors" checked>
-        <span>Top Sectors by Waste Output</span>
+          <input type="checkbox" class="super-item" data-group="sectors" value="top-sectors" checked>
+          <span>Top Sectors by Waste Output</span>
         </label>
-    </li>
+      </li>
 
-    <!-- Top Waste Categories per Sector -->
-    <li>
+      <!-- Top Waste Categories per Sector -->
+      <li>
         <label>
-        <input type="checkbox" class="super-item" data-group="cats-per-sector" value="cats-per-sector" checked>
-        <span>Top Waste Categories per Sector</span>
+          <input type="checkbox" class="super-item" data-group="cats-per-sector" value="cats-per-sector" checked>
+          <span>Top Waste Categories per Sector</span>
         </label>
         <ul>
-        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-residential" checked><span>Residential</span></label></li>
-        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-commercial" checked><span>Commercial</span></label></li>
-        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-institutional" checked><span>Institutional</span></label></li>
-        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-industrial" checked><span>Industrial</span></label></li>
-        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-health" checked><span>Health</span></label></li>
-        <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-agriculture and livestock" checked><span>Agriculture and Livestock</span></label></li>
+          <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-residential" checked><span>Residential</span></label></li>
+          <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-commercial" checked><span>Commercial</span></label></li>
+          <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-institutional" checked><span>Institutional</span></label></li>
+          <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-industrial" checked><span>Industrial</span></label></li>
+          <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-health" checked><span>Health</span></label></li>
+          <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-agriculture and livestock" checked><span>Agriculture and Livestock</span></label></li>
         </ul>
-    </li>
+      </li>
 
-    <!-- Raw Data -->
-    {{#if data_entry}}
-    <li>
+      <!-- Raw Data -->
+      {{#if data_entry}}
+      <li>
         <label>
-        <input type="checkbox" class="super-item" data-group="raw" value="raw-data" checked>
-        <span>Raw Data</span>
+          <input type="checkbox" class="super-item" data-group="raw" value="raw-data" checked>
+          <span>Raw Data</span>
         </label>
-    </li>
-    {{/if}}
+      </li>
+      {{/if}}
     </ul>
 
     <!-- Modal Actions -->
     <div class="modal-actions">
-      <button id="cancel-generate" class="cancel-btn">Cancel</button>
-      <button id="confirm-generate" class="confirm-btn">Generate</button>
+      <button id="cancel-generate" class="btn-cancel">
+        <i class="fa-solid fa-xmark"></i> Cancel
+      </button>
+      <button id="confirm-generate" class="btn-confirm">
+        <i class="fa-solid fa-file-pdf"></i> Generate PDF
+      </button>
     </div>
   </div>
 </div>
@@ -265,6 +314,108 @@
 </div>
 
 <style>
+
+#generate-btn {
+    background: linear-gradient(135deg, #4CAF50 0%, #2d613f 100%);
+    color: white;
+    border: none;
+    padding: 15px 25px;
+    border-radius: 5px;
+    font-size: 23px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    transition: all 0.3s;
+    position: fixed;
+    bottom: 25px;   /* distance from bottom */
+    right: 25px;    /* distance from right */
+    align-items: center;
+    gap: 10px;
+    z-index: 9999;
+}
+
+#generate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+}
+
+.btn-confirm {
+    background: linear-gradient(135deg, #4CAF50 0%, #2d613f 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-confirm:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.btn-cancel {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-cancel:hover {
+    background-color: #5a6268;
+    transform: translateY(-2px);
+}
+
+.pdf-modal-header {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #4CAF50 0%, #2d613f 100%);
+    color: white;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pdf-modal-header h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.checklist label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+  width: 100%;
+}
+
+.checklist label:hover {
+  background-color: #f5f5f5;
+}
+
+.checklist label i {
+  color: #4CAF50;
+  width: 18px;
+  margin-right: 3px;
+}
+
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #4CAF50;
+}
+
 /* Modal box */
 .modal-content {
   background: #fff;
@@ -292,8 +443,6 @@
 .checklist {
   text-align: left;
   margin: 20px 0;
-  max-height: 60vh;             /* scroll only the list portion */
-  overflow-y: auto;
   padding-left: 0;
   list-style: none;
 }
@@ -435,7 +584,7 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 <!-- Deadline script -->
-  <script>
+<script>
 async function startDeadlineTimer(userId) {
   const el = document.getElementById("deadline-timer");
   if (!el) {
@@ -490,7 +639,7 @@ async function startDeadlineTimer(userId) {
 
     // Inject the logged-in user ID from the server
     startDeadlineTimer({{#if user}}{{user.id}}{{else}}0{{/if}});
-  </script>
+</script>
 
 <!-- Modal script -->
 <script>

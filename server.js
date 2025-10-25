@@ -1972,7 +1972,9 @@ app.post("/api/data/summary/pdf", async (req, res) => {
 
     // Order map: array of arrays (each inner array = one page)
     const sectionGroups = [
-      ["filters", "data-title", "data-info", "compliance-category", "compliance-sector"],
+      ["filters", "data-title", "data-info", "participants"],
+      ["compliance-category", "compliance-sector"],
+      ["trends-wastegen", "trends-percapita", "trends-category", "trends-compliance"],
       ["insights", "top-categories"],
       ["top-cats", "types-biodegradable"],
       ["types-recyclable"],
@@ -2036,7 +2038,7 @@ app.post("/api/data/summary/pdf", async (req, res) => {
         bottom: "20mm",
         left: "15mm",
         right: "15mm"
-      },
+      }
     });
 
     await browser.close();
