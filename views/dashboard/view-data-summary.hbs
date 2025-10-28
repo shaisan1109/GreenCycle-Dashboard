@@ -515,6 +515,7 @@
         <h2>Top Sectors by Waste Output</h2>
         <p style="font-size: large;">This chart shows which economic sectors contribute the most to total waste generation. Use this insight to target waste reduction initiatives by sector.</p>
       </center>
+      <div id="sector-insight"></div>
       <div id="sector-chart-container"></div>
     </div>
 
@@ -1646,14 +1647,14 @@ function insertSectorInsights() {
         wrapper.appendChild(box);
       }
       const sectorTotalVal = (sectorBarData || []).find(s=>s.label===sectorName)?.value || 0;
-      box.innerHTML = `<h3 style="margin:0 0 0.25rem 0;color:#2d613f">${sectorName} Sector</h3><div>${generateSectorInsight(sectorName, pieData, Number(sectorTotalVal || 0), Number(grandTotal || 0))}</div>`;
+      box.innerHTML = `<h3 style="margin:0 0 0.25rem 0;color:#2d613f">Sector Insights</h3><div>${generateSectorInsight(sectorName, pieData, Number(sectorTotalVal || 0), Number(grandTotal || 0))}</div>`;
     }
   } catch (err) { console.error(err); }
 }
 
 function insertSectorOverviewInsight() {
   try {
-    const container = document.getElementById('sector-chart-container');
+    const container = document.getElementById('sector-insight');
     if (!container) return;
 
     const insightText = generateSectorOverviewInsight(sectorBarData || [], Number(grandTotal || 0));
@@ -1763,6 +1764,7 @@ const createPieChart = (data, mode) => {
           const lineHeight = font.lineHeight + 6;
           const colSpacing = chart.width / 2.5;
           const startY = chart.chartArea.bottom + 30;
+          const legendLeftMargin = 60;
 
           const drawColumn = (col, x) => {
             col.forEach((item, i) => {
@@ -1774,8 +1776,9 @@ const createPieChart = (data, mode) => {
             });
           };
 
-          drawColumn(firstCol, chart.chartArea.left + 20);
-          drawColumn(secondCol, chart.chartArea.left + colSpacing);
+          // Apply the left margin to both columns
+          drawColumn(firstCol, chart.chartArea.left + legendLeftMargin);
+          drawColumn(secondCol, chart.chartArea.left + colSpacing + legendLeftMargin);
         };
       }
     }]
@@ -1814,6 +1817,7 @@ const createLegendHTML = (legendData, dataset) => {
     }).join('');
 };
 
+// ========== BAR CHARTS BY WASTE TYPE ========== //
 const container = document.getElementById('bar-charts-container');
 
 for (const [supertype, chartData] of Object.entries(barChartData)) {
@@ -1822,25 +1826,47 @@ for (const [supertype, chartData] of Object.entries(barChartData)) {
   tabDiv.classList.add('bar-tabcontent');
   tabDiv.setAttribute('data-section', `types-${supertype.toLowerCase()}`);
 
+  // Header + description
+  const headerDiv = document.createElement('div');
+  headerDiv.classList.add('bar-header');
+  headerDiv.innerHTML = `
+    <h2 class="bar-legend-title">Top ${supertype} Waste Types</h2>
+    <div class="bar-description" 
+         style="background-color: #eef8f2; padding: 1rem; border-radius: 12px;
+                border-left: 6px solid #4CAF50; margin-bottom: 1rem; width: 100%;
+                box-sizing: border-box;">
+    </div>
+  `;
+
+  // Bar chart
+  const chartDiv = document.createElement('div');
+  chartDiv.classList.add('bar-chart-wrapper');
+  chartDiv.style.cssText = 'display: flex; justify-content: center; align-items: center; margin-bottom: 1.5rem;';
+
   const canvas = document.createElement('canvas');
   canvas.id = `barChart-${supertype.replace(/\s+/g, '-')}`;
-  canvas.classList.add('bar-chart');
-  canvas.style.marginBottom = '20px';
+  canvas.classList.add('bar-canvas');
+  canvas.style.marginBottom = '0';
 
-  const wrapper = document.createElement('div');
-  wrapper.classList.add('chart-wrapper');
-  wrapper.style.cssText = 'display:flex;gap:24px;align-items:flex-start';
+  chartDiv.appendChild(canvas);
 
+  // Legend
   const legendDiv = document.createElement('div');
-  legendDiv.classList.add('bar-legend');
-  legendDiv.innerHTML = `<h2 class="bar-legend-title">Top ${supertype} Waste Types</h2>` +
-    `<div class='bar-description' style='background-color: #eef8f2; padding: 1rem; border-radius: 12px; border-left: 6px solid #4CAF50; margin-bottom: 1rem; width: fit-content'></div>` + 
-    createLegendHTML(chartData.legend, chartData.data);
+  legendDiv.classList.add('bar-legend-container');
+  legendDiv.style.cssText = `
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-start;
+    justify-content: center;
+  `;
+  legendDiv.innerHTML = createLegendHTML(chartData.legend, chartData.data);
 
-  wrapper.append(canvas, legendDiv);
-  tabDiv.appendChild(wrapper);
+  // Put sections together
+  tabDiv.append(headerDiv, chartDiv, legendDiv);
   container.appendChild(tabDiv);
 
+  // Chart.js building
   new Chart(canvas.getContext('2d'), {
     type: 'bar',
     data: {
@@ -1876,6 +1902,7 @@ for (const [supertype, chartData] of Object.entries(barChartData)) {
   });
 }
 
+// ========== SECTOR BAR CHART ========== //
 const tsContainer = document.getElementById('sector-chart-container');
 
 const tsCanvas = document.createElement('canvas');
@@ -1923,11 +1950,12 @@ new Chart(tsCanvas.getContext('2d'), {
 
 const tsLegendDiv = document.createElement('div');
 tsLegendDiv.classList.add('bar-legend');
-tsLegendDiv.innerHTML = `<div class='sector-overview' style='margin-top:1rem; padding:1rem; border-left:4px solid #2e7d32;background:#f7fff8; border-radius:6px; margin-bottom: 1rem'></div>` + createLegendHTML(sectorBarData, sectorValues);
+tsLegendDiv.innerHTML = createLegendHTML(sectorBarData, sectorValues);
 const tsLegendWrapper = document.createElement('div');
 tsLegendWrapper.appendChild(tsLegendDiv);
 tsWrapper.appendChild(tsLegendWrapper);
 
+// ========== SECTOR PIE CHARTS ========== //
 const sectorContainer = document.getElementById('sector-pies-container');
 
 for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
@@ -1936,29 +1964,65 @@ for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
   tabDiv.classList.add('sector-tabcontent');
   tabDiv.setAttribute('data-section', `top-${sectorName.toLowerCase()}`);
 
+  // Header + description
+  const headerDiv = document.createElement('div');
+  headerDiv.classList.add('sector-header');
+  headerDiv.innerHTML = `
+    <h2 class="bar-legend-title">${sectorName} Sector</h2>
+    <div class="sector-pie-desc" 
+         style="background-color: #eef8f2; padding: 1rem; border-radius: 12px; 
+                border-left: 6px solid #4CAF50; margin-bottom: 1rem;
+                box-sizing: border-box;">
+    </div>
+  `;
+
+  // Chart + legend wrapper
+  const flexWrapper = document.createElement('div');
+  flexWrapper.classList.add('sector-flex-wrapper');
+  flexWrapper.style.cssText = `
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin: 0 auto;
+    width: fit-content;
+  `;
+
+  // Pie chart
   const canvas = document.createElement('canvas');
   canvas.id = `pieChart-${sectorName.replace(/\s+/g, '-')}`;
-  canvas.style.cssText = 'max-width:425px; max-height:400px; margin-bottom:20px; margin-left: 30px';
+  canvas.style.cssText = `
+    max-width: 425px; 
+    max-height: 400px; 
+    margin-bottom: 20px;
+  `;
 
-  const wrapper = document.createElement('div');
-  wrapper.classList.add('chart-wrapper');
-  wrapper.style.cssText = 'display:flex;gap:24px;align-items:flex-start';
-
+  // Legend
   const legendDiv = document.createElement('div');
   legendDiv.classList.add('bar-legend');
-  legendDiv.innerHTML = `
-    <h2 class="bar-legend-title">${sectorName} Sector</h2>` +
-    `<div class='sector-pie-desc' style='background-color: #eef8f2; padding: 1rem; border-radius: 12px; border-left: 6px solid #4CAF50; margin-bottom: 1rem; width: fit-content'></div>` + 
-    createLegendHTML(pieData.labels.map((label, i) => ({
+  legendDiv.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    flex: 1 1 300px;
+  `;
+  legendDiv.innerHTML = createLegendHTML(
+    pieData.labels.map((label, i) => ({
       label,
       value: pieData.data[i],
       color: pieData.backgroundColor[i]
-    })), pieData.data);
+    })), 
+    pieData.data
+  );
 
-  wrapper.append(canvas, legendDiv);
-  tabDiv.appendChild(wrapper);
+  // Assemble structure
+  flexWrapper.append(canvas, legendDiv);
+  tabDiv.append(headerDiv, flexWrapper);
   sectorContainer.appendChild(tabDiv);
 
+  // Chart.js building
   new Chart(canvas.getContext('2d'), {
     type: 'pie',
     data: {
@@ -2033,6 +2097,10 @@ insertSectorOverviewInsight();
 <script src="/js/tabs-sector-pie.js"></script>
 
 <style>
+
+.bar-canvas {
+  max-width: 700px;
+}
 
 [data-section="top-categories"] {
   display: flex;
@@ -2612,12 +2680,6 @@ hr {
   align-items: center;
 }
 
-.bar-chart {
-  flex: 1 1 350px;       /* can shrink/grow, min width of 350px */
-  max-width: 550px;      /* keeps it from hogging the whole row */
-  min-height: 300px;
-}
-
 .legend-item {
   display: flex;
   justify-content: space-between;
@@ -2677,6 +2739,7 @@ hr {
   color: #2d613f;
   margin-bottom: 1rem;
   font-size: 1.2rem;
+  text-align: center;
 }
 
 .bar-legend-name {

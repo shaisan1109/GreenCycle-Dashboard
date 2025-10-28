@@ -256,7 +256,6 @@ nav a:hover {
     transition: margin-left 0.3s ease, width 0.3s ease;
     padding: 20px;
     margin-left: 260px;
-
     overflow: auto;
     box-sizing: border-box;
 }

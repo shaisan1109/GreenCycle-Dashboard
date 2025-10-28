@@ -1937,7 +1937,7 @@ app.post("/api/data/summary/pdf", async (req, res) => {
     const reportUrl = `http://localhost:3000/dashboard/data/summary?${queryString}`;
 
     // Navigate to report view page (server-rendered HTML)
-    //await page.goto(reportUrl, { waitUntil: "networkidle0" });
+    await page.setViewport({ width: 1440, height: 1080 });
     await page.goto(reportUrl, { waitUntil: "domcontentloaded" });
 
     // ensure page rendered
@@ -1956,6 +1956,31 @@ app.post("/api/data/summary/pdf", async (req, res) => {
 
     // Wait a tick to ensure they actually paint
     await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Ensure bar charts render fully before export
+    await page.evaluate(async () => {
+      // Set CSS width only (do not touch canvas.width)
+      document.querySelectorAll("canvas.bar-canvas").forEach(canvas => {
+        const parentWidth = canvas.parentElement?.offsetWidth || 700;
+        canvas.style.width = parentWidth + "px";
+        canvas.style.maxWidth = parentWidth + "px";
+        canvas.style.height = "auto";
+      });
+
+      // Ask Chart.js to resize if it's loaded
+      if (window.Chart && window.Chart.instances) {
+        Object.values(window.Chart.instances).forEach(chart => {
+          try {
+            if (chart.resize) chart.resize();
+          } catch (e) {
+            console.warn("Chart resize failed:", e);
+          }
+        });
+      }
+
+      // Give browser a repaint tick
+      await new Promise(r => setTimeout(r, 1000));
+    });
 
     // Convert canvases to images
     await page.evaluate(() => {
@@ -1980,10 +2005,12 @@ app.post("/api/data/summary/pdf", async (req, res) => {
       ["insights", "top-categories"],
       ["top-cats", "types-biodegradable"],
       ["types-recyclable"],
-      ["types-residual", "types-special/hazardous"],
+      ["types-residual"],
+      ["types-special/hazardous"],
       ["top-sectors"],
-      ["cats-per-sector", "top-residential", "top-commercial", "top-institutional", "top-industrial", "top-health", "top-agriculture and livestock"],
-      ["raw-data"]
+      ["cats-per-sector", "top-residential", "top-commercial"],
+      ["top-institutional", "top-industrial"],
+      ["top-health", "top-agriculture and livestock"]
     ];
 
     // Extract HTML in print order
@@ -2092,6 +2119,8 @@ app.post("/api/data/:entryId(\\d+)/pdf", async (req, res) => {
 
     await page.setCookie(...cookies);
 
+    await page.setViewport({ width: 1440, height: 1080 });
+
     // Navigate to report view page (server-rendered HTML)
     const reportUrl = `http://localhost:3000/dashboard/data/${entryId}`;
     await page.goto(reportUrl, { waitUntil: "domcontentloaded" });
@@ -2112,6 +2141,31 @@ app.post("/api/data/:entryId(\\d+)/pdf", async (req, res) => {
 
     // Wait a tick to ensure they actually paint
     await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Ensure bar charts render fully before export
+    await page.evaluate(async () => {
+      // Set CSS width only (do not touch canvas.width)
+      document.querySelectorAll("canvas.bar-canvas").forEach(canvas => {
+        const parentWidth = canvas.parentElement?.offsetWidth || 700;
+        canvas.style.width = parentWidth + "px";
+        canvas.style.maxWidth = parentWidth + "px";
+        canvas.style.height = "auto";
+      });
+
+      // Ask Chart.js to resize if it's loaded
+      if (window.Chart && window.Chart.instances) {
+        Object.values(window.Chart.instances).forEach(chart => {
+          try {
+            if (chart.resize) chart.resize();
+          } catch (e) {
+            console.warn("Chart resize failed:", e);
+          }
+        });
+      }
+
+      // Give browser a repaint tick
+      await new Promise(r => setTimeout(r, 1000));
+    });
 
     // Convert canvases to images
     await page.evaluate(() => {
@@ -2134,9 +2188,12 @@ app.post("/api/data/:entryId(\\d+)/pdf", async (req, res) => {
       ["insights", "top-categories"],
       ["top-cats", "types-biodegradable"],
       ["types-recyclable"],
-      ["types-residual", "types-special/hazardous"],
+      ["types-residual"],
+      ["types-special/hazardous"],
       ["top-sectors"],
-      ["cats-per-sector", "top-residential", "top-commercial", "top-institutional", "top-industrial", "top-health", "top-agriculture and livestock"],
+      ["cats-per-sector", "top-residential", "top-commercial"],
+      ["top-institutional", "top-industrial"],
+      ["top-health", "top-agriculture and livestock"],
       ["raw-desc", "raw-data"]
     ];
 
