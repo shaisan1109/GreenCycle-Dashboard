@@ -385,11 +385,13 @@ document.addEventListener("DOMContentLoaded", function () {
         case "#date_end":
           const startVal = document.querySelector("#date_start").value;
           if (!val) error = "End Date is required.";
-          else if (startVal && val < startVal) error = "End date cannot be before start date.";
+          else if (startVal && val < startVal)
+            error = "End date cannot be before start date.";
           break;
 
         case "#fileElem":
-          if (el.files.length === 0) error = "Please upload a spreadsheet file.";
+          if (el.files.length === 0)
+            error = "Please upload a spreadsheet file.";
           break;
       }
 
@@ -399,6 +401,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (error) allValid = false;
     });
+
+    // Disable submit if spreadsheet validation section is visible
+    const xlsxErrors = document.getElementById("xlsx-errors");
+    if (xlsxErrors && getComputedStyle(xlsxErrors).display === "block") {
+      allValid = false;
+    }
 
     submitBtn.disabled = !allValid;
     submitBtn.classList.toggle("disabled", !allValid);
