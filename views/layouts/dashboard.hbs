@@ -186,7 +186,7 @@
       <li>
         <label>
           <input type="checkbox" class="super-item" data-group="participants" value="participants" checked>
-          <span>List of Participants</span>
+          <span><i class="fa-solid fa-users"></i> List of Participants</span>
         </label>
       </li>
       {{/ifNotEquals}}
@@ -195,7 +195,7 @@
       <li>
           <label>
             <input type="checkbox" class="super-item" data-group="compliance" checked>
-            <span>Compliance Status</span>
+            <span><i class="fa-solid fa-clipboard-check"></i> Compliance Status</span>
           </label>
           <ul>
             <li>
@@ -218,7 +218,7 @@
       <li>
         <label>
           <input type="checkbox" class="super-item" data-group="trends" value="trends" checked>
-          <span>Trends Over Time</span>
+          <span><i class="fa-solid fa-chart-line"></i> Trends Over Time</span>
         </label>
         <ul>
           <li><label><input type="checkbox" class="sub-item" data-group="trends" value="trends-wastegen" checked><span>Total Waste Generation Trend with Projection</span></label></li>
@@ -233,14 +233,14 @@
       <li>
         <label>
           <input type="checkbox" class="super-item" data-group="insights" value="insights" checked>
-          <span>Waste Category Insights & Recommendations</span>
+          <span><i class="fa-solid fa-lightbulb"></i> Waste Category Insights & Recommendations</span>
         </label>
       </li>
 
       <li>
         <label>
           <input type="checkbox" class="super-item" data-group="insights" value="top-categories" checked>
-          <span>Top Waste Categories in this Area</span>
+          <span><i class="fa-solid fa-pie-chart"></i> Top Waste Categories in this Area</span>
         </label>
       </li>
 
@@ -248,7 +248,7 @@
       <li>
         <label>
           <input type="checkbox" class="super-item" data-group="top-cats" value="top-cats" checked>
-          <span>Top Waste Types by Category</span>
+          <span><i class="fa-solid fa-recycle"></i> Top Waste Types by Category</span>
         </label>
         <ul>
           <li><label><input type="checkbox" class="sub-item" data-group="top-cats" value="types-biodegradable" checked><span>Biodegradable</span></label></li>
@@ -262,7 +262,7 @@
       <li>
         <label>
           <input type="checkbox" class="super-item" data-group="sectors" value="top-sectors" checked>
-          <span>Top Sectors by Waste Output</span>
+          <span><i class="fa-solid fa-building"></i> Top Sectors by Waste Output</span>
         </label>
       </li>
 
@@ -270,7 +270,7 @@
       <li>
         <label>
           <input type="checkbox" class="super-item" data-group="cats-per-sector" value="cats-per-sector" checked>
-          <span>Top Waste Categories per Sector</span>
+          <span><i class="fa-solid fa-truck"></i> Top Waste Categories per Sector</span>
         </label>
         <ul>
           <li><label><input type="checkbox" class="sub-item" data-group="cats-per-sector" value="top-residential" checked><span>Residential</span></label></li>
@@ -405,8 +405,7 @@
 
 .checklist label i {
   color: #4CAF50;
-  width: 18px;
-  margin-right: 3px;
+  margin-right: 2px;
 }
 
 input[type="checkbox"] {

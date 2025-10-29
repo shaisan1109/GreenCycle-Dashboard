@@ -2,7 +2,7 @@
 <div class="info-grid" style="margin-bottom: 1.5rem;">
   <div class="form-section stat-box text-center">
     <div class="stat-value">{{entryCount.approved}}</div>
-    <span>Total Approved Entries</span>
+    <span>Total Approved Entries</span><br>
 
     <a href="/dashboard/data/all">
       <button class="btn-submit" style="margin-top: 15px;">
@@ -13,7 +13,7 @@
 
   <div class="form-section stat-box text-center">
     <div class="stat-value" style="color: rgb(255, 106, 0);">{{entryCount.pending}}</div>
-    <span>Total Pending Entries</span>
+    <span>Total Pending Entries</span><br>
 
     <a href="/dashboard/data/submissions/pending">
       <button class="btn-submit" style="margin-top: 15px; background-color: rgb(255, 106, 0);">
@@ -24,7 +24,7 @@
 
   <div class="form-section stat-box text-center">
     <div class="stat-value" style="color: orange;">{{entryCount.rejected}}</div>
-    <span>Total Entries Needing Revision</span>
+    <span>Total Entries Needing Revision</span><br>
 
     <a href="/dashboard/data/submissions/revision">
       <button class="btn-submit" style="margin-top: 15px; background-color: orange;">
@@ -41,8 +41,8 @@
 
 <div class="form-section">
   <h2>Compliance Statistics</h2>
-
-  <label for="compliance-type">Select Category:</label>
+  <p>Select a category to view its compliance results based on entries submitted by users.</p>
+  <label for="compliance-type"><b>Select Category:</b></label>&nbsp;
 <select id="compliance-type" onchange="fetchComplianceData()">
   <optgroup label="Waste Categories">
     <option value="Biodegradable">Biodegradable</option>
@@ -100,8 +100,8 @@ async function fetchComplianceData() {
       <td>${user.total_generated ?? 0}</td>
       <td>
         ${user.compliance_status === 'Compliant'
-          ? '<span class="stat-approved">Compliant</span>'
-          : '<span class="stat-revision">Non-Compliant</span>'
+          ? `<span style='color: green; font-weight: bold;'>Compliant</span>`
+          : `<span style='color: red; font-weight: bold;'>Non-Compliant</span>`
         }
       </td>`;
     tbody.appendChild(row);

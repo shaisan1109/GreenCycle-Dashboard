@@ -52,15 +52,15 @@
     </div>
 
     <!-- Button to open modal -->
-    <div style="text-align: center; margin-top: 1.5rem;">
+    {{!-- <div style="text-align: center; margin-top: 1.5rem;">
         <button id="customizeReportBtn" class="btn-customize">
             <i class="fa-solid fa-sliders"></i> Customize Report Parameters
         </button>
-    </div>
+    </div> --}}
 </div>
 
 <!-- Modal -->
-<div id="reportModal" class="modal">
+{{!-- <div id="reportModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
             <h2 style="color: #fff;"><i class="fa-solid fa-chart-line"></i> Customize Report Parameters</h2>
@@ -95,57 +95,6 @@
                     </select>
                 </div>
             </div>
-
-            <hr>
-
-            <!-- Metrics to Include -->
-            <h3 style="color: #2d613f; margin-bottom: 1rem;"><i class="fa-solid fa-list-check"></i> Sections to Include in Report:</h3>
-            <div class="checkbox-grid">
-                <label>
-                    <input type="checkbox" name="section" value="participants" checked>
-                    <span><i class="fa-solid fa-users"></i> Participants</span>
-                </label>
-                <label>
-                    <input type="checkbox" name="section" value="data-info" checked>
-                    <span><i class="fa-solid fa-dumpster"></i> Waste Generation</span>
-                </label>
-                <label>
-                    <input type="checkbox" name="section" value="trends" checked>
-                    <span><i class="fa-solid fa-chart-line"></i> Trends Over Time</span>
-                </label>
-                <label>
-                    <input type="checkbox" name="section" value="compliance-category" checked>
-                    <span><i class="fa-solid fa-clipboard-check"></i> Category Compliance</span>
-                </label>
-                <label>
-                    <input type="checkbox" name="section" value="compliance-sector" checked>
-                    <span><i class="fa-solid fa-industry"></i> Sector Compliance</span>
-                </label>
-                <label>
-                    <input type="checkbox" name="section" value="insights" checked>
-                    <span><i class="fa-solid fa-lightbulb"></i> Insights</span>
-                </label>
-                <label>
-                    <input type="checkbox" name="section" value="top-categories" checked>
-                    <span><i class="fa-solid fa-chart-pie"></i> Top Categories Chart</span>
-                </label>
-                <label>
-                    <input type="checkbox" name="section" value="top-cats" checked>
-                    <span><i class="fa-solid fa-chart-bar"></i> Category Breakdown</span>
-                </label>
-                <label>
-                    <input type="checkbox" name="section" value="top-sectors" checked>
-                    <span><i class="fa-solid fa-chart-column"></i> Top Sectors Chart</span>
-                </label>
-                <label>
-                    <input type="checkbox" name="section" value="cats-per-sector" checked>
-                    <span><i class="fa-solid fa-chart-simple"></i> Sector Breakdown</span>
-                </label>
-                <label>
-                    <input type="checkbox" name="section" value="map" checked>
-                    <span><i class="fa-solid fa-map-location-dot"></i> Location Map</span>
-                </label>
-            </div>
         </div>
 
         <div class="modal-footer">
@@ -163,7 +112,7 @@
             </button>
         </div>
     </div>
-</div>
+</div> --}}
 
 <!-- Display charts for aggregated data -->
 <!-- Title Card -->
@@ -360,16 +309,17 @@
 
 <div class="simulation-container">
   <h2>Waste Forecast & Simulation Models</h2>
+  <p>Enter values on the options below to display simulations for this summary.</p>
 
   <div class="model-controls">
-    <label for="modelType">Select Model:</label>
+    <label for="modelType"><b>Select Model:</b></label>
     <select id="modelType" onchange="updateSimulationModel()">
       <option value="polynomial">Polynomial Regression</option>
       <option value="arima">ARIMA Forecast</option>
       <option value="system">System Dynamics</option>
     </select>
 
-    <label for="forecastMonths">Months to Forecast:</label>
+    <label for="forecastMonths"><b>Months to Forecast:</b></label>
     <input type="number" id="forecastMonths" min="1" max="24" value="6">
 
     <button onclick="runSimulation()">Run Simulation</button>
@@ -548,14 +498,18 @@
 <!-- Modal Script -->
 <script>
 
+const applyBtn = document.getElementById('applyBtn');
+
+/*
 const reportModal = document.getElementById('reportModal');
 const btn = document.getElementById('customizeReportBtn');
 const closeBtn = document.querySelector('.close');
 const cancelBtn = document.getElementById('cancelBtn');
 const resetBtn = document.getElementById('resetBtn');
-const applyBtn = document.getElementById('applyBtn');
 const exportPdfBtn = document.getElementById('exportPdfBtn');
+*/
 
+/*
 btn.onclick = () => reportModal.style.display = 'block';
 closeBtn.onclick = () => reportModal.style.display = 'none';
 cancelBtn.onclick = () => reportModal.style.display = 'none';
@@ -572,9 +526,10 @@ exportPdfBtn.onclick = () => {
     reportModal.style.display = 'none';
     window.print();
 }
+*/
 
 applyBtn.onclick = () => {
-    const aggregation = document.getElementById('modal-aggregation').value;
+    const aggregation = document.getElementById('select-aggregation').value;
     
     const selectedSections = Array.from(document.querySelectorAll('input[name="section"]:checked'))
         .map(cb => cb.value);
@@ -595,7 +550,7 @@ applyBtn.onclick = () => {
     if (aggregation) currentUrl.searchParams.set('aggregation', aggregation);
     else currentUrl.searchParams.delete('aggregation');
     
-    reportModal.style.display = 'none';
+    //reportModal.style.display = 'none';
     
     if (aggregation) {
         window.location.href = currentUrl.toString();
@@ -1103,10 +1058,10 @@ window.addEventListener('DOMContentLoaded', function () {
           label: 'Actual Waste (kg)',
           data: actualDataExpanded,
           borderColor: '#4CAF50',
-          backgroundColor: 'rgba(76, 175, 80, 0.1)',
+          backgroundColor: '#4CAF50',
           fill: true,
           tension: 0,
-          pointRadius: 3,
+          pointRadius: 4,
           pointHitRadius: 10,
           spanGaps: false
         },
