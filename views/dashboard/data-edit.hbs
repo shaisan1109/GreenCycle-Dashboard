@@ -175,6 +175,34 @@
 </div>
 </form>
 
+<!-- Success modal -->
+<div id="success-approve" class="modal">
+    <div class="modal-content">
+        <h3>Success</h3>
+        Data entry has been re-submitted for review.<br><br>
+
+        <a href="/dashboard">
+            <button type="button" class="review-approve">
+                Return to Home
+            </button>
+        </a>
+    </div>
+</div>
+
+<!-- Error modal -->
+<div id="error-approve" class="modal">
+    <div class="modal-content">
+        <h3>ERROR</h3>
+        An error has occurred.<br><br>
+
+        <a href="/dashboard">
+            <button type="button" class="review-approve">
+                Return to Home
+            </button>
+        </a>
+    </div>
+</div>
+
 <script src="/../js/form-step-edit.js" type="text/javascript"></script>
 <script src="/../js/locations.js" type="text/javascript"></script>
 <script src="/../js/waste-composition-edit.js" type="text/javascript"></script>
@@ -330,7 +358,6 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 <!-- Confirmation modal script -->
-<!-- Cancel modal script -->
 <script>
 
 // Wait for the DOM to be fully loaded

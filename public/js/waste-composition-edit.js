@@ -36,9 +36,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const result = await response.json();
             if (response.ok) {
-                alert("Report submitted successfully!");
+                // Pop up to show success
+                document.getElementById('success-approve').style.display = 'block'
             } else {
-                alert(result.error || "Submission failed.");
+                document.getElementById('error-approve').style.display = 'block'
             }
         } catch (error) {
             console.error("Error:", error);
