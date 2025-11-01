@@ -1554,44 +1554,109 @@ function generateSectorOverviewInsight(sectorBarArr, grandTotalVal) {
   const avgPct = shares.reduce((a, b) => a + b.pct, 0) / shares.length;
   const allBalanced = shares.every(s => Math.abs(s.pct - avgPct) < 5);
 
+  let insight = "";
+  let recHTML = "";
+
+  // Recommendation text for sectors
+  const sectorRecommendations = {
+    Residential: "Focus on household waste segregation, composting, and localized recycling programs.",
+    Commercial: "Promote waste audits for establishments and enforce segregation-at-source policies in markets, restaurants, and shops.",
+    Institutional: "Integrate waste reduction and segregation practices in offices, schools, and government facilities.",
+    Industrial: "Encourage waste minimization and proper handling of industrial by-products.",
+    "Agriculture and Livestock": "Support composting, manure management, and proper segregation of agricultural residue.",
+    Health: "Ensure proper segregation of biomedical waste and coordinate with authorized hazardous waste treatment facilities."
+  };
+
+  // Case 1: No data
   if (grandTotalVal === 0) {
     return "No waste totals found. Cannot determine sector distribution.";
   }
 
+  // Case 2: Even / balanced spread
   if (allBalanced && shares.length >= 3) {
     return "Waste generation is fairly balanced across sectors; no single area stands out as dominant.";
   }
 
+  // Case 3: One sector overwhelmingly dominant
   if (topPct >= 50) {
-    let text = `<strong>${top.name}</strong> is the largest contributor, producing ${top.pct.toFixed(1)}% of all recorded waste.`;
-    if (lowList.length) text += ` Sectors with low generation include ${lowList.join(', ')}.`;
-    return text;
+    insight = `<strong>${top.name}</strong> is the largest contributor, producing ${top.pct.toFixed(1)}% of all recorded waste.`;
+    if (lowList.length) insight += ` Sectors with low generation include <b>${lowList.join(', ')}</b>.`;
+
+    // add recommendation block (only one sector)
+    if (sectorRecommendations[top.name]) {
+      recHTML = `
+        <div class="recommendation-box">
+          <i class="fas fa-lightbulb" style="color:#ffb300;margin-right:0.5rem;"></i>
+          <span>
+            <b style="color:#2d613f;">${top.name.toUpperCase()}</b><br>
+            ${sectorRecommendations[top.name]}
+          </span>
+        </div>
+      `;
+    }
+
+    return `${insight}${recHTML}`;
   }
 
+  // Case 4: Two or more sectors are high and close
   if (topPct >= 30 && topPct < 50 && second && Math.abs(top.pct - second.pct) < 10) {
-    let text = `Waste generation is shared across multiple sectors, led by <strong>${top.name}</strong> and <strong>${second.name}</strong>.`;
-    if (lowList.length) text += ` Some smaller sectors include ${lowList.join(', ')}.`;
-    return text;
+    const majorSectors = shares.filter(s => s.pct >= 30);
+    insight = `Waste generation is shared across multiple sectors, led by ${majorSectors.map(s => `<strong>${s.name}</strong>`).join(' and ')}.`;
+    if (lowList.length) insight += ` Some smaller sectors include <b>${lowList.join(', ')}</b>.`;
+
+    // recommendation boxes for dominant sectors
+    recHTML = majorSectors
+      .filter(s => sectorRecommendations[s.name])
+      .map(s => `
+        <div class="recommendation-box">
+          <i class="fas fa-lightbulb" style="color:#ffb300;margin-right:0.5rem;"></i>
+          <span>
+            <b style="color:#2d613f;">${s.name.toUpperCase()}</b><br>
+            ${sectorRecommendations[s.name]}
+          </span>
+        </div>
+      `)
+      .join('');
+
+    return `${insight}${recHTML}`;
   }
 
+  // Case 5: Gradual decrease (smooth slope)
   const isGradual = shares.every((s, i, arr) => !i || arr[i - 1].pct - s.pct < 8);
   if (isGradual && !allBalanced && shares.length > 3) {
-    let text = `A gradual decline in waste generation is observed across sectors, with ${top.name} contributing the most and ${shares[shares.length - 1].name} the least.`;
-    if (lowList.length) text += ` Some sectors have minimal values such as ${lowList.join(', ')}.`;
-    return text;
+    insight = `A gradual decline in waste generation is observed across sectors, with <b>${top.name}</b> contributing the most and <b>${shares[shares.length - 1].name}</b> the least.`;
+    if (lowList.length) insight += ` Some sectors have minimal values such as <b>${lowList.join(', ')}</b>.`;
+    
+    // add recommendation block (only one sector)
+    if (sectorRecommendations[top.name]) {
+      recHTML = `
+        <div class="recommendation-box">
+          <i class="fas fa-lightbulb" style="color:#ffb300;margin-right:0.5rem;"></i>
+          <span>
+            <b style="color:#2d613f;">${top.name.toUpperCase()}</b><br>
+            ${sectorRecommendations[top.name]}
+          </span>
+        </div>
+      `;
+    }
+
+    return `${insight}${recHTML}`;
   }
 
+  // Case 6: Stepped decrease (clear drops)
   const hasSteps = shares.some((s, i) => i && shares[i - 1].pct - s.pct >= 10);
   if (hasSteps && !isGradual) {
-    let text = `Waste generation by sector follows a stepped pattern where certain sectors contribute significantly more than others.`;
-    if (lowList.length) text += ` The smallest contributors are ${lowList.join(', ')}.`;
-    return text;
+    insight = `Waste generation by sector follows a stepped pattern where certain sectors contribute significantly more than others.`;
+    if (lowList.length) insight += ` The smallest contributors are <b>${lowList.join(', ')}</b>.`;
+    return insight;
   }
 
+  // Case 7: Some sectors appear low or missing
   if (lowList.length) {
-    return `Some sectors show minimal contribution (below 2%): ${lowList.join(', ')}.`;
+    return `Some sectors show minimal contribution (below 2%): <b>${lowList.join(', ')}</b>.`;
   }
 
+  // Default / fallback
   return "Sector contributions appear proportionate. Continue monitoring to identify future trends.";
 }
 

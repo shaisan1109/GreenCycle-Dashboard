@@ -2056,6 +2056,19 @@ app.post("/api/data/summary/pdf", async (req, res) => {
       </html>
     `, { waitUntil: "domcontentloaded" });
 
+    // Wait for all web fonts (including Font Awesome) to finish loading
+    await printPage.evaluateHandle('document.fonts.ready');
+
+    // Ensure Font Awesome icons are visible
+    await printPage.waitForFunction(() => {
+      const icons = Array.from(document.querySelectorAll("i.fas, i.fa, i.far, i.fab"));
+      if (icons.length === 0) return true; // no icons to wait for
+      return icons.every(icon => {
+        const style = window.getComputedStyle(icon, "::before");
+        return style && style.content && style.content !== "none" && style.content !== '""';
+      });
+    }, { timeout: 500 });
+
     // Generate PDF
     const pdfBuffer = await printPage.pdf({
       format: "A4",
@@ -2239,6 +2252,19 @@ app.post("/api/data/:entryId(\\d+)/pdf", async (req, res) => {
         </body>
       </html>
     `, { waitUntil: "domcontentloaded" });
+
+    // Wait for all web fonts (including Font Awesome) to finish loading
+    await printPage.evaluateHandle('document.fonts.ready');
+
+    // Ensure Font Awesome icons are visible
+    await printPage.waitForFunction(() => {
+      const icons = Array.from(document.querySelectorAll("i.fas, i.fa, i.far, i.fab"));
+      if (icons.length === 0) return true; // no icons to wait for
+      return icons.every(icon => {
+        const style = window.getComputedStyle(icon, "::before");
+        return style && style.content && style.content !== "none" && style.content !== '""';
+      });
+    }, { timeout: 500 });
 
     // Generate PDF
     const pdfBuffer = await printPage.pdf({

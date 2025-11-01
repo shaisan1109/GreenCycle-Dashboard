@@ -1,3 +1,13 @@
+.recommendation-box {
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
 .pdf-page {
   page-break-after: always;
 }
