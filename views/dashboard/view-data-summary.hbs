@@ -1443,6 +1443,7 @@ function generateSectorInsight(sectorName, pieDataForSector, sectorTotalValue, g
     return `${sectorName} has no recorded waste. Please check reporting completeness.`;
   }
 
+  // Helper to bold and format list with "and"
   const formatList = arr => {
     if (!arr.length) return '';
     const bolded = arr.map(l => `<b>${l}</b>`);
@@ -1456,35 +1457,68 @@ function generateSectorInsight(sectorName, pieDataForSector, sectorTotalValue, g
   const top = pairs[0];
   const second = pairs[1] || null;
   const lowList = pairs.filter(p => p.pct < 2).map(p => p.label);
-  const tinyList = pairs.filter(p => p.pct < 10).map(p => p.label);
+  const tinyList = pairs.filter(p => p.pct < 10).map(p => p.label); // Condition 6 helper
 
   let insight = '';
+  let recHTML = '';
 
+  // CASE 1: Evenly distributed (Condition 5)
   if (allBalanced && pairs.length > 2) {
     insight = `Waste in the ${sectorName} sector is evenly distributed among all categories.`;
     if (lowList.length) insight += ` However, some categories appear minimal: ${formatList(lowList)}.`;
     if (tinyList.length === 1) insight += ` The ${formatList(tinyList)} category is noticeably small compared to others.`;
   }
 
+  // CASE 2: One dominant (Conditions 1 and 2)
   else if (top.pct >= 50) {
     insight = `<b>${top.label}</b> dominates waste generation in the ${sectorName} sector (${top.pct.toFixed(1)}%).`;
     if (lowList.length) insight += ` Other categories remain minimal: ${formatList(lowList)}.`;
     if (tinyList.length === 1) insight += ` The category ${formatList(tinyList)} shows an especially small share.`;
+
+    // add recommendation box for dominant type
+    if (overallRecommendations[top.label]) {
+      recHTML = `
+        <div class="recommendation-box">
+          <i class="fas fa-lightbulb" style="color:#ffb300;margin-right:0.5rem;"></i>
+          <span>
+            <b style='color:#2d613f;'>${top.label.toUpperCase()}</b><br>
+            ${overallRecommendations[top.label]}
+          </span>
+        </div>
+      `;
+    }
   }
 
+  // CASE 3: Two share dominance (Conditions 3a & 3b)
   else if (pairs.filter(p => p.pct >= 20).length >= 2 && pairs.filter(p => p.pct >= 20).length < pairs.length) {
     const majors = pairs.filter(p => p.pct >= 20).map(p => p.label);
     insight = `Dominant waste types in the ${sectorName} sector are ${formatList(majors)}, sharing most of the total volume.`;
     if (lowList.length) insight += ` Smaller portions are seen in ${formatList(lowList)}.`;
     if (tinyList.length === 1) insight += ` The category ${formatList(tinyList)} has a noticeably small share.`;
+
+    // add multiple recommendation boxes for dominant types
+    recHTML = majors
+      .filter(l => overallRecommendations[l])
+      .map(l => `
+        <div class="recommendation-box">
+          <i class="fas fa-lightbulb" style="color:#ffb300;margin-right:0.5rem;"></i>
+          <span>
+            <b style='color:#2d613f;'>${l.toUpperCase()}</b><br>
+            ${overallRecommendations[l]}
+          </span>
+        </div>
+      `)
+      .join('');
   }
 
+  // CASE 4: All/mostly low (Condition 4)
   else if (lowList.length === pairs.length) {
     insight = `All categories in the ${sectorName} sector show minimal proportions. This may indicate incomplete or underreported data.`;
   } else if (lowList.length) {
     insight = `Most waste types in the ${sectorName} sector have relatively low proportions. Notably low: ${formatList(lowList)}.`;
   }
 
+  // CASE 7: All different (varied but not extreme)
   else {
     const uniquePattern = new Set(pairs.map(p => Math.round(p.pct / 5) * 5)).size === pairs.length;
     if (uniquePattern && !allBalanced && top.pct < 50) {
@@ -1496,7 +1530,7 @@ function generateSectorInsight(sectorName, pieDataForSector, sectorTotalValue, g
     }
   }
 
-  return insight;
+  return `${insight}${recHTML}`;
 }
 
 function generateSectorOverviewInsight(sectorBarArr, grandTotalVal) {
