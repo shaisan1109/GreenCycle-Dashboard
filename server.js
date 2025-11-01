@@ -951,16 +951,16 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
 
         if (value === 0) {
           priorityClass = 'low-priority';
-          message = `<strong>${cat}</strong> shows <strong>no recorded data</strong>. This may indicate issues in waste sorting, data logging, or community awareness. <em>We recommend auditing data entry points and reinforcing waste segregation education among constituents.</em>`;
+          message = `<strong>${cat}</strong> has <strong>no recorded data</strong> for this period. <em>This may indicate either the absence of this waste type or a gap in reporting. Review data collection practices to confirm accuracy and completeness.</em>`;
         } else if (index === 0) {
           priorityClass = 'high-priority';
-          message = `<strong>${cat}</strong> is the <strong>largest contributor</strong> to overall waste. <em>Focus efforts on upstream reduction, community education, alternative disposal methods (e.g., composting or recycling), and stronger enforcement of waste segregation at source.</em>`;
+          message = `<strong>${cat}</strong> is the <strong>largest contributor</strong> to overall waste. <em>Focus efforts on waste reduction, community education, alternative disposal methods (e.g., composting or recycling), and stronger enforcement of waste segregation at source.</em>`;
         } else if (index === 1 || index === 2) {
           priorityClass = 'mid-priority';
-          message = `<strong>${cat}</strong> represents a <strong>moderate proportion</strong> of total waste. <em>Monitor trends closely and implement consistent collection programs and classification training to sustain or improve performance.</em>`;
+          message = `<strong>${cat}</strong> represents a <strong>moderate proportion</strong> of total waste. <em>Monitor trends closely and implement consistent collection programs to sustain or improve performance.</em>`;
         } else {
           priorityClass = 'low-priority';
-          message = `<strong>${cat}</strong> appears to be <strong>underreported or lacking</strong>. <em>Consider targeted campaigns or infrastructure (e.g., drop-off points, incentives) to encourage proper classification and collection.</em>`;
+          message = `<strong>${cat}</strong> makes up a <strong>small share</strong> of total waste. <em>Maintain proper collection and monitoring to ensure this remains accurate and that waste of this type continues to be well-managed.</em>`;
         }
 
         return `
@@ -1844,16 +1844,16 @@ app.get('/dashboard/data/:id', async (req, res) => {
 
     if (value === 0) {
       priorityClass = 'low-priority';
-      message = `<strong>${cat}</strong> shows <strong>no recorded data</strong>. This may indicate issues in waste sorting, data logging, or community awareness. <em>We recommend auditing data entry points and reinforcing waste segregation education among constituents.</em>`;
+      message = `<strong>${cat}</strong> has <strong>no recorded data</strong> for this period. <em>This may indicate either the absence of this waste type or a gap in reporting. Review data collection practices to confirm accuracy and completeness.</em>`;
     } else if (index === 0) {
       priorityClass = 'high-priority';
-      message = `<strong>${cat}</strong> is the <strong>largest contributor</strong> to overall waste. <em>Focus efforts on upstream reduction, community education, alternative disposal methods (e.g., composting or recycling), and stronger enforcement of waste segregation at source.</em>`;
+      message = `<strong>${cat}</strong> is the <strong>largest contributor</strong> to overall waste. <em>Focus efforts on waste reduction, community education, alternative disposal methods (e.g., composting or recycling), and stronger enforcement of waste segregation at source.</em>`;
     } else if (index === 1 || index === 2) {
       priorityClass = 'mid-priority';
-      message = `<strong>${cat}</strong> represents a <strong>moderate proportion</strong> of total waste. <em>Monitor trends closely and implement consistent collection programs and classification training to sustain or improve performance.</em>`;
+      message = `<strong>${cat}</strong> represents a <strong>moderate proportion</strong> of total waste. <em>Monitor trends closely and implement consistent collection programs to sustain or improve performance.</em>`;
     } else {
       priorityClass = 'low-priority';
-      message = `<strong>${cat}</strong> appears to be <strong>underreported or lacking</strong>. <em>Consider targeted campaigns or infrastructure (e.g., drop-off points, incentives) to encourage proper classification and collection.</em>`;
+      message = `<strong>${cat}</strong> makes up a <strong>small share</strong> of total waste. <em>Maintain proper collection and monitoring to ensure this remains accurate and that waste of this type continues to be well-managed.</em>`;
     }
 
     return `
