@@ -89,7 +89,7 @@ data-prefill-region="{{prefill.region}}" data-prefill-province="{{prefill.provin
             <div class="error-msg" id="error-date_start"></div>
 
             <label for="date_end">Data Collection End Date<span class="required">*</span></label>
-            <input type="date" id="date_end" name="date_end" value="{{prefill.date_end}}" required disabled>
+            <input type="date" id="date_end" name="date_end" value="{{prefill.date_end}}" required readonly>
             <div class="error-msg" id="error-date_end"></div>
         </div>
 
@@ -132,15 +132,27 @@ data-prefill-region="{{prefill.region}}" data-prefill-province="{{prefill.provin
   const startDateInput = document.getElementById('date_start');
   const endDateInput = document.getElementById('date_end');
 
-  startDateInput.addEventListener('input', function () {
-    if (startDateInput.value) {
-      endDateInput.disabled = false;
-      endDateInput.min = startDateInput.value; // Optional: prevent selecting end date before start date
+  // Function to toggle readonly state based on start/end values
+  function updateEndDateState() {
+    if (startDateInput.value || endDateInput.value) {
+      // If start date is selected OR end date already has a value (from prefill)
+      endDateInput.removeAttribute('readonly');
+      if (startDateInput.value) {
+        endDateInput.min = startDateInput.value; // Prevent earlier date
+      }
     } else {
-      endDateInput.disabled = true;
+      // Lock and clear end date if nothing filled
+      endDateInput.setAttribute('readonly', true);
       endDateInput.value = '';
+      endDateInput.removeAttribute('min');
     }
-  });
+  }
+
+  // React to start date changes
+  startDateInput.addEventListener('input', updateEndDateState);
+
+  // Run once on page load (handles prefilled values)
+  document.addEventListener('DOMContentLoaded', updateEndDateState);
 </script>
 
 <!-- Spreadsheet checker -->

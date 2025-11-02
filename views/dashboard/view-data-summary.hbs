@@ -1760,7 +1760,7 @@ function insertPerSupertypeInsights() {
         box = document.createElement('div');
         wrapper.appendChild(box);
       }
-      box.innerHTML = `<h3 style="margin:0 0 0.25rem 0;color:#2d613f">${sv.name} Category</h3><div>${generateSupertypeInsight(sv, Number(grandTotal || 0))}</div>`;
+      box.innerHTML = `<h3 style="margin:0 0 0.25rem 0;color:#2d613f">${sv.name}</h3><div>${generateSupertypeInsight(sv, Number(grandTotal || 0))}</div>`;
     }
   } catch (err) { console.error(err); }
 }
