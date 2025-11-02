@@ -416,89 +416,105 @@ export async function updateApplicationStatus(appId, status, adminNotes) {
 
 // Approve application and create user
 export async function approveApplication(appId, adminNotes) {
-    // Start a transaction
-    const connection = await sql.getConnection();
-    try {
-        await connection.beginTransaction();
-        
-        // 1. Update application status to 'Approved'
+  const connection = await sql.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // 1️⃣ Update application status
         await connection.query(`
             UPDATE user_applications 
             SET status = 'Approved', 
                 admin_notes = ?
             WHERE application_id = ?
         `, [adminNotes, appId]);
-        
-        // 2. Get application data
-        const [applicationData] = await connection.query(
-            `SELECT * FROM user_applications WHERE application_id = ?`, 
-            [appId]
-        );
-        
-        if (applicationData.length === 0) {
-            throw new Error('Application not found');
-        }
-        
-        const application = applicationData[0];
-        
-        // Set default hashed password
-        const hashedPassword = await bcrypt.hash('ChangeMe123', 10);
 
-        // 3. Create user in users table
-        const [insertResult] = await connection.query(`
-            INSERT INTO user (
-                role_id, lastname, firstname, email, 
-                password, contact_no, company_name, verified
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-        `, [
-            application.role_id,
-            application.lastname,
-            application.firstname,
-            application.email,
-            hashedPassword,
-            application.contact_no,
-            application.company_name
-        ]);
+    // 2️⃣ Fetch application data
+    const [applicationData] = await connection.query(
+      `SELECT * FROM user_applications WHERE application_id = ?`,
+      [appId]
+    );
+    if (!applicationData.length) throw new Error('Application not found.');
 
-        const newUserId = insertResult.insertId;
+    const app = applicationData[0];
 
-        // 4. Populate default waste quotas for the new user
-        await connection.query(`
-            INSERT INTO compliance_quotas (waste_supertype_id, user_id, quota_weight)
-            SELECT id, ?, 20.00
-            FROM waste_supertype
-            WHERE id NOT IN (
-                SELECT waste_supertype_id 
-                FROM compliance_quotas 
-                WHERE user_id = ?
-            )
-        `, [newUserId, newUserId]);
-
-        // 5. Populate default sector quotas for the new user
-        await connection.query(`
-            INSERT INTO sector_compliance_quotas (sector_id, user_id, quota_weight)
-            SELECT id, ?, 20.00
-            FROM sector
-            WHERE id NOT IN (
-                SELECT sector_id
-                FROM sector_compliance_quotas
-                WHERE user_id = ?
-            )
-        `, [newUserId, newUserId]);
-        
-        // Commit the transaction
-        await connection.commit();
-        
-        return getApplicationById(appId);
-    } catch (error) {
-        // Rollback in case of error
-        await connection.rollback();
-        throw error;
-    } finally {
-        connection.release();
+    // 3️⃣ Ensure company record exists (optional)
+    let companyId = null;
+    const [existingCompany] = await connection.query(
+      `SELECT company_id FROM companies WHERE company_name = ? LIMIT 1`,
+      [app.company_name]
+    );
+    if (existingCompany.length === 0) {
+      const [insertCompany] = await connection.query(
+        `INSERT INTO companies (company_name, company_size) VALUES (?, ?)`,
+        [app.company_name, app.company_size || 'medium']
+      );
+      companyId = insertCompany.insertId;
+    } else {
+      companyId = existingCompany[0].company_id;
     }
+
+    // 4️⃣ Create user (no company_id field here)
+    const hashedPassword = await bcrypt.hash('ChangeMe123', 10);
+    const [insertUser] = await connection.query(
+      `
+      INSERT INTO user (
+        role_id, lastname, firstname, email, password,
+        contact_no, company_name, verified
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+      `,
+      [
+        app.role_id,
+        app.lastname,
+        app.firstname,
+        app.email,
+        hashedPassword,
+        app.contact_no,
+        app.company_name
+      ]
+    );
+
+    const newUserId = insertUser.insertId;
+
+    // 5️⃣ Default WASTE TYPE quotas
+    await connection.query(
+      `
+      INSERT INTO compliance_quotas (waste_supertype_id, user_id, organization, quota_weight)
+      SELECT ws.id, ?, ?, 20.00
+      FROM waste_supertype ws
+      WHERE ws.id NOT IN (
+        SELECT waste_supertype_id FROM compliance_quotas WHERE user_id = ?
+      )
+      `,
+      [newUserId, app.company_name, newUserId]
+    );
+
+    // 6️⃣ Default SECTOR quotas
+    await connection.query(
+      `
+      INSERT INTO sector_compliance_quotas (sector_id, user_id, organization, quota_weight)
+      SELECT s.id, ?, ?, 20.00
+      FROM sector s
+      WHERE s.id NOT IN (
+        SELECT sector_id FROM sector_compliance_quotas WHERE user_id = ?
+      )
+      `,
+      [newUserId, app.company_name, newUserId]
+    );
+
+    await connection.commit();
+
+    console.log(`✅ Application #${appId} approved and user ${newUserId} created.`);
+    return getApplicationById(appId);
+  } catch (error) {
+    await connection.rollback();
+    console.error('[APPROVAL ERROR]', error);
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
+
 
 
 // Reject application 
