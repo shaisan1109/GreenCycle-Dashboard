@@ -97,7 +97,7 @@ import {
   updateWasteQuotaForOrg,
 updateSectorQuotaForOrg,
 getTimeSeriesData,
-runHybridSimulation,
+runHybridSimulation, getCompanyCounts,
 } from './database.js'
 
 // File Upload
@@ -3179,32 +3179,51 @@ app.get('/control-panel/entry-statistics', async (req, res) => {
 })
 
 // server.js — /api/simulation
-app.get('/api/simulation', async (req, res) => {
+
+app.post("/api/simulate", async (req, res) => {
   try {
-    const {
-      title, region, province, municipality, barangay,
-      author, company, startDate, endDate
-    } = req.query;
+    const { horizon, deterministic, interpolate, model, data_entry_id } = req.body;
+    console.log("[API] /api/simulate request received", {
+      horizon,
+      deterministic,
+      interpolate,
+      model,
+      data_entry_id
+    });
 
-    // Read forecastMonths from client (default 12)
-    const horizon = parseInt(req.query.forecastMonths, 10) || 12;
+    // ✅ Fetch real company data from DB
+    const companiesSummary = await getCompanyCounts();
+    console.log("[API] company summary:", companiesSummary);
 
-    const locationCode = barangay || municipality || province || region || null;
+    // ✅ Run simulation (using your actual function)
+    const { forecast, diagnostics } = await runHybridSimulation({
+      horizon,
+      deterministic,
+      interpolate,
+      model,
+      data_entry_id
+    });
 
-    // Grab monthly timeSeries data from DB (or whichever aggregation you want)
-    const timeSeriesData = await getTimeSeriesData(title, locationCode, author, company, startDate, endDate, 'monthly');
+    console.log("[API] Simulation complete. Returning response.");
 
-    // Run hybrid simulation with requested horizon
-    // iterations could be tuned, keep it moderate for responsiveness
-    const simResult = runHybridSimulation(timeSeriesData, 1000, horizon);
-
-    // The function returns an array: [{ step:0, mean, upper, lower }, ...]
-    res.json({ success: true, horizon, simResult, timeSeriesData });
+    res.json({
+      forecast,
+      diagnostics: {
+        ...diagnostics,
+        horizon,
+        deterministic,
+        interpolate,
+        model
+      },
+      companies: companiesSummary
+    });
   } catch (err) {
-    console.error('API Simulation error:', err);
-    res.status(500).json({ success: false, message: 'Simulation failed' });
+    console.error("❌ Simulation API error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
+
+
 
 
 // Compliance API for dropdown

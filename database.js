@@ -2100,72 +2100,234 @@ export async function getTimeSeriesData(title, locationCode, author, company, st
 }
 
 // Hybrid System Dynamics + Monte Carlo
-export function runHybridSimulation(timeSeriesData, iterations = 500, horizon = 12) {
-  const results = [];
+// Paste into database.js (replace old runHybridSimulation)
+export async function runHybridSimulation({
+  horizon = 12,
+  deterministic = false,
+  interpolate = true,
+  model = 'hybrid',
+  data_entry_id = null
+} = {}) {
+  try {
+    console.log('[SIM] runHybridSimulation start', { horizon, deterministic, interpolate, model, data_entry_id });
 
-  // Initial baseline from latest actual record
-  const last = timeSeriesData[timeSeriesData.length - 1];
-  const baseWaste = Number(last.total_weight);
-  const basePerCapita = Number(last.avg_per_capita);
-  const baseCompliance = last.compliance_status === 'Compliant' ? 0.7 : 0.5;
+    // 1️⃣ Load monthly historical totals from existing tables
+    const [monthlyRows] = await sql.query(`
+      SELECT DATE_FORMAT(de.collection_end, '%Y-%m') AS month,
+             SUM(dw.waste_amount) AS total_waste_kg
+      FROM data_entry de
+      JOIN data_waste_composition dw ON de.data_entry_id = dw.data_entry_id
+      WHERE de.status = 'Approved'
+      GROUP BY month
+      ORDER BY month ASC
+    `);
 
-  for (let i = 0; i < iterations; i++) {
-    // Monte Carlo sampling
-    const gP = randNormal(0.02, 0.005);        // population growth rate
-    const etaR = randTriangular(0.3, 0.5, 0.7);
-    const alphaEdu = Math.random() * 0.02;
-    const alphaDecay = Math.random() * 0.01;
-
-    let W = baseWaste;
-    let wpc = basePerCapita;
-    let C = baseCompliance;
-
-    const trial = [];
-
-    for (let t = 0; t < horizon; t++) {
-      const population = 1 + gP * (t + 1); // relative index
-      const R = C * etaR * W;
-      const B = 0.25 * W; // assume 25% biodegradable
-
-      // System Dynamics updates
-      W = W + (gP * population * wpc) - R - B;
-      wpc = wpc * (1 + (Math.random() * 0.01 - 0.005)); // behavioral noise
-      C = Math.min(1, Math.max(0, C + alphaEdu - alphaDecay + (Math.random() - 0.5) * 0.02));
-
-      trial.push({ step: t, totalWaste: W, compliance: C, perCapita: wpc });
+    if (!monthlyRows || monthlyRows.length === 0) {
+      throw new Error('No historical monthly waste data available for simulation.');
     }
 
-    results.push(trial);
+    console.log('[SIM] monthly rows:', monthlyRows.length);
+    const series = monthlyRows.map(r => ({
+      month: r.month,
+      total: Number(r.total_waste_kg) || 0
+    }));
+
+    const values = series.map(s => s.total);
+    const validValues = values.filter(v => !isNaN(v) && v > 0);
+    if (validValues.length === 0) throw new Error('Invalid or empty historical values.');
+
+    // 2️⃣ Linear regression fit (for base trend)
+    function fitLinear(yArr) {
+      const n = yArr.length;
+      const x = Array.from({ length: n }, (_, i) => i + 1);
+      const meanX = x.reduce((a, b) => a + b, 0) / n;
+      const meanY = yArr.reduce((a, b) => a + b, 0) / n;
+      let num = 0, den = 0;
+      for (let i = 0; i < n; i++) {
+        num += (x[i] - meanX) * (yArr[i] - meanY);
+        den += (x[i] - meanX) ** 2;
+      }
+      const slope = den === 0 ? 0 : num / den;
+      const intercept = meanY - slope * meanX;
+      const residuals = yArr.map((y, i) => y - (intercept + slope * x[i]));
+      const variance = residuals.reduce((s, r) => s + r * r, 0) / Math.max(1, n - 1);
+      return { slope, intercept, std: Math.sqrt(variance) };
+    }
+
+    const { slope, intercept, std } = fitLinear(validValues);
+    console.log('[SIM] linear fit', { slope, intercept, std });
+
+    // 3️⃣ Company data (real or fallback)
+    let companyContributionPerMonth = 0;
+    let companyBreakdown = { small: 0, medium: 0, large: 0, totalCompanies: 0 };
+
+    if (data_entry_id) {
+      const [entryRows] = await sql.query(
+        `SELECT * FROM data_entry WHERE data_entry_id = ? LIMIT 1`,
+        [data_entry_id]
+      );
+      if (entryRows?.length) {
+        const entry = entryRows[0];
+        const conditions = [];
+        const params = [];
+        if (entry.municipality_id) { conditions.push('de.municipality_id = ?'); params.push(entry.municipality_id); }
+        else if (entry.province_id) { conditions.push('de.province_id = ?'); params.push(entry.province_id); }
+        else if (entry.region_id) { conditions.push('de.region_id = ?'); params.push(entry.region_id); }
+
+        let whereClause = "de.status = 'Approved'";
+        if (conditions.length) whereClause += ' AND (' + conditions.join(' OR ') + ')';
+
+        const [userRows] = await sql.query(`
+          SELECT u.user_id, u.company_name,
+                 SUM(dw.waste_amount) AS total_waste,
+                 COUNT(DISTINCT DATE_FORMAT(de.collection_end, '%Y-%m')) AS months_reported
+          FROM data_entry de
+          JOIN data_waste_composition dw ON de.data_entry_id = dw.data_entry_id
+          JOIN user u ON de.user_id = u.user_id
+          WHERE ${whereClause}
+          GROUP BY u.user_id, u.company_name
+          HAVING total_waste > 0
+          ORDER BY total_waste DESC
+        `, params);
+
+        if (userRows?.length) {
+          const users = userRows.map(r => ({
+            avg_per_month: Number(r.total_waste) / (Number(r.months_reported) || 1)
+          }));
+
+          const sorted = [...users].sort((a, b) => a.avg_per_month - b.avg_per_month);
+          const nUsers = sorted.length;
+          const t1 = Math.floor(nUsers / 3);
+          const t2 = Math.floor(2 * nUsers / 3);
+
+          let smallSum = 0, mediumSum = 0, largeSum = 0;
+          let smallCount = 0, medCount = 0, largeCount = 0;
+
+          sorted.forEach((u, i) => {
+            if (i < t1) { smallSum += u.avg_per_month; smallCount++; }
+            else if (i < t2) { mediumSum += u.avg_per_month; medCount++; }
+            else { largeSum += u.avg_per_month; largeCount++; }
+          });
+
+          companyBreakdown = {
+            small: smallCount,
+            medium: medCount,
+            large: largeCount,
+            totalCompanies: nUsers
+          };
+
+          companyContributionPerMonth = users.reduce((s, u) => s + u.avg_per_month, 0);
+          console.log('[SIM] company breakdown', companyBreakdown);
+        }
+      }
+    }
+
+    if (!companyContributionPerMonth || isNaN(companyContributionPerMonth)) {
+      const recentAvg =
+        validValues.slice(-6).reduce((s, v) => s + v, 0) / Math.min(6, validValues.length);
+      companyContributionPerMonth = recentAvg * 0.25;
+      console.log('[SIM] fallback companyContributionPerMonth:', companyContributionPerMonth);
+    }
+
+    // 4️⃣ Forecast generation
+    const nHist = validValues.length;
+    const histResidualStd = std || 0;
+    const forecast = { arima: [], sd: [], mc: [] };
+
+    const lastMonth = new Date(series[series.length - 1].month + '-01');
+
+    for (let step = 1; step <= horizon; step++) {
+      const xIndex = nHist + step;
+      const baseTrend = intercept + slope * xIndex;
+
+      const arimaNoise = deterministic ? 0 : gaussianSample(0, histResidualStd);
+      const sdNoise = deterministic ? 0 : gaussianSample(0, Math.max(0.05 * Math.abs(baseTrend), histResidualStd));
+      const mcNoise = deterministic ? 0 : gaussianSample(0, Math.max(0.15 * Math.abs(baseTrend), histResidualStd * 1.2));
+
+      const arimaVal = Math.max(0, baseTrend + arimaNoise + companyContributionPerMonth);
+      const sdVal = Math.max(0, baseTrend + sdNoise + companyContributionPerMonth);
+      const mcVal = Math.max(0, baseTrend + mcNoise + companyContributionPerMonth);
+
+      const futureDate = new Date(lastMonth);
+      futureDate.setMonth(lastMonth.getMonth() + step);
+      const period = futureDate.toISOString().slice(0, 7); // YYYY-MM
+
+      forecast.arima.push({ step, period, mean: +arimaVal.toFixed(2), upper: +(arimaVal * 1.05).toFixed(2), lower: +(arimaVal * 0.95).toFixed(2) });
+      forecast.sd.push({ step, period, mean: +sdVal.toFixed(2), upper: +(sdVal * 1.1).toFixed(2), lower: +(sdVal * 0.9).toFixed(2) });
+      forecast.mc.push({ step, period, mean: +mcVal.toFixed(2), upper: +(mcVal * 1.2).toFixed(2), lower: +(mcVal * 0.8).toFixed(2) });
+    }
+
+    // 5️⃣ Apply influence factor safely
+    const small = Number(companyBreakdown.small || 0);
+    const medium = Number(companyBreakdown.medium || 0);
+    const large = Number(companyBreakdown.large || 0);
+    const totalCompanies = small + medium + large || 1;
+    const influenceFactor = (small * 0.5 + medium * 1 + large * 1.5) / totalCompanies || 1;
+
+    ['arima', 'sd', 'mc'].forEach(modelName => {
+      forecast[modelName] = forecast[modelName].map(p => ({
+        ...p,
+        mean: +(p.mean * influenceFactor).toFixed(2),
+        upper: +(p.upper * influenceFactor).toFixed(2),
+        lower: +(p.lower * influenceFactor).toFixed(2)
+      }));
+    });
+
+    const diagnostics = {
+      slope,
+      intercept,
+      histResidualStd,
+      companyContributionPerMonth,
+      companyBreakdown,
+      influenceFactor
+    };
+
+    console.log('[SIM] done. diagnostics:', diagnostics);
+    console.log('[SIM] forecast sample (arima[0]):', forecast.arima[0]);
+    console.log('[SIM] forecast lengths:', {
+      arima: forecast.arima.length,
+      sd: forecast.sd.length,
+      mc: forecast.mc.length
+    });
+
+    return { forecast, diagnostics };
+  } catch (err) {
+    console.error('[SIM] runHybridSimulation error:', err);
+    throw err;
   }
 
-  return aggregateSimulation(results);
-}
-
-/* --- Helper functions --- */
-function randNormal(mean, sd) {
-  let u = 0, v = 0;
-  while (u === 0) u = Math.random();
-  while (v === 0) v = Math.random();
-  return mean + sd * Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
-}
-
-function randTriangular(min, mode, max) {
-  const F = (mode - min) / (max - min);
-  const rand = Math.random();
-  if (rand < F) return min + Math.sqrt(rand * (max - min) * (mode - min));
-  return max - Math.sqrt((1 - rand) * (max - min) * (max - mode));
-}
-
-function aggregateSimulation(simResults) {
-  const horizon = simResults[0].length;
-  const meanWaste = [];
-  for (let t = 0; t < horizon; t++) {
-    const wastes = simResults.map(r => r[t].totalWaste);
-    const mean = wastes.reduce((a, b) => a + b, 0) / wastes.length;
-    const sd = Math.sqrt(wastes.map(w => Math.pow(w - mean, 2)).reduce((a, b) => a + b) / wastes.length);
-    meanWaste.push({ step: t, mean, upper: mean + 1.96 * sd, lower: mean - 1.96 * sd });
+  // Helper: random Gaussian
+  function gaussianSample(mu = 0, sigma = 1) {
+    if (sigma === 0) return 0;
+    let u1 = 0, u2 = 0;
+    while (u1 === 0) u1 = Math.random();
+    while (u2 === 0) u2 = Math.random();
+    const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    return mu + z0 * sigma;
   }
-  return meanWaste;
+}
+
+export async function getCompanyCounts() {
+  try {
+    const [rows] = await sql.query(`
+      SELECT 
+        SUM(CASE WHEN dc.company_size = 'small' THEN 1 ELSE 0 END) AS small,
+        SUM(CASE WHEN dc.company_size = 'medium' THEN 1 ELSE 0 END) AS medium,
+        SUM(CASE WHEN dc.company_size = 'large' THEN 1 ELSE 0 END) AS large
+      FROM (
+        SELECT DISTINCT c.company_id, c.company_size
+        FROM companies c
+        JOIN user u ON u.user_id = c.user_id
+        WHERE c.company_size IN ('small', 'medium', 'large')
+      ) AS dc
+    `);
+
+    if (!rows || !rows.length) return { small: 0, medium: 0, large: 0 };
+    return rows[0];
+  } catch (err) {
+    console.error("[DB] getCompanyCounts error:", err);
+    throw err;
+  }
 }
 
 

@@ -307,27 +307,77 @@
   </div>
 </div>
 
-<div class="simulation-container">
-  <h2>Waste Forecast & Simulation Models</h2>
-  <p>Enter values on the options below to display simulations for this summary.</p>
+<!-- Waste Simulation Forecast Section -->
+<div class="form-section" style="background-color: #f4fff6; padding: 2rem; border-radius: 12px; border-left: 6px solid #43a047;" data-section="simulation">
+  <h2 style="color: #2e7d32; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center;">
+    <i class="fa-solid fa-flask" style="margin-right: 10px; color: #43a047;"></i>
+    Waste Simulation Forecast
+  </h2>
 
-  <div class="model-controls">
-    <label for="modelType"><b>Select Model:</b></label>
-    <select id="modelType" onchange="updateSimulationModel()">
-      <option value="polynomial">Polynomial Regression</option>
-      <option value="arima">ARIMA Forecast</option>
-      <option value="system">System Dynamics</option>
-    </select>
+  <p style="color: #555; margin-bottom: 1.5rem;">
+    Run predictive models to simulate future waste generation based on trends and company participation data.
+    Use the settings below to adjust model type, forecast horizon, and mode.
+  </p>
 
-    <label for="forecastMonths"><b>Months to Forecast:</b></label>
-    <input type="number" id="forecastMonths" min="1" max="24" value="6">
+  <!-- Simulation Controls -->
+  <div class="row g-3 align-items-center mb-4" style="background: #e8f5e9; padding: 1rem; border-radius: 8px;">
+    <div class="col-md-2 col-6">
+      <label for="forecastMonths" class="form-label fw-semibold text-success">Forecast Horizon (months)</label>
+      <input type="number" id="forecastMonths" class="form-control" value="12" min="1" max="60">
+    </div>
 
-    <button onclick="runSimulation()">Run Simulation</button>
+    <div class="col-md-2 col-6">
+      <label for="modelSelect" class="form-label fw-semibold text-success">Model Type</label>
+      <select id="modelSelect" class="form-select">
+        <option value="hybrid">Hybrid (All)</option>
+        <option value="arima">ARIMA</option>
+        <option value="sd">System Dynamics</option>
+        <option value="mc">Monte Carlo</option>
+      </select>
+    </div>
+
+<div class="col-auto">
+  <div class="form-check">
+    <input class="form-check-input" type="checkbox" id="deterministic">
+    <label class="form-check-label" for="deterministic">Deterministic Mode</label>
+  </div>
+</div>
+
+<div class="col-auto">
+  <div class="form-check">
+    <input class="form-check-input" type="checkbox" id="interpolate" checked>
+    <label class="form-check-label" for="interpolate">Interpolate Missing</label>
+  </div>
+</div>
+
+
+    <div class="col-md-3 col-12 text-end">
+      <button class="btn btn-success btn-lg shadow-sm px-4" onclick="runSimulation()">
+        <i class="fa-solid fa-play"></i> Run Simulation
+      </button>
+    </div>
   </div>
 
-  <canvas id="simulationChart" style="max-width: 900px; margin-top: 25px;"></canvas>
+  <!-- Chart Display -->
+  <div class="card shadow-sm" style="border: none;">
+    <div class="card-body" style="background-color: #ffffff; border-radius: 8px;">
+      <canvas id="simulationChart" height="600"></canvas>
+    </div>
+  </div>
 
-  <div id="simulationSummary" class="summary-box"></div>
+  <!-- Diagnostics Table -->
+  <div class="mt-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-success text-white fw-semibold">
+        Simulation Diagnostics
+      </div>
+      <div class="card-body p-3">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <tbody id="simDiagnostics" style="font-size: 0.9rem;"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -531,178 +581,214 @@ applyBtn.onclick = () => {
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/regression@2.0.1/dist/regression.min.js"></script>
-
 <script>
-let chartInstance;
+console.log('[UI] Simulation script loaded');
 
 async function runSimulation() {
-  const modelType = document.getElementById("modelType").value;
-  const forecastMonths = parseInt(document.getElementById("forecastMonths").value, 10) || 12;
+  console.log("🟢 Run Simulation button clicked.");
+
+  const deterministic = document.getElementById("deterministic").checked;
+  const interpolate = document.getElementById("interpolate").checked;
+  const forecastMonths = parseInt(document.getElementById("forecastMonths").value, 10);
+  const selectedModel = document.getElementById("modelSelect").value;
+
+  console.log("Simulation parameters:", { deterministic, interpolate, forecastMonths, selectedModel });
+
+  const btn = document.querySelector('button[onclick="runSimulation()"]');
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Running...';
+  btn.disabled = true;
 
   try {
-    // Fetch server-side hybrid simulation (returns simResult & original timeseries)
-    const resp = await fetch(`/api/simulation?forecastMonths=${forecastMonths}`);
-    const payload = await resp.json();
-    if (!payload.success) throw new Error('Simulation endpoint error');
-
-    const simResult = payload.simResult; // [{step,mean,upper,lower}, ...]
-    const ts = payload.timeSeriesData || [];
-
-    // Build labels: either real month labels from DB or default Month 1..N
-    const labels = simResult.map(s => {
-      // if timeSeriesData has date strings, you can map accordingly.
-      // Here we keep generic labels as "t+1"
-      return `t+${s.step + 1}`;
+    console.log("📡 Sending POST to /api/simulate...");
+    const res = await fetch("/api/simulate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        horizon: forecastMonths,
+        deterministic,
+        interpolate,
+        model: selectedModel,
+      }),
     });
 
-    // Arrays for plotting
-    const meanSeries = simResult.map(s => Number(s.mean));
-    const upperSeries = simResult.map(s => Number(s.upper));
-    const lowerSeries = simResult.map(s => Number(s.lower));
+    console.log("📩 Raw response:", res);
+    const json = await res.json();
+    console.table(json.forecast.arima);
+    console.table(json.forecast.sd);
+    console.table(json.forecast.mc);
 
-    // Generate client-side local forecast *aligned to the same horizon*
-    // We need to provide the historical portion (if any) then forecast up to horizon
-    // Determine historical values (use monthly totals from timeSeriesData if available)
-    let historical = [];
-    if (Array.isArray(ts) && ts.length > 0) {
-      // prefer total_weight if monthly aggregated
-      historical = ts.map(r => Number(r.total_weight));
-    } else {
-      // fallback: use the first N values of sim mean as proxy
-      historical = meanSeries.slice(0, Math.max(1, Math.min(6, meanSeries.length)));
+
+    if (!res.ok || !json.forecast) {
+      console.error("❌ Simulation failed:", json.error);
+      alert("Simulation failed: " + (json.error || "No forecast data"));
+      return;
     }
 
-    const clientForecast = generateLocalForecast(historical, modelType, forecastMonths, simResult.length);
-
-    // Render chart with server sim mean+bounds and local forecast overlay
-    renderChart(labels, meanSeries, upperSeries, lowerSeries, historical, clientForecast, modelType);
-
-    // Update summary
-    updateSummary(meanSeries, clientForecast.predictedY, modelType);
-
+    console.log("🎨 Rendering chart...");
+    renderSimulationChart(json.forecast, selectedModel);
+    console.log("🧮 Rendering diagnostics...");
+    renderDiagnostics(json.diagnostics);
   } catch (err) {
-    console.error('Run Simulation error:', err);
-    alert('Simulation failed: ' + (err.message || 'unknown error'));
+    console.error("🔥 Simulation fetch error:", err);
+    alert("Simulation fetch error: see console");
+  } finally {
+    btn.innerHTML = '<i class="fa-solid fa-play"></i> Run Simulation';
+    btn.disabled = false;
   }
 }
 
-/* Local forecasts — ensure they return arrays matching server horizon length */
-function generateLocalForecast(history, modelType, forecastMonths, totalHorizon) {
-  if (modelType === 'polynomial') return runPolynomialForecast(history, forecastMonths, totalHorizon);
-  if (modelType === 'arima') return runSimpleARIMA(history, forecastMonths, totalHorizon);
-  if (modelType === 'system') return runSystemDynamics(history, forecastMonths, totalHorizon);
-  return { predictedX: [], predictedY: [] };
-}
+function renderSimulationChart(forecast, selectedModel) {
+  console.log("🎨 renderSimulationChart() called with model:", selectedModel);
+  console.log("Forecast data:", forecast);
 
-function runPolynomialForecast(history, forecastMonths, totalHorizon) {
-  // Fit to history (x = 1..n), then predict to totalHorizon
-  const points = history.map((y, i) => [i + 1, y]);
-  const result = regression.polynomial(points, { order: 2 });
-  const predictedY = [];
-  for (let i = 1; i <= totalHorizon; i++) {
-    predictedY.push(result.predict(i)[1]);
-  }
-  return { predictedX: Array.from({length: totalHorizon}, (_,i) => i+1), predictedY, model: result };
-}
-
-function runSimpleARIMA(history, forecastMonths, totalHorizon) {
-  // Very simple drift model: extend by mean delta
-  const series = history.slice();
-  const diffs = series.slice(1).map((v,i) => v - series[i]);
-  const avgDiff = diffs.length ? (diffs.reduce((a,b) => a+b,0)/diffs.length) : 0;
-  while (series.length < totalHorizon) {
-    const next = series[series.length - 1] + avgDiff;
-    series.push(next);
-  }
-  return { predictedX: Array.from({length: totalHorizon}, (_,i)=>i+1), predictedY: series };
-}
-
-function runSystemDynamics(history, forecastMonths, totalHorizon) {
-  const series = history.slice();
-  const disposalRate = 0.6;
-  const growthRate = 0.05;
-  while (series.length < totalHorizon) {
-    const last = series[series.length - 1];
-    const newWaste = last * (1 + growthRate);
-    const afterDisposal = newWaste * (1 - disposalRate);
-    series.push(last + afterDisposal);
-  }
-  return { predictedX: Array.from({length: totalHorizon}, (_,i)=>i+1), predictedY: series };
-}
-
-/* Chart renderer that overlays everything */
-function renderChart(labels, meanSeries, upperSeries, lowerSeries, historical, clientForecast, modelType) {
   const ctx = document.getElementById("simulationChart").getContext("2d");
-  if (chartInstance) chartInstance.destroy();
+  if (!ctx) {
+    console.error("⚠️ No canvas context found for #simulationChart!");
+    return;
+  }
 
-  const datasets = [
-    {
-      label: "Server sim mean (Monte Carlo)",
-      data: meanSeries,
-      borderColor: "#1976d2",
-      backgroundColor: "rgba(25,118,210,0.08)",
-      tension: 0.2,
-      fill: false,
-      pointRadius: 2
-    },
-    {
-      label: "95% Upper",
-      data: upperSeries,
-      borderColor: "#ff9800",
-      borderDash: [6,4],
-      fill: false,
-      pointRadius: 0
-    },
-    {
-      label: "95% Lower",
-      data: lowerSeries,
-      borderColor: "#ff9800",
-      borderDash: [6,4],
-      fill: '-1', // fill between lower/upper if supported
-      pointRadius: 0
-    },
-    {
-      label: `${modelType.toUpperCase()} (Local forecast)`,
-      data: clientForecast.predictedY,
-      borderColor: "#2e7d32",
-      borderDash: [3,3],
-      fill: false,
-      tension: 0.25
+  if (window.simChart instanceof Chart) {
+    console.log("🧹 Destroying old chart instance...");
+    window.simChart.destroy();
+  }
+
+  const labels = (
+  forecast[selectedModel]?.length
+    ? forecast[selectedModel].map((d) => `T+${d.step}`)
+    : forecast.arima?.length
+    ? forecast.arima.map((d) => `T+${d.step}`)
+    : forecast.sd?.length
+    ? forecast.sd.map((d) => `T+${d.step}`)
+    : forecast.mc?.length
+    ? forecast.mc.map((d) => `T+${d.step}`)
+    : []
+);
+
+  const datasets = [];
+
+  if (selectedModel === "arima" || selectedModel === "hybrid") {
+    if (forecast.arima) {
+      datasets.push({
+        label: "ARIMA",
+        data: forecast.arima.map((d) => d.mean),
+        borderColor: "rgb(75, 192, 192)",
+        borderWidth: 2.5,
+        fill: false,
+        tension: 0.3,
+      });
     }
-  ];
+  }
 
-  chartInstance = new Chart(ctx, {
+  if (selectedModel === "sd" || selectedModel === "hybrid") {
+    if (forecast.sd) {
+      datasets.push({
+        label: "System Dynamics",
+        data: forecast.sd.map((d) => d.mean),
+        borderColor: "rgb(255, 205, 86)",
+        borderWidth: 2.5,
+        fill: false,
+        tension: 0.3,
+      });
+    }
+  }
+
+  if (selectedModel === "mc" || selectedModel === "hybrid") {
+    if (forecast.mc) {
+      datasets.push({
+        label: "Monte Carlo",
+        data: forecast.mc.map((d) => d.mean),
+        borderColor: "rgb(255, 99, 132)",
+        borderDash: [6, 4],
+        borderWidth: 2.5,
+        fill: false,
+        tension: 0.3,
+      });
+    }
+  }
+
+  if (datasets.length === 0) {
+    console.warn("⚠️ No datasets to render!");
+    return;
+  }
+
+  console.log("✅ Building chart with", datasets.length, "datasets.");
+
+  window.simChart = new Chart(ctx, {
     type: "line",
     data: { labels, datasets },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
-        legend: { position: "top" },
-        tooltip: { mode: 'index', intersect: false },
-        title: { display: true, text: `Waste Simulation (${modelType.toUpperCase()})` }
+        legend: {
+          position: "bottom",
+          labels: { color: "#2e7d32", font: { size: 13 } },
+        },
+        title: {
+          display: true,
+          text:
+            "Waste Simulation Forecast (" +
+            (selectedModel === "hybrid" ? "All Models" : selectedModel.toUpperCase()) +
+            ")",
+          color: "#1b5e20",
+          font: { size: 16, weight: "600" },
+        },
+        tooltip: {
+          backgroundColor: "rgba(46, 125, 50, 0.9)",
+          titleColor: "#fff",
+          bodyColor: "#fff",
+          cornerRadius: 6,
+          padding: 12,
+        },
       },
-      interaction: { mode: 'nearest', axis: 'x', intersect: false },
       scales: {
-        x: { title: { display: true, text: 'Time step (monthly index)' } },
-        y: { title: { display: true, text: 'Waste (kg)' }, beginAtZero: false }
-      }
-    }
+        y: {
+          beginAtZero: true,
+          grid: { color: "rgba(76,175,80,0.15)" },
+          ticks: { color: "#388e3c", font: { size: 12 } },
+          title: {
+            display: true,
+            text: "Waste (kg)",
+            color: "#2e7d32",
+            font: { weight: "600" },
+          },
+        },
+        x: {
+          grid: { color: "rgba(76,175,80,0.1)" },
+          ticks: { color: "#388e3c", font: { size: 12 } },
+          title: {
+            display: true,
+            text: "Forecast Step",
+            color: "#2e7d32",
+            font: { weight: "600" },
+          },
+        },
+      },
+      elements: {
+        line: { borderWidth: 3, tension: 0.3 },
+        point: { radius: 3, hoverRadius: 6 },
+      },
+    },
   });
+
+  console.log("✅ Chart rendered successfully.");
 }
 
-/* summary */
-function updateSummary(meanSeries, forecasted, modelType) {
-  const summary = document.getElementById("simulationSummary");
-  const lastMean = meanSeries[meanSeries.length - 1];
-  const lastForecast = forecasted[forecasted.length - 1];
-  const pct = lastMean ? (((lastForecast - lastMean) / lastMean) * 100).toFixed(2) : '0.00';
-  summary.innerHTML = `
-    <h3>Simulation Summary</h3>
-    <p><b>Model:</b> ${modelType.toUpperCase()}</p>
-    <p><b>Final Mean (server MC):</b> ${Number(lastMean).toLocaleString()} kg</p>
-    <p><b>Final Local Forecast:</b> ${Number(lastForecast).toLocaleString()} kg</p>
-    <p><b>Change:</b> ${pct}%</p>
+function renderDiagnostics(diagnostics, companies) {
+  const diagEl = document.getElementById("simDiagnostics");
+
+  diagEl.innerHTML = `
+    <tr><th>Forecast Horizon</th><td>${diagnostics.horizon} months</td></tr>
+    <tr><th>Deterministic</th><td>${diagnostics.deterministic ? "Yes" : "No"}</td></tr>
+    <tr><th>Interpolation</th><td>${diagnostics.interpolate ? "Yes" : "No"}</td></tr>
+    <tr><th>Model</th><td>${diagnostics.model.toUpperCase()}</td></tr>
+    <tr><th>Companies (by size)</th>
+      <td>
+        Small: ${companies?.small || 0}, 
+        Medium: ${companies?.medium || 0}, 
+        Large: ${companies?.large || 0}
+      </td>
+    </tr>
   `;
 }
 </script>
@@ -3013,6 +3099,12 @@ button:hover {
   border-radius: 10px;
   background-color: #f9fff9;
   font-family: 'Segoe UI', sans-serif;
+}
+#simulationChart {
+  background: #f8fdf8;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  padding: 10px;
 }
 
 </style>
