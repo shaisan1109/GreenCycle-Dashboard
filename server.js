@@ -466,17 +466,13 @@ app.get('/apply', async (req, res) => {
     res.render('application-form', {
       layout: 'public',
       title: 'Apply for Access | GreenCycle',
-      current_apply: true,
+      current_e: true,
       clientRoles,
       orgRoles,
       partners
     });
   } catch (error) {
-    console.error('Error loading application form:', error)
-    res.status(500).render('error', { 
-      layout: 'public',
-      message: 'Error loading application form' 
-    })
+res.status(500).send('Error loading application form');
   }
 })
 
