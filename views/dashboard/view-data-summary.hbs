@@ -548,7 +548,40 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-{{!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> --}}
+<!-- Modal Script -->
+<script>
+
+const applyBtn = document.getElementById('applyBtn');
+
+applyBtn.onclick = () => {
+    const aggregation = document.getElementById('select-aggregation').value;
+    
+    const selectedSections = Array.from(document.querySelectorAll('input[name="section"]:checked'))
+        .map(cb => cb.value);
+    
+    document.querySelectorAll('[data-section]').forEach(el => {
+        if (el.getAttribute('data-section') !== 'filters' && el.getAttribute('data-section') !== 'data-title') {
+            el.style.display = 'none';
+        }
+    });
+    
+    selectedSections.forEach(section => {
+        const elements = document.querySelectorAll(`[data-section="${section}"]`);
+        elements.forEach(el => el.style.display = '');
+    });
+    
+    const currentUrl = new URL(window.location.href);
+    
+    if (aggregation) currentUrl.searchParams.set('aggregation', aggregation);
+    else currentUrl.searchParams.delete('aggregation');
+    
+    //reportModal.style.display = 'none';
+    
+    if (aggregation) {
+        window.location.href = currentUrl.toString();
+    }
+}
+</script>
 
 <!-- Chart loading modal -->
 <script>
