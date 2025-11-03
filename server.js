@@ -738,10 +738,7 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
       const participants = await getSummaryParticipants(title, region, province, locationCode, author, company, startDate, endDate);
 
       // Initialize time series data
-      //const timeSeriesData = getTimeSeriesData(title, locationCode, author, company, startDate, endDate, aggregation || 'daily');
       const timeSeriesData = await getTimeSeriesData(title, locationCode, author, company, startDate, endDate, aggregation || 'daily');
-
-      console.log(timeSeriesData)
 
       /* ------ DATA COORDS ------ */
       const coords = await getFilteredDataCoords(title, locationCode, author, company, startDate, endDate)
@@ -1108,8 +1105,6 @@ app.get('/dashboard/data/submissions/pending', async (req, res) => {
   let pendingCount = await getDataForReviewCount(omitUser, 'Pending Review')
   const revisionCount = await getDataForReviewCount(omitUser, 'Needs Revision')
   const revisedCount = await getDataForReviewCount(omitUser, 'Revised')
-
-  console.log(data)
 
   pendingCount += revisedCount
   const totalCount = pendingCount
@@ -1899,7 +1894,7 @@ app.get('/dashboard/data/:id', async (req, res) => {
 
 // Generate PDF report (data summary version)
 app.post("/api/data/summary/pdf", async (req, res) => {
-  const { sections, query } = req.body; // array of section IDs (from modal)
+  const { sections, query, simSettings } = req.body; // array of section IDs (from modal)
 
   if (!sections || !Array.isArray(sections)) {
     return res.status(400).json({ error: "Missing or invalid sections list" });
@@ -1957,6 +1952,56 @@ app.post("/api/data/summary/pdf", async (req, res) => {
     // Wait a tick to ensure they actually paint
     await new Promise(resolve => setTimeout(resolve, 1000));
 
+    // If simulation is included, wait for chart to render
+    if (sections.includes("simulation")) {
+      console.log("Simulation section selected. Preparing form values.");
+
+      await page.evaluate(async settings => {
+        const setVal = (id, value) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          if (el.type === "checkbox") el.checked = !!value;
+          else el.value = value;
+        };
+
+        if (settings) {
+          setVal("forecastMonths", settings.forecastMonths);
+          setVal("modelSelect", settings.modelType);
+          setVal("deterministic", settings.deterministic);
+          setVal("interpolate", settings.interpolate);
+        }
+
+        // If runSimulation exists, run it
+        if (typeof window.runSimulation === "function") {
+          console.log("Running simulation before PDF generation...");
+          await window.runSimulation();
+
+          // Wait until the chart canvas has content
+          const chartCanvas = document.getElementById("simulationChart");
+          if (chartCanvas) {
+            let tries = 0;
+            while (tries < 20) { // wait up to ~10 seconds
+              const hasData = chartCanvas.toDataURL && chartCanvas.toDataURL().length > 1000;
+              if (hasData) break;
+              await new Promise(r => setTimeout(r, 500));
+              tries++;
+            }
+          }
+        }
+      }, simSettings || null);
+
+      // give simulation a bit of buffer
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+
+    // Hide interactive UI blocks (like simulation controls) before printing
+    await page.evaluate(() => {
+      document.querySelectorAll('.no-print').forEach(el => {
+        el.style.display = 'none';
+        el.style.visibility = 'hidden';
+      });
+    });
+
     // Ensure bar charts render fully before export
     await page.evaluate(async () => {
       // Set CSS width only (do not touch canvas.width)
@@ -2010,7 +2055,8 @@ app.post("/api/data/summary/pdf", async (req, res) => {
       ["top-sectors"],
       ["cats-per-sector", "top-residential", "top-commercial"],
       ["top-institutional", "top-industrial"],
-      ["top-health", "top-agriculture and livestock"]
+      ["top-health", "top-agriculture and livestock"],
+      ["simulation"]
     ];
 
     // Extract HTML in print order
@@ -2067,11 +2113,11 @@ app.post("/api/data/summary/pdf", async (req, res) => {
         const style = window.getComputedStyle(icon, "::before");
         return style && style.content && style.content !== "none" && style.content !== '""';
       });
-    }, { timeout: 500 });
+    }, { timeout: 1000 });
 
     // Generate PDF
     const pdfBuffer = await printPage.pdf({
-      format: "A4",
+      format: "Legal",
       printBackground: true,
       preferCSSPageSize: true,
       scale: 0.8,
@@ -2155,6 +2201,14 @@ app.post("/api/data/:entryId(\\d+)/pdf", async (req, res) => {
     // Wait a tick to ensure they actually paint
     await new Promise(resolve => setTimeout(resolve, 1000));
 
+    // Hide blocks marked with 'no-print'
+    await page.evaluate(() => {
+      document.querySelectorAll('.no-print').forEach(el => {
+        el.style.display = 'none';
+        el.style.visibility = 'hidden';
+      });
+    });
+
     // Ensure bar charts render fully before export
     await page.evaluate(async () => {
       // Set CSS width only (do not touch canvas.width)
@@ -2197,7 +2251,8 @@ app.post("/api/data/:entryId(\\d+)/pdf", async (req, res) => {
 
     // Order map: array of arrays (each inner array = one page)
     const sectionGroups = [
-      ["data-title", "data-info", "compliance-category", "compliance-sector"],
+      ["data-title", "data-info"],
+      ["compliance-category", "compliance-sector"],
       ["insights", "top-categories"],
       ["top-cats", "types-biodegradable"],
       ["types-recyclable"],
@@ -2264,11 +2319,11 @@ app.post("/api/data/:entryId(\\d+)/pdf", async (req, res) => {
         const style = window.getComputedStyle(icon, "::before");
         return style && style.content && style.content !== "none" && style.content !== '""';
       });
-    }, { timeout: 500 });
+    }, { timeout: 800 });
 
     // Generate PDF
     const pdfBuffer = await printPage.pdf({
-      format: "A4",
+      format: "Legal",
       printBackground: true,
       preferCSSPageSize: true,
       scale: 0.8,
@@ -3708,8 +3763,6 @@ app.get('*', function(req, res){
 --------------------------------------- */
 // Run every 30 minutes (minute 0 and 30 of every hour)
 cron.schedule("0,0 * * * *", async () => {
-  console.log("⏰ Running deadline reminder job...");
-
   try {
     const users = await getUsers();
 
@@ -3731,8 +3784,6 @@ cron.schedule("0,0 * * * *", async () => {
         msg,
         "/dashboard"
       );
-
-      console.log(`🔔 Reminder sent to user ${user.user_id}`);
     }
   } catch (err) {
     console.error("Failed to run reminder job:", err);

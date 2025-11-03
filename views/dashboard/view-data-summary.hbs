@@ -320,15 +320,15 @@
   </p>
 
   <!-- Simulation Controls -->
-  <div class="row g-3 align-items-center mb-4" style="background: #e8f5e9; padding: 1rem; border-radius: 8px;">
-    <div class="col-md-2 col-6">
-      <label for="forecastMonths" class="form-label fw-semibold text-success">Forecast Horizon (months)</label>
+  <div class="no-print" style="background: #e8f5e9; padding: 1rem; border-radius: 8px;">
+    <div>
+      <label for="forecastMonths">Forecast Horizon (months)</label>
       <input type="number" id="forecastMonths" class="form-control" value="12" min="1" max="60">
     </div>
 
-    <div class="col-md-2 col-6">
-      <label for="modelSelect" class="form-label fw-semibold text-success">Model Type</label>
-      <select id="modelSelect" class="form-select">
+    <div>
+      <label for="modelSelect">Model Type</label>
+      <select id="modelSelect">
         <option value="hybrid">Hybrid (All)</option>
         <option value="arima">ARIMA</option>
         <option value="sd">System Dynamics</option>
@@ -336,46 +336,38 @@
       </select>
     </div>
 
-<div class="col-auto">
-  <div class="form-check">
-    <input class="form-check-input" type="checkbox" id="deterministic">
-    <label class="form-check-label" for="deterministic">Deterministic Mode</label>
-  </div>
-</div>
+    <div>
+      <div style="display: flex;">
+        <input type="checkbox" id="deterministic">&nbsp; Deterministic Mode
+      </div>
 
-<div class="col-auto">
-  <div class="form-check">
-    <input class="form-check-input" type="checkbox" id="interpolate" checked>
-    <label class="form-check-label" for="interpolate">Interpolate Missing</label>
-  </div>
-</div>
+      <div style="display: flex;">
+        <input type="checkbox" id="interpolate" checked>&nbsp; Interpolate Missing
+      </div>
+    </div>
 
-
-    <div class="col-md-3 col-12 text-end">
-      <button class="btn btn-success btn-lg shadow-sm px-4" onclick="runSimulation()">
+    <div>
+      <button class="btn btn-success" onclick="runSimulation()">
         <i class="fa-solid fa-play"></i> Run Simulation
       </button>
     </div>
   </div>
 
   <!-- Chart Display -->
-  <div class="card shadow-sm" style="border: none;">
-    <div class="card-body" style="background-color: #ffffff; border-radius: 8px;">
+  <div style="border: none;">
+    <div style="background-color: #ffffff; border-radius: 8px;">
       <canvas id="simulationChart" height="600"></canvas>
     </div>
   </div>
 
   <!-- Diagnostics Table -->
-  <div class="mt-4">
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-success text-white fw-semibold">
-        Simulation Diagnostics
-      </div>
-      <div class="card-body p-3">
-        <table class="table table-sm table-hover align-middle mb-0">
-          <tbody id="simDiagnostics" style="font-size: 0.9rem;"></tbody>
-        </table>
-      </div>
+  <div>
+    <h3 id="simHeader" style="text-align: center;">
+    </h3>
+    <div>
+      <table style="border: 2px solid lightgray; border-radius: 7px;">
+        <tbody id="simDiagnostics" style="font-size: 0.9rem;"></tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -499,7 +491,7 @@
             {{/each}}
 
             <!-- Toggle showing summary or detailed pie -->
-            <button id="togglePieBtn"><i class="fa-solid fa-circle-info"></i>&nbsp; Show Detailed Pie Chart</button>
+            <button id="togglePieBtn" class="no-print"><i class="fa-solid fa-circle-info"></i>&nbsp; Show Detailed Pie Chart</button>
         </div>
       </div>
     </div><br>
@@ -556,61 +548,67 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-<!-- Modal Script -->
+{{!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> --}}
+
+<!-- Chart loading modal -->
 <script>
+  // --- Chart rendering loader ---
+  const chartModal = document.getElementById('chartLoadingModal');
+  const chartRenderTimeout = 300; // ms delay before showing (to avoid flash if quick)
+  const maxWaitTime = 10000; // fallback timeout (10s)
+  let showModalTimeout, hideModalTimeout;
 
-const applyBtn = document.getElementById('applyBtn');
+  function showChartLoader() {
+    showModalTimeout = setTimeout(() => {
+      chartModal.style.display = 'block';
+    }, chartRenderTimeout);
+  }
 
-applyBtn.onclick = () => {
-    const aggregation = document.getElementById('select-aggregation').value;
-    
-    const selectedSections = Array.from(document.querySelectorAll('input[name="section"]:checked'))
-        .map(cb => cb.value);
-    
-    document.querySelectorAll('[data-section]').forEach(el => {
-        if (el.getAttribute('data-section') !== 'filters' && el.getAttribute('data-section') !== 'data-title') {
-            el.style.display = 'none';
-        }
-    });
-    
-    selectedSections.forEach(section => {
-        const elements = document.querySelectorAll(`[data-section="${section}"]`);
-        elements.forEach(el => el.style.display = '');
-    });
-    
-    const currentUrl = new URL(window.location.href);
-    
-    if (aggregation) currentUrl.searchParams.set('aggregation', aggregation);
-    else currentUrl.searchParams.delete('aggregation');
-    
-    //reportModal.style.display = 'none';
-    
-    if (aggregation) {
-        window.location.href = currentUrl.toString();
-    }
-}
+  function hideChartLoader() {
+    clearTimeout(showModalTimeout);
+    clearTimeout(hideModalTimeout);
+    chartModal.style.display = 'none';
+  }
+
+  // Start loader early, before heavy rendering begins
+  showChartLoader();
+
+  // Fallback hide (if something goes wrong or takes too long)
+  hideModalTimeout = setTimeout(hideChartLoader, maxWaitTime);
+
+  // Observe when the page has finished layout & paint updates
+  function whenChartsReady(callback) {
+    const checkReady = () => {
+      const charts = Object.keys(Chart.instances || {}).length;
+      const canvasList = document.querySelectorAll('canvas');
+      const allRendered = Array.from(canvasList).every(c => c.clientHeight > 0 && c.clientWidth > 0);
+      if (charts > 0 && allRendered) callback();
+      else requestAnimationFrame(checkReady);
+    };
+    requestAnimationFrame(checkReady);
+  }
+
+  // Wait until Chart.js instances are actually rendered
+  whenChartsReady(() => {
+    // Add a short buffer to ensure styles settle
+    setTimeout(hideChartLoader, 500);
+  });
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Run Simulation -->
 <script>
-console.log('[UI] Simulation script loaded');
 
 async function runSimulation() {
-  console.log("🟢 Run Simulation button clicked.");
-
   const deterministic = document.getElementById("deterministic").checked;
   const interpolate = document.getElementById("interpolate").checked;
   const forecastMonths = parseInt(document.getElementById("forecastMonths").value, 10);
   const selectedModel = document.getElementById("modelSelect").value;
-
-  console.log("Simulation parameters:", { deterministic, interpolate, forecastMonths, selectedModel });
 
   const btn = document.querySelector('button[onclick="runSimulation()"]');
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Running...';
   btn.disabled = true;
 
   try {
-    console.log("📡 Sending POST to /api/simulate...");
     const res = await fetch("/api/simulate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -622,12 +620,10 @@ async function runSimulation() {
       }),
     });
 
-    console.log("📩 Raw response:", res);
     const json = await res.json();
     console.table(json.forecast.arima);
     console.table(json.forecast.sd);
     console.table(json.forecast.mc);
-
 
     if (!res.ok || !json.forecast) {
       console.error("❌ Simulation failed:", json.error);
@@ -635,12 +631,10 @@ async function runSimulation() {
       return;
     }
 
-    console.log("🎨 Rendering chart...");
     renderSimulationChart(json.forecast, selectedModel);
-    console.log("🧮 Rendering diagnostics...");
     renderDiagnostics(json.diagnostics);
   } catch (err) {
-    console.error("🔥 Simulation fetch error:", err);
+    console.error("❌ Simulation fetch error:", err);
     alert("Simulation fetch error: see console");
   } finally {
     btn.innerHTML = '<i class="fa-solid fa-play"></i> Run Simulation';
@@ -649,9 +643,6 @@ async function runSimulation() {
 }
 
 function renderSimulationChart(forecast, selectedModel) {
-  console.log("🎨 renderSimulationChart() called with model:", selectedModel);
-  console.log("Forecast data:", forecast);
-
   const ctx = document.getElementById("simulationChart").getContext("2d");
   if (!ctx) {
     console.error("⚠️ No canvas context found for #simulationChart!");
@@ -722,8 +713,6 @@ function renderSimulationChart(forecast, selectedModel) {
     return;
   }
 
-  console.log("✅ Building chart with", datasets.length, "datasets.");
-
   window.simChart = new Chart(ctx, {
     type: "line",
     data: { labels, datasets },
@@ -781,13 +770,13 @@ function renderSimulationChart(forecast, selectedModel) {
       },
     },
   });
-
-  console.log("✅ Chart rendered successfully.");
 }
 
 function renderDiagnostics(diagnostics, companies) {
+  const diagHeader = document.getElementById("simHeader");
   const diagEl = document.getElementById("simDiagnostics");
 
+  diagHeader.innerHTML = "Simulation Diagnostics";
   diagEl.innerHTML = `
     <tr><th>Forecast Horizon</th><td>${diagnostics.horizon} months</td></tr>
     <tr><th>Deterministic</th><td>${diagnostics.deterministic ? "Yes" : "No"}</td></tr>
@@ -919,8 +908,6 @@ window.addEventListener('DOMContentLoaded', function () {
     item.month = item.month || dateObj.getMonth() + 1;
     item.week = item.week || week;
   });
-
-  console.log(dataToUse)
 
   const timePeriods = [...new Set(dataToUse.map(d => formatDate(d, aggregation)))];
   
@@ -2176,6 +2163,8 @@ new Chart(tsCanvas.getContext('2d'), {
     }
   }
 });
+
+console.log(tsContainer);
 
 const tsLegendDiv = document.createElement('div');
 tsLegendDiv.classList.add('bar-legend');

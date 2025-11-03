@@ -291,9 +291,49 @@
         </label>
       </li>
       {{/if}}
+
+      <!-- Simulation -->
+      {{#ifNotEquals data_entry true}}
+      <li>
+        <label>
+          <input type="checkbox" class="super-item" data-group="simulation" value="simulation" checked>
+          <span>Waste Simulation Forecast</span>
+        </label>
+      </li>
+      {{/ifNotEquals}}
     </ul>
 
+    <!-- Simulation Settings (hidden by default) -->
+    <div id="pdfSimSettings" style="display: none; margin-top: 1.5rem; background: #e8f5e9; padding: 1rem; border-radius: 8px;">
+      <h3 style="color: #2d613f; margin-bottom: 1rem;">
+        <i class="fa-solid fa-flask"></i> Simulation Settings for PDF
+      </h3>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+        <div style="flex: 1 1 200px;">
+          <label for="pdfForecastMonths">Forecast Horizon (months)</label>
+          <input type="number" id="pdfForecastMonths" class="form-control" value="12" min="1" max="60">
+        </div>
+
+        <div style="flex: 1 1 200px;">
+          <label for="pdfModelSelect">Model Type</label>
+          <select id="pdfModelSelect" class="form-control">
+            <option value="hybrid">Hybrid (All)</option>
+            <option value="arima">ARIMA</option>
+            <option value="sd">System Dynamics</option>
+            <option value="mc">Monte Carlo</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top: 0.5rem;">
+        <label><input type="checkbox" id="pdfDeterministic"> Deterministic Mode</label><br>
+        <label><input type="checkbox" id="pdfInterpolate" checked> Interpolate Missing</label>
+      </div>
+    </div>
+
     <!-- Modal Actions -->
+    <br>
     <div class="modal-actions">
       <button id="cancel-generate" class="btn-cancel">
         <i class="fa-solid fa-xmark"></i> Cancel
@@ -310,6 +350,7 @@
   <div class="modal-content" style="text-align:center; padding:40px;">
     <div class="spinner"></div>
     <p>Generating your PDF report...</p>
+    <p style="font-size: small; color: gray;">(This may take a while as charts are being rendered.)</p>
   </div>
 </div>
 
@@ -502,7 +543,7 @@ input[type="checkbox"] {
 }
 
 /* Reuse your modal styles */
-#loadingModal .spinner {
+.spinner {
   margin: 50px auto;
   width: 50px;
   height: 50px;
@@ -642,6 +683,19 @@ async function startDeadlineTimer(userId) {
 
 <!-- Modal script -->
 <script>
+
+// Toggle Simulation Settings visibility
+const simCheckbox = document.querySelector('#pdfModal input.super-item[value="simulation"]');
+const pdfSimSettings = document.getElementById("pdfSimSettings");
+
+if (simCheckbox) {
+  const toggleSimSettings = () => {
+    pdfSimSettings.style.display = simCheckbox.checked ? "block" : "none";
+  };
+  simCheckbox.addEventListener("change", toggleSimSettings);
+  toggleSimSettings(); // initial state
+}
+
 // Modal elements
 const pdfModal = document.getElementById("pdfModal");
 const generateBtn = document.getElementById("generate-btn");
@@ -743,13 +797,22 @@ pdfConfirmBtn.addEventListener("click", async () => {
     selected.unshift("data-title");
     selected.unshift("data-info");
 
-    console.log("Sections selected:", selected);
+    // Collect simulation settings if visible
+    let simSettings = null;
+    if (pdfSimSettings.style.display === "block") {
+      simSettings = {
+        forecastMonths: Number(document.getElementById("pdfForecastMonths").value),
+        modelType: document.getElementById("pdfModelSelect").value,
+        deterministic: document.getElementById("pdfDeterministic").checked,
+        interpolate: document.getElementById("pdfInterpolate").checked
+      };
+    }
 
     // Send POST request
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sections: selected, query })
+      body: JSON.stringify({ sections: selected, query, simSettings })
     });
 
     if (!response.ok) throw new Error("Failed to generate PDF");
