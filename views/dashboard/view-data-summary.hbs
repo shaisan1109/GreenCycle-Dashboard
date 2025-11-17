@@ -42,77 +42,14 @@
         <div class="filter-column">
             <label>Time Aggregation</label>
             {{#if query.aggregation}}
-                {{#ifEquals query.aggregation "daily"}}Daily{{/ifEquals}}
-                {{#ifEquals query.aggregation "weekly"}}Weekly{{/ifEquals}}
                 {{#ifEquals query.aggregation "monthly"}}Monthly{{/ifEquals}}
+                {{#ifEquals query.aggregation "yearly"}}Yearly{{/ifEquals}}
             {{else}}
                 Not Set
             {{/if}}
         </div>
     </div>
-
-    <!-- Button to open modal -->
-    {{!-- <div style="text-align: center; margin-top: 1.5rem;">
-        <button id="customizeReportBtn" class="btn-customize">
-            <i class="fa-solid fa-sliders"></i> Customize Report Parameters
-        </button>
-    </div> --}}
 </div>
-
-<!-- Modal -->
-{{!-- <div id="reportModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 style="color: #fff;"><i class="fa-solid fa-chart-line"></i> Customize Report Parameters</h2>
-            <span class="close">&times;</span>
-        </div>
-        
-        <div class="modal-body">
-            <!-- Current Filters -->
-            <div style="margin-bottom: 1.5rem;">
-                <h3 style="color: #2d613f; margin-bottom: 0.5rem;"><i class="fa-solid fa-filter"></i> Current Filters Applied:</h3>
-                <div class="filter-tags">
-                    {{#if regionName}}<span class="filter-tag">Region: {{regionName}}</span>{{/if}}
-                    {{#if provinceName}}<span class="filter-tag">Province: {{provinceName}}</span>{{/if}}
-                    {{#if municipalityName}}<span class="filter-tag">City: {{municipalityName}}</span>{{/if}}
-                    {{#if query.startDate}}<span class="filter-tag">From: {{query.startDate}}</span>{{/if}}
-                    {{#if query.endDate}}<span class="filter-tag">To: {{query.endDate}}</span>{{/if}}
-                    {{#if query.aggregation}}<span class="filter-tag">Aggregation: {{query.aggregation}}</span>{{/if}}
-                </div>
-            </div>
-
-            <hr>
-
-            <!-- Additional Filters -->
-            <h3 style="color: #2d613f; margin-bottom: 1rem;"><i class="fa-solid fa-sliders"></i> Additional Metric Filters:</h3>
-            <div class="filter-grid">
-                <div>
-                    <label><i class="fa-solid fa-calendar-days"></i> Time Aggregation</label>
-                    <select id="modal-aggregation">
-                        <option value="daily" {{#ifEquals query.aggregation "daily"}}selected{{/ifEquals}}>Daily Summary</option>
-                        <option value="weekly" {{#ifEquals query.aggregation "weekly"}}selected{{/ifEquals}}>Weekly Summary</option>
-                        <option value="monthly" {{#ifEquals query.aggregation "monthly"}}selected{{/ifEquals}}>Monthly Summary</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <div class="modal-footer">
-            <button class="btn-secondary" id="resetBtn">
-                <i class="fa-solid fa-rotate-left"></i> Reset to Default
-            </button>
-            <button class="btn-secondary" id="exportPdfBtn">
-                <i class="fa-solid fa-file-pdf"></i> Export as PDF
-            </button>
-            <button class="btn-secondary" id="cancelBtn">
-                <i class="fa-solid fa-xmark"></i> Cancel
-            </button>
-            <button class="btn-primary" id="applyBtn">
-                <i class="fa-solid fa-check"></i> Apply Filters
-            </button>
-        </div>
-    </div>
-</div> --}}
 
 <!-- Display charts for aggregated data -->
 <!-- Title Card -->
@@ -122,9 +59,8 @@
     </h1>
     <p style="font-size: large;">
         {{#if query.aggregation}}
-            {{#ifEquals query.aggregation "daily"}}Daily{{/ifEquals}}
-            {{#ifEquals query.aggregation "weekly"}}Weekly{{/ifEquals}}
             {{#ifEquals query.aggregation "monthly"}}Monthly{{/ifEquals}}
+            {{#ifEquals query.aggregation "yearly"}}Yearly{{/ifEquals}}
             aggregated data for the requested entries.
         {{else}}
             Overall summary data for the requested entries.
@@ -227,19 +163,18 @@
 
 <!-- NEW: Trends Over Time Section -->
 <div class="form-section" style="background-color: #f8f9ff; padding: 2rem; border-radius: 12px; border-left: 6px solid #2196F3;" data-section="trends">
-  <h2 style="color: #1565C0; font-weight: 600; margin-bottom: 1rem; display: flex">
+  <h2 id="trends-main-title" style="color: #1565C0; font-weight: 600; margin-bottom: 1rem; display: flex">
     <i class="fa-solid fa-chart-line" style="margin-right: 10px; color: #2196F3;"></i>
     Trends Over Time
 
-    <span style="font-size: 0.9rem; color: #666; font-weight: 400;">
-      ({{#ifEquals query.aggregation "daily"}}Daily{{/ifEquals}}{{#ifEquals query.aggregation "weekly"}}Weekly{{/ifEquals}}{{#ifEquals query.aggregation "monthly"}}Monthly{{/ifEquals}} View)
+    <span id="aggregation-view-label" style="font-size: 0.9rem; color: #666; font-weight: 400; margin-left: 10px;">
+      ({{#ifEquals query.aggregation "monthly"}}Monthly{{/ifEquals}}{{#ifEquals query.aggregation "yearly"}}Yearly{{/ifEquals}} Averaging Aggregation)
     </span>
 
     <!-- Aggregation settings -->
     <select id="select-aggregation" style="margin-left: auto; width: 200px;">
-      <option value="daily" {{#ifEquals query.aggregation "daily"}}selected{{/ifEquals}}>Daily Summary</option>
-      <option value="weekly" {{#ifEquals query.aggregation "weekly"}}selected{{/ifEquals}}>Weekly Summary</option>
       <option value="monthly" {{#ifEquals query.aggregation "monthly"}}selected{{/ifEquals}}>Monthly Summary</option>
+      <option value="yearly" {{#ifEquals query.aggregation "yearly"}}selected{{/ifEquals}}>Yearly Summary</option>
     </select>&nbsp;
 
     <button class="btn-primary" id="applyBtn">
@@ -248,7 +183,8 @@
   </h2>
   
   <p style="color: #555; margin-bottom: 1.5rem;">
-    Visualize waste generation patterns over time. Use the aggregation filter in the customize button to switch between daily, weekly, or monthly views.
+    Visualize waste generation patterns over time using averaging aggregation: y(fc) = 1/(T2-T1) × Σy(i). 
+    Use the aggregation selector to switch between monthly or yearly views.
   </p>
 
   <!-- Trend Charts Container -->
@@ -256,10 +192,10 @@
     <!-- Total Waste Trend with Regression -->
     <div class="trend-chart-box" data-section="trends-wastegen">
       <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
-        <i class="fa-solid fa-trash"></i> Total Waste Generation Trend with Projection
+        <i class="fa-solid fa-trash"></i> Total Waste Generation Trend with 3rd Degree Polynomial Regression
       </h3>
       <div style="overflow-x: auto; overflow-y: hidden; width: 100%;">
-        <div style="position: relative; height: 300px; min-width: 100%;" id="trendTotalWasteContainer">
+        <div style="position: relative; height: 320px; min-width: 100%;" id="trendTotalWasteContainer">
           <canvas id="trendTotalWaste"></canvas>
         </div>
       </div>
@@ -275,7 +211,7 @@
         <i class="fa-solid fa-user"></i> Per Capita Waste Trend
       </h3>
       <div style="overflow-x: auto; overflow-y: hidden; width: 100%;">
-        <div style="position: relative; height: 300px; min-width: 100%;" id="trendPerCapitaContainer">
+        <div style="position: relative; height: 320px; min-width: 100%;" id="trendPerCapitaContainer">
           <canvas id="trendPerCapita"></canvas>
         </div>
       </div>
@@ -299,7 +235,7 @@
         <i class="fa-solid fa-check-double"></i> Compliance Rate Trend
       </h3>
       <div style="overflow-x: auto; overflow-y: hidden; width: 100%;">
-        <div style="position: relative; height: 300px; min-width: 100%;" id="trendComplianceContainer">
+        <div style="position: relative; height: 320px; min-width: 100%;" id="trendComplianceContainer">
           <canvas id="trendCompliance"></canvas>
         </div>
       </div>
@@ -575,8 +511,6 @@ applyBtn.onclick = () => {
     if (aggregation) currentUrl.searchParams.set('aggregation', aggregation);
     else currentUrl.searchParams.delete('aggregation');
     
-    //reportModal.style.display = 'none';
-    
     if (aggregation) {
         window.location.href = currentUrl.toString();
     }
@@ -587,29 +521,29 @@ applyBtn.onclick = () => {
 <script>
   // --- Chart rendering loader ---
   const chartModal = document.getElementById('chartLoadingModal');
-  const chartRenderTimeout = 300; // ms delay before showing (to avoid flash if quick)
-  const maxWaitTime = 10000; // fallback timeout (10s)
+  const chartRenderTimeout = 300;
+  const maxWaitTime = 10000;
   let showModalTimeout, hideModalTimeout;
 
   function showChartLoader() {
-    showModalTimeout = setTimeout(() => {
-      chartModal.style.display = 'block';
-    }, chartRenderTimeout);
+    if (chartModal) {
+      showModalTimeout = setTimeout(() => {
+        chartModal.style.display = 'block';
+      }, chartRenderTimeout);
+    }
   }
 
   function hideChartLoader() {
-    clearTimeout(showModalTimeout);
-    clearTimeout(hideModalTimeout);
-    chartModal.style.display = 'none';
+    if (chartModal) {
+      clearTimeout(showModalTimeout);
+      clearTimeout(hideModalTimeout);
+      chartModal.style.display = 'none';
+    }
   }
 
-  // Start loader early, before heavy rendering begins
   showChartLoader();
-
-  // Fallback hide (if something goes wrong or takes too long)
   hideModalTimeout = setTimeout(hideChartLoader, maxWaitTime);
 
-  // Observe when the page has finished layout & paint updates
   function whenChartsReady(callback) {
     const checkReady = () => {
       const charts = Object.keys(Chart.instances || {}).length;
@@ -621,9 +555,7 @@ applyBtn.onclick = () => {
     requestAnimationFrame(checkReady);
   }
 
-  // Wait until Chart.js instances are actually rendered
   whenChartsReady(() => {
-    // Add a short buffer to ensure styles settle
     setTimeout(hideChartLoader, 500);
   });
 </script>
@@ -839,32 +771,23 @@ function toggleCategory(header) {
 
 </script>
 
-<!-- Trend Charts Script -->
+<!-- CORRECTED - Retrieves Individual Category/Sector Compliance Status -->
 <script>
 
-function getISOWeekNumber(date) {
-  const tmp = new Date(date);
-  tmp.setHours(0, 0, 0, 0);
-  // Thursday in current week decides the year
-  tmp.setDate(tmp.getDate() + 3 - ((tmp.getDay() + 6) % 7));
-  const week1 = new Date(tmp.getFullYear(), 0, 4);
-  const weekNumber = 1 + Math.round(((tmp - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
-  return { week: weekNumber, year: tmp.getFullYear() };
-}
+// ============================================================================
+// TREND CHARTS - PROPER COMPLIANCE RETRIEVAL PER ENTRY
+// ============================================================================
 
 function parseFlexibleDate(input) {
   if (!input) return null;
   const str = String(input).trim();
   
-  // Case 1: already a Date object
   if (input instanceof Date) return input;
   
-  // Case 2: ISO-style (e.g. "2024-01-02")
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
     return new Date(str);
   }
   
-  // Case 3: YYYYMMDD
   if (/^\d{8}$/.test(str)) {
     const year = parseInt(str.slice(0, 4), 10);
     const month = parseInt(str.slice(4, 6), 10) - 1;
@@ -872,506 +795,791 @@ function parseFlexibleDate(input) {
     return new Date(year, month, day);
   }
   
-  // Case 4: YYYYMM (year-month) or YYYYWW (year-week)
   if (/^\d{6}$/.test(str)) {
     const year = parseInt(str.slice(0, 4), 10);
-    const lastTwo = parseInt(str.slice(4, 6), 10);
-    
-    // Detect week or month format
-    if (lastTwo >= 1 && lastTwo <= 12) {
-      // Treat as YYYYMM (month)
-      return new Date(year, lastTwo - 1, 1);
-    } else if (lastTwo >= 1 && lastTwo <= 53) {
-      // Treat as YYYYWW (ISO week number)
-      const jan4 = new Date(year, 0, 4);
-      const jan4Day = jan4.getDay() || 7; // ISO: Monday = 1 ... Sunday = 7
-      const weekStart = new Date(jan4);
-      weekStart.setDate(jan4.getDate() - (jan4Day - 1) + (lastTwo - 1) * 7);
-      return weekStart;
-    } else {
-      return null; // Invalid week/month number
-    }
+    const month = parseInt(str.slice(4, 6), 10) - 1;
+    return new Date(year, month, 1);
   }
   
-  // Fallback: try normal date parsing
   const parsed = new Date(str);
   return isNaN(parsed) ? null : parsed;
 }
 
-window.addEventListener('DOMContentLoaded', function () {
-  if (typeof Chart === 'undefined') {
-    console.error('Chart.js is not loaded!');
-    document.getElementById('trend-charts-wrapper').innerHTML = 
-      '<div style="padding: 2rem; text-align: center; color: #f44336;">' +
-      '<i class="fa-solid fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 1rem;"></i>' +
-      '<p style="font-size: 1.1rem;">Chart.js library failed to load. Please refresh the page.</p>' +
-      '</div>';
-    return;
-  }
+function getTimeSpanInDays(startDate, endDate) {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.round((endDate - startDate) / msPerDay) + 1;
+}
 
-  const STATIC_SAMPLE_DATA = [
-    { date: '2024-01-01', total_weight: 1250, avg_per_capita: 0.45, waste_type: 'Biodegradable', compliance_status: 'Compliant' },
-    { date: '2024-01-02', total_weight: 1320, avg_per_capita: 0.48, waste_type: 'Biodegradable', compliance_status: 'Compliant' },
-    { date: '2024-01-03', total_weight: 1180, avg_per_capita: 0.42, waste_type: 'Recyclable', compliance_status: 'Non-Compliant' },
-    { date: '2024-01-04', total_weight: 1400, avg_per_capita: 0.51, waste_type: 'Biodegradable', compliance_status: 'Compliant' }
-  ];
-  const timeSeriesData = {{{timeSeriesData}}};
+// Expected category and sector names
+const CATEGORY_NAMES = ['Biodegradable', 'Recyclable', 'Residual', 'Special/Hazardous'];
+const SECTOR_NAMES = ['Residential', 'Commercial', 'Institutional', 'Industrial', 'Health', 'Agriculture and Livestock'];
 
-  const dataToUse = (timeSeriesData && timeSeriesData.length > 0) ? timeSeriesData : STATIC_SAMPLE_DATA;
-
-  if (!dataToUse || dataToUse.length === 0) {
-    console.warn('No data available for charts');
-    document.getElementById('trend-charts-wrapper').innerHTML = 
-      '<div style="padding: 2rem; text-align: center; color: #999;">' +
-      '<i class="fa-solid fa-info-circle" style="font-size: 3rem; margin-bottom: 1rem;"></i>' +
-      '<p style="font-size: 1.1rem;">No time-series data available. Apply filters and select an aggregation period to view trends.</p>' +
-      '</div>';
-    return;
-  }
-
-  const aggregation = '{{query.aggregation}}' || 'daily';
-const formatDate = (item, aggregation) => {
-  if (aggregation === 'daily') {
-    return new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  }
-  if (aggregation === 'weekly') {
-    // Calculate which week of the month this is
-    const dateObj = parseFlexibleDate(item.date);
-    if (!dateObj || isNaN(dateObj)) return `W${item.week} ${item.year}`;
-    
-    const month = dateObj.getMonth();
-    const year = dateObj.getFullYear();
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    // Calculate week number within the month
-    const firstDayOfMonth = new Date(year, month, 1);
-    const weekOfMonth = Math.ceil((dateObj.getDate() + firstDayOfMonth.getDay()) / 7);
-    
-    return `${monthNames[month]} W${weekOfMonth} ${year}`;
-  }
-  if (aggregation === 'monthly') {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${months[item.month - 1]} ${item.year}`;
-  }
-  return item.date || `${item.year}-${item.month || item.week}`;
-};
-
-  // Preprocess data to add week, month, year if missing
-  dataToUse.forEach(item => {
-    const dateObj = parseFlexibleDate(item.date);
-    if (isNaN(dateObj)) return;
-
-    const { week, year } = getISOWeekNumber(dateObj);
-    item.year = item.year || year;
-    item.month = item.month || dateObj.getMonth() + 1;
-    item.week = item.week || week;
-  });
-
-  const timePeriods = [...new Set(dataToUse.map(d => formatDate(d, aggregation)))];
+function aggregateDataWithAveraging(dataPoints, aggregationType) {
+  const aggregated = {};
   
-  // Interpolation function to fill missing data points
-  const interpolateData = (timePeriods, dataByPeriod) => {
-    const interpolated = [];
-    for (let i = 0; i < timePeriods.length; i++) {
-      if (dataByPeriod[i] !== null && dataByPeriod[i] !== undefined && !isNaN(dataByPeriod[i])) {
-        interpolated.push(dataByPeriod[i]);
-      } else {
-        // Find previous and next valid points
-        let prevIdx = i - 1;
-        let nextIdx = i + 1;
-        
-        while (prevIdx >= 0 && (dataByPeriod[prevIdx] === null || isNaN(dataByPeriod[prevIdx]))) {
-          prevIdx--;
-        }
-        while (nextIdx < timePeriods.length && (dataByPeriod[nextIdx] === null || isNaN(dataByPeriod[nextIdx]))) {
-          nextIdx++;
-        }
-        
-        if (prevIdx < 0 && nextIdx >= timePeriods.length) {
-          interpolated.push(0); // No data at all
-        } else if (prevIdx < 0) {
-          interpolated.push(dataByPeriod[nextIdx]); // Use next value
-        } else if (nextIdx >= timePeriods.length) {
-          interpolated.push(dataByPeriod[prevIdx]); // Use previous value
-        } else {
-          // Linear interpolation
-          const ratio = (i - prevIdx) / (nextIdx - prevIdx);
-          interpolated.push(dataByPeriod[prevIdx] + ratio * (dataByPeriod[nextIdx] - dataByPeriod[prevIdx]));
-        }
-      }
+  dataPoints.forEach(point => {
+    const date = parseFlexibleDate(point.date);
+    if (!date || isNaN(date)) return;
+    
+    let key, periodStart, periodEnd;
+    
+    if (aggregationType === 'monthly') {
+      key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      periodStart = new Date(date.getFullYear(), date.getMonth(), 1);
+      periodEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    } else if (aggregationType === 'yearly') {
+      key = `${date.getFullYear()}`;
+      periodStart = new Date(date.getFullYear(), 0, 1);
+      periodEnd = new Date(date.getFullYear(), 11, 31);
     }
-    return interpolated;
-  };
-
-  const calculateRegression = (xValues, yValues) => {
-    // Use polynomial regression (3rd degree) instead of linear
-    const n = xValues.length;
-    const degree = Math.min(3, n - 1); // Use 3rd degree if we have enough points
     
-    // Build the matrix for polynomial regression
-    const matrix = [];
-    const vector = [];
+    if (!aggregated[key]) {
+      aggregated[key] = {
+        totalWeight: 0,
+        perCapita: 0,
+        periodStart: periodStart,
+        periodEnd: periodEnd,
+        wasteByCategory: {},
+        wasteBySector: {},
+        // Track compliance per entry
+        totalComplianceItems: 0,
+        compliantItems: 0
+      };
+    }
     
-    for (let i = 0; i <= degree; i++) {
-      const row = [];
-      for (let j = 0; j <= degree; j++) {
-        let sum = 0;
-        for (let k = 0; k < n; k++) {
-          sum += Math.pow(xValues[k], i + j);
-        }
-        row.push(sum);
-      }
-      matrix.push(row);
+    aggregated[key].totalWeight += parseFloat(point.total_weight) || 0;
+    aggregated[key].perCapita += parseFloat(point.avg_per_capita) || 0;
+    
+    const category = point.waste_type || 'Unknown';
+    if (!aggregated[key].wasteByCategory[category]) {
+      aggregated[key].wasteByCategory[category] = 0;
+    }
+    aggregated[key].wasteByCategory[category] += parseFloat(point.total_weight) || 0;
+    
+    // ========== NEW: CHECK INDIVIDUAL COMPLIANCE FOR EACH ENTRY ==========
+    
+    // Check 4 categories
+    CATEGORY_NAMES.forEach(catName => {
+      // Try different possible field names for category compliance
+      const catKey = catName.replace(/[\/\s]/g, '_').toLowerCase();
+      const complianceField = 
+        point[`${catKey}_compliance`] || 
+        point[`${catKey}_status`] ||
+        point[`compliance_${catKey}`] ||
+        point[`status_${catKey}`];
       
+      aggregated[key].totalComplianceItems += 1;
+      
+      if (complianceField === 'Compliant' || complianceField === 'compliant') {
+        aggregated[key].compliantItems += 1;
+      }
+      
+      // Log for debugging (first entry only)
+      if (aggregated[key].totalComplianceItems === 1) {
+        console.log(`🔍 Checking category "${catName}":`, complianceField);
+      }
+    });
+    
+    // Check 6 sectors
+    SECTOR_NAMES.forEach(secName => {
+      // Try different possible field names for sector compliance
+      const secKey = secName.replace(/[\/\s]/g, '_').toLowerCase();
+      const complianceField = 
+        point[`${secKey}_compliance`] || 
+        point[`${secKey}_status`] ||
+        point[`compliance_${secKey}`] ||
+        point[`status_${secKey}`] ||
+        point[`sector_${secKey}_compliance`] ||
+        point[`sector_${secKey}_status`];
+      
+      aggregated[key].totalComplianceItems += 1;
+      
+      if (complianceField === 'Compliant' || complianceField === 'compliant') {
+        aggregated[key].compliantItems += 1;
+      }
+      
+      // Log for debugging (first entry only)
+      if (aggregated[key].totalComplianceItems === 5) {
+        console.log(`🔍 Checking sector "${secName}":`, complianceField);
+      }
+    });
+    
+    // Alternative: If compliance data is stored in nested objects
+    if (point.category_compliance) {
+      CATEGORY_NAMES.forEach(catName => {
+        const status = point.category_compliance[catName];
+        if (status === 'Compliant' || status === 'compliant') {
+          // Already counted above, just for reference
+        }
+      });
+    }
+    
+    if (point.sector_compliance) {
+      SECTOR_NAMES.forEach(secName => {
+        const status = point.sector_compliance[secName];
+        if (status === 'Compliant' || status === 'compliant') {
+          // Already counted above, just for reference
+        }
+      });
+    }
+  });
+  
+  Object.keys(aggregated).forEach(key => {
+    const data = aggregated[key];
+    const timeSpan = getTimeSpanInDays(data.periodStart, data.periodEnd);
+    
+    data.avgTotalWeight = data.totalWeight / timeSpan;
+    data.avgPerCapita = data.perCapita / timeSpan;
+    data.timeSpan = timeSpan;
+    
+    // Calculate compliance rate
+    data.complianceRate = data.totalComplianceItems > 0 
+      ? (data.compliantItems / data.totalComplianceItems) * 100 
+      : 0;
+    
+    const numEntries = data.totalComplianceItems / 10;
+    console.log(`📊 ${key}: ${data.compliantItems}/${data.totalComplianceItems} compliant = ${data.complianceRate.toFixed(1)}% (${numEntries} entries)`);
+  });
+  
+  return aggregated;
+}
+
+function generateFutureLabels(lastPeriod, aggregationType, numPeriods = 3) {
+  const labels = [];
+  
+  if (aggregationType === 'monthly') {
+    const [year, month] = lastPeriod.split('-').map(Number);
+    let currentYear = year;
+    let currentMonth = month;
+    
+    for (let i = 1; i <= numPeriods; i++) {
+      currentMonth += 1;
+      if (currentMonth > 12) {
+        currentMonth = 1;
+        currentYear += 1;
+      }
+      labels.push(`${currentYear}-${String(currentMonth).padStart(2, '0')}`);
+    }
+  } else if (aggregationType === 'yearly') {
+    const year = parseInt(lastPeriod);
+    for (let i = 1; i <= numPeriods; i++) {
+      labels.push(`${year + i}`);
+    }
+  }
+  
+  return labels;
+}
+
+function formatPeriodLabel(period, aggregationType) {
+  if (aggregationType === 'monthly') {
+    const [year, month] = period.split('-');
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${monthNames[parseInt(month) - 1]} ${year}`;
+  } else if (aggregationType === 'yearly') {
+    return period;
+  }
+  return period;
+}
+
+function calculatePolynomialRegression(xValues, yValues, degree = 3) {
+  const n = xValues.length;
+  const actualDegree = Math.min(degree, n - 1);
+  
+  const matrix = [];
+  const vector = [];
+  
+  for (let i = 0; i <= actualDegree; i++) {
+    const row = [];
+    for (let j = 0; j <= actualDegree; j++) {
       let sum = 0;
       for (let k = 0; k < n; k++) {
-        sum += yValues[k] * Math.pow(xValues[k], i);
+        sum += Math.pow(xValues[k], i + j);
       }
-      vector.push(sum);
+      row.push(sum);
     }
+    matrix.push(row);
     
-    // Solve using Gaussian elimination
-    const coefficients = gaussianElimination(matrix, vector);
-    
-    // Calculate R-squared
-    const yMean = yValues.reduce((a, b) => a + b, 0) / n;
-    const ssTotal = yValues.reduce((sum, y) => sum + Math.pow(y - yMean, 2), 0);
-    const ssResidual = yValues.reduce((sum, y, i) => {
-      const predicted = evaluatePolynomial(coefficients, xValues[i]);
-      return sum + Math.pow(y - predicted, 2);
-    }, 0);
-    const rSquared = 1 - (ssResidual / ssTotal);
-    
-    return { coefficients, rSquared, degree };
-  };
-  
-  const gaussianElimination = (matrix, vector) => {
-    const n = matrix.length;
-    const augmented = matrix.map((row, i) => [...row, vector[i]]);
-    
-    for (let i = 0; i < n; i++) {
-      let maxRow = i;
-      for (let k = i + 1; k < n; k++) {
-        if (Math.abs(augmented[k][i]) > Math.abs(augmented[maxRow][i])) {
-          maxRow = k;
-        }
-      }
-      [augmented[i], augmented[maxRow]] = [augmented[maxRow], augmented[i]];
-      
-      for (let k = i + 1; k < n; k++) {
-        const factor = augmented[k][i] / augmented[i][i];
-        for (let j = i; j <= n; j++) {
-          augmented[k][j] -= factor * augmented[i][j];
-        }
-      }
+    let sum = 0;
+    for (let k = 0; k < n; k++) {
+      sum += yValues[k] * Math.pow(xValues[k], i);
     }
-    
-    const solution = new Array(n);
-    for (let i = n - 1; i >= 0; i--) {
-      solution[i] = augmented[i][n];
-      for (let j = i + 1; j < n; j++) {
-        solution[i] -= augmented[i][j] * solution[j];
-      }
-      solution[i] /= augmented[i][i];
-    }
-    
-    return solution;
-  };
-  
-  const evaluatePolynomial = (coefficients, x) => {
-    let result = 0;
-    for (let i = 0; i < coefficients.length; i++) {
-      result += coefficients[i] * Math.pow(x, i);
-    }
-    return result;
-  };
-
-  const totalWasteByPeriod = timePeriods.map(period => {
-    return dataToUse
-      .filter(d => formatDate(d, aggregation) === period)
-      .reduce((sum, d) => sum + (parseFloat(d.total_weight) || 0), 0);
-  });
-  
-  // Apply interpolation to fill missing data points
-  const interpolatedTotalWaste = interpolateData(timePeriods, totalWasteByPeriod);
-
-  const xValues = Array.from({ length: interpolatedTotalWaste.length }, (_, i) => i);
-  const regression = calculateRegression(xValues, interpolatedTotalWaste);
-
-  // Generate smooth polynomial curve with many intermediate points
-  const smoothRegressionLine = [];
-  const smoothProjection = [];
-  for (let i = 0; i < xValues.length; i++) {
-    // Add 10 intermediate points between each data point for smoothness
-    for (let j = 0; j < 10; j++) {
-      const x = i + (j / 10);
-      smoothRegressionLine.push(evaluatePolynomial(regression.coefficients, x));
-    }
+    vector.push(sum);
   }
   
-  // Add projection points
-  const projectionSteps = 30; // 3 periods x 10 points each
-  for (let i = 0; i < projectionSteps; i++) {
-    const x = xValues.length + (i / 10);
-    smoothProjection.push(evaluatePolynomial(regression.coefficients, x));
-  }
+  const coefficients = gaussianElimination(matrix, vector);
   
-  // Create smooth labels (repeat each label 10 times for smooth curve)
-  const smoothLabels = [];
-  timePeriods.forEach(label => {
-    for (let i = 0; i < 10; i++) {
-      smoothLabels.push(label);
-    }
-  });
+  const yMean = yValues.reduce((a, b) => a + b, 0) / n;
+  const ssTotal = yValues.reduce((sum, y) => sum + Math.pow(y - yMean, 2), 0);
+  const ssResidual = yValues.reduce((sum, y, i) => {
+    const predicted = evaluatePolynomial(coefficients, xValues[i]);
+    return sum + Math.pow(y - predicted, 2);
+  }, 0);
+  const rSquared = 1 - (ssResidual / ssTotal);
   
-  const futureLabels = ['Projection +1', 'Projection +2', 'Projection +3'];
-  futureLabels.forEach(label => {
-    for (let i = 0; i < 10; i++) {
-      smoothLabels.push(label);
-    }
-  });
-  
-  // Prepare actual data with nulls for smooth labels
-  const actualDataExpanded = [];
-  interpolatedTotalWaste.forEach((value, idx) => {
-    for (let i = 0; i < 10; i++) {
-      actualDataExpanded.push(i === 0 ? value : null); // Only show point at start of each period
-    }
-  });
-  for (let i = 0; i < projectionSteps; i++) {
-    actualDataExpanded.push(null);
-  }
-  
-  // Prepare projection data
-  const projectionDataExpanded = new Array(smoothRegressionLine.length).fill(null).concat(smoothProjection);
-  
-  const regressionLine = xValues.map(x => evaluatePolynomial(regression.coefficients, x));
-  const futureX = [xValues.length, xValues.length + 1, xValues.length + 2];
-  const futureY = futureX.map(x => evaluatePolynomial(regression.coefficients, x));
-  
-  // Calculate trend direction from derivative at last point
-  const lastX = xValues[xValues.length - 1];
-  let derivative = 0;
-  for (let i = 1; i < regression.coefficients.length; i++) {
-    derivative += i * regression.coefficients[i] * Math.pow(lastX, i - 1);
-  }
-
-  document.getElementById('regressionStats').innerHTML =
-    `${derivative > 0 ? '📈 Increasing' : '📉 Decreasing'} trend (${regression.degree}° polynomial) | R² = ${(regression.rSquared * 100).toFixed(1)}% | Projected in 3 periods: ${futureY[2].toFixed(2)} kg`;
-
-  // Calculate width needed: minimum 20px per data point for readability
-  const containerWidth = Math.max(1000, timePeriods.length * 20);
-  document.getElementById('trendTotalWasteContainer').style.width = containerWidth + 'px';
-
-  new Chart(document.getElementById('trendTotalWaste').getContext('2d'), {
-    type: 'line',
-    data: {
-      labels: smoothLabels,
-      datasets: [
-        {
-          label: 'Actual Waste (kg)',
-          data: actualDataExpanded,
-          borderColor: '#4CAF50',
-          backgroundColor: '#4CAF50',
-          fill: true,
-          tension: 0,
-          pointRadius: 4,
-          pointHitRadius: 10,
-          spanGaps: false
-        },
-        {
-          label: 'Trend Line',
-          data: [...smoothRegressionLine, ...smoothProjection],
-          borderColor: '#FF5722',
-          borderDash: [5, 5],
-          fill: false,
-          tension: 0,
-          pointRadius: 0,
-          borderWidth: 3
-        },
-        {
-  label: 'Projected Waste',
-  data: projectionDataExpanded,
-  borderColor: '#FFA000',
-  backgroundColor: 'rgba(255, 193, 7, 0.2)',  // Yellow shaded area with 20% opacity
-  borderDash: [8, 4],
-  fill: 'origin', 
-  tension: 0.2,   
-  pointRadius: 5,
-  pointStyle: 'circle',
-  pointBackgroundColor: '#FFA000',
-  pointBorderColor: '#fff',
-  pointBorderWidth: 2,
-  borderWidth: 4
+  return { coefficients, rSquared, degree: actualDegree };
 }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'top' },
-        tooltip: {
-          callbacks: {
-            label: (context) => `${context.dataset.label}: ${context.parsed.y ? context.parsed.y.toFixed(2) : 'N/A'} kg`
-          }
-        }
-      },
-      scales: {
-        y: { beginAtZero: true, title: { display: true, text: 'Weight (kg)' } },
-        x: { 
-          title: { display: true, text: 'Time Period' },
-          ticks: {
-            maxRotation: 45,
-            minRotation: 45,
-            autoSkip: true,
-            maxTicksLimit: 50
-          }
-        }
+
+function gaussianElimination(matrix, vector) {
+  const n = matrix.length;
+  const augmented = matrix.map((row, i) => [...row, vector[i]]);
+  
+  for (let i = 0; i < n; i++) {
+    let maxRow = i;
+    for (let k = i + 1; k < n; k++) {
+      if (Math.abs(augmented[k][i]) > Math.abs(augmented[maxRow][i])) {
+        maxRow = k;
       }
     }
-  });
+    [augmented[i], augmented[maxRow]] = [augmented[maxRow], augmented[i]];
+    
+    for (let k = i + 1; k < n; k++) {
+      const factor = augmented[k][i] / augmented[i][i];
+      for (let j = i; j <= n; j++) {
+        augmented[k][j] -= factor * augmented[i][j];
+      }
+    }
+  }
+  
+  const solution = new Array(n);
+  for (let i = n - 1; i >= 0; i--) {
+    solution[i] = augmented[i][n];
+    for (let j = i + 1; j < n; j++) {
+      solution[i] -= augmented[i][j] * solution[j];
+    }
+    solution[i] /= augmented[i][i];
+  }
+  
+  return solution;
+}
 
-  const perCapitaByPeriod = timePeriods.map(period => {
-    const periodData = dataToUse.filter(d => formatDate(d, aggregation) === period);
-    const total = periodData.reduce((sum, d) => sum + (parseFloat(d.avg_per_capita) || 0), 0);
-    return periodData.length ? total / periodData.length : 0;
-  });
+function evaluatePolynomial(coefficients, x) {
+  let result = 0;
+  for (let i = 0; i < coefficients.length; i++) {
+    result += coefficients[i] * Math.pow(x, i);
+  }
+  return result;
+}
 
-  // Set container width for horizontal scrolling
-  document.getElementById('trendPerCapitaContainer').style.width = Math.max(1000, timePeriods.length * 20) + 'px';
+// Wait for both DOM and Chart.js to be ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initCharts);
+} else {
+  initCharts();
+}
 
-  new Chart(document.getElementById('trendPerCapita').getContext('2d'), {
-    type: 'line',
-    data: {
-      labels: timePeriods,
-      datasets: [{
-        label: 'Per Capita Waste (kg/cap-day)',
-        data: perCapitaByPeriod,
-        borderColor: '#FF9800',
-        backgroundColor: 'rgba(255, 152, 0, 0.1)',
-        fill: true,
-        tension: 0.4
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'top' },
-        tooltip: {
-          callbacks: {
-            label: (context) => `${context.parsed.y.toFixed(4)} kg/cap-day`
-          }
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: { display: true, text: 'kg/cap-day' }
+function initCharts() {
+  console.log('🚀 Initializing charts...');
+  
+  if (typeof Chart === 'undefined') {
+    console.error('❌ Chart.js not loaded');
+    const wrapper = document.getElementById('trend-charts-wrapper');
+    if (wrapper) {
+      wrapper.innerHTML = '<div style="padding:2rem;text-align:center;color:#f44336;">Chart.js failed to load. Please refresh.</div>';
+    }
+    return;
+  }
+  
+  console.log('✅ Chart.js loaded');
+
+  try {
+    const rawData = {{{timeSeriesData}}};
+    console.log('📊 Raw data length:', rawData ? rawData.length : 0);
+    
+    if (!rawData || rawData.length === 0) {
+      console.warn('⚠️ No data available');
+      const wrapper = document.getElementById('trend-charts-wrapper');
+      if (wrapper) {
+        wrapper.innerHTML = '<div style="padding:2rem;text-align:center;color:#999;">No time-series data available.</div>';
+      }
+      return;
+    }
+
+    // Log first data point structure to help debug field names
+    console.log('📋 Sample data point structure:', Object.keys(rawData[0]));
+    console.log('📋 Sample data point:', rawData[0]);
+
+    const aggregation = '{{query.aggregation}}' || 'monthly';
+    console.log('📅 Aggregation:', aggregation);
+    
+    const regionName = '{{regionName}}' || 'ALL';
+    const provinceName = '{{provinceName}}' || 'ALL';
+    const municipalityName = '{{municipalityName}}' || 'ALL';
+    const startDate = '{{query.startDate}}' || '';
+    const endDate = '{{query.endDate}}' || '';
+    
+    let locationText = `${regionName}, ${provinceName}, ${municipalityName}`;
+    let periodText = '';
+    if (startDate && endDate) {
+      periodText = `from ${startDate} to ${endDate}`;
+    } else if (startDate) {
+      periodText = `from ${startDate}`;
+    } else if (endDate) {
+      periodText = `until ${endDate}`;
+    }
+    
+    const chartTitleText = `Waste Trends for ${locationText}${periodText ? ' ' + periodText : ''}`;
+    
+    const mainTitle = document.getElementById('trends-main-title');
+    if (mainTitle) {
+      const aggregationLabel = aggregation === 'monthly' ? 'Monthly' : 'Yearly';
+      mainTitle.innerHTML = `
+        <i class="fa-solid fa-chart-line" style="margin-right: 10px; color: #2196F3;"></i>
+        ${chartTitleText}
+        <span style="font-size: 0.9rem; color: #666; font-weight: 400; margin-left: 10px;">
+          (${aggregationLabel} Averaging Aggregation)
+        </span>
+        <select id="select-aggregation" style="margin-left: auto; width: 200px;">
+          <option value="monthly" ${aggregation === 'monthly' ? 'selected' : ''}>Monthly Summary</option>
+          <option value="yearly" ${aggregation === 'yearly' ? 'selected' : ''}>Yearly Summary</option>
+        </select>&nbsp;
+        <button class="btn-primary" id="applyBtn2">
+          <i class="fa-solid fa-check"></i> Apply Filters
+        </button>
+      `;
+      
+      const applyBtn2 = document.getElementById('applyBtn2');
+      if (applyBtn2) {
+        applyBtn2.onclick = () => {
+          const agg = document.getElementById('select-aggregation').value;
+          const currentUrl = new URL(window.location.href);
+          if (agg) currentUrl.searchParams.set('aggregation', agg);
+          else currentUrl.searchParams.delete('aggregation');
+          window.location.href = currentUrl.toString();
+        };
+      }
+    }
+    
+    const aggregatedData = aggregateDataWithAveraging(rawData, aggregation);
+    const sortedPeriods = Object.keys(aggregatedData).sort();
+    console.log('📊 Sorted periods:', sortedPeriods.length);
+    
+    if (sortedPeriods.length === 0) {
+      console.warn('⚠️ No periods after aggregation');
+      return;
+    }
+    
+    const labels = sortedPeriods.map(p => formatPeriodLabel(p, aggregation));
+    const totalWeights = sortedPeriods.map(p => aggregatedData[p].avgTotalWeight);
+    const perCapitaValues = sortedPeriods.map(p => aggregatedData[p].avgPerCapita);
+    const complianceRates = sortedPeriods.map(p => aggregatedData[p].complianceRate);
+    
+    console.log('📈 Data points:', totalWeights.length);
+    console.log('📊 Sample weights:', totalWeights.slice(0, 3));
+    console.log('📊 Compliance rates:', complianceRates.slice(0, 3));
+    
+    const xValues = Array.from({ length: totalWeights.length }, (_, i) => i);
+    const regression = calculatePolynomialRegression(xValues, totalWeights, 3);
+    console.log('📐 Regression R²:', regression.rSquared);
+    
+    const trendValuesActual = xValues.map(x => evaluatePolynomial(regression.coefficients, x));
+    
+    const lastPeriod = sortedPeriods[sortedPeriods.length - 1];
+    const futurePeriods = generateFutureLabels(lastPeriod, aggregation, 3);
+    const futureLabels = futurePeriods.map(p => formatPeriodLabel(p, aggregation));
+    const allLabels = [...labels, ...futureLabels];
+    
+    const futureX = [totalWeights.length, totalWeights.length + 1, totalWeights.length + 2];
+    const futureY = futureX.map(x => evaluatePolynomial(regression.coefficients, x));
+    
+    const lastX = xValues[xValues.length - 1];
+    let derivative = 0;
+    for (let i = 1; i < regression.coefficients.length; i++) {
+      derivative += i * regression.coefficients[i] * Math.pow(lastX, i - 1);
+    }
+    
+    const regressionStatsEl = document.getElementById('regressionStats');
+    if (regressionStatsEl) {
+      regressionStatsEl.innerHTML =
+        `${derivative > 0 ? '📈 Increasing' : '📉 Decreasing'} trend (${regression.degree}° polynomial) | 
+         R² = ${(regression.rSquared * 100).toFixed(1)}% | 
+         Formula: y(fc) = 1/(T2-T1) × Σy(i) | 
+         Projected at ${futureLabels[2]}: ${futureY[2].toFixed(4)} kg/day`;
+    }
+    
+    // ========== CREATE CHART 1 ==========
+    console.log('🎨 Creating Chart 1: Total Waste');
+    
+    const minWidth = 1400;
+    const pixelsPerLabel = 120;
+    const containerWidth = Math.max(minWidth, allLabels.length * pixelsPerLabel);
+    
+    const totalWasteContainer = document.getElementById('trendTotalWasteContainer');
+    if (totalWasteContainer) {
+      totalWasteContainer.style.width = containerWidth + 'px';
+      totalWasteContainer.style.minWidth = containerWidth + 'px';
+    }
+    
+    const totalWasteCanvas = document.getElementById('trendTotalWaste');
+    if (totalWasteCanvas) {
+      const ctx = totalWasteCanvas.getContext('2d');
+      if (!ctx) {
+        console.error('❌ Cannot get canvas context');
+        return;
+      }
+      
+      const lastTrendValue = evaluatePolynomial(regression.coefficients, totalWeights.length - 1);
+      
+      const actualData = [...totalWeights, null, null, null];
+      const trendData = [...trendValuesActual, null, null, null];
+      const projectedTrendData = [
+        ...Array(totalWeights.length - 1).fill(null),
+        lastTrendValue,
+        ...futureY
+      ];
+      const projectedData = [
+        ...Array(totalWeights.length - 1).fill(null),
+        lastTrendValue,
+        ...futureY
+      ];
+      
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: allLabels,
+          datasets: [
+            {
+              label: 'Actual Data (kg/day)',
+              data: actualData,
+              borderColor: '#2196F3',
+              backgroundColor: '#2196F3',
+              pointRadius: 6,
+              pointHoverRadius: 8,
+              borderWidth: 2,
+              fill: false,
+              tension: 0.3,
+              spanGaps: false
+            },
+            {
+              label: 'Trend Line (Actual)',
+              data: trendData,
+              borderColor: '#FF5722',
+              borderWidth: 3,
+              fill: false,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 5,
+              spanGaps: false
+            },
+            {
+              label: 'Trend Line (Projected)',
+              data: projectedTrendData,
+              borderColor: '#FF5722',
+              borderWidth: 3,
+              borderDash: [8, 4],
+              fill: false,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 5,
+              spanGaps: false
+            },
+            {
+              label: 'Projected Values',
+              data: projectedData,
+              borderColor: '#FFA000',
+              backgroundColor: 'rgba(255, 160, 0, 0.15)',
+              borderDash: [8, 4],
+              fill: 'origin',
+              tension: 0.4,
+              pointRadius: 6,
+              pointBackgroundColor: '#FFA000',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              borderWidth: 3,
+              spanGaps: false
+            }
+          ]
         },
-        x: {
-          title: { display: true, text: 'Time Period' },
-          ticks: {
-            maxRotation: 45,
-            minRotation: 45,
-            autoSkip: true,
-            maxTicksLimit: 50
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: { 
+              position: 'top',
+              labels: {
+                font: { size: 12 },
+                usePointStyle: true,
+                padding: 15
+              }
+            },
+            title: {
+              display: true,
+              text: 'Total Waste Generation with Polynomial Regression',
+              font: { size: 14, weight: 'bold' },
+              color: '#2d613f',
+              padding: { top: 10, bottom: 20 }
+            },
+            tooltip: {
+              callbacks: {
+                label: (context) => {
+                  if (context.parsed.y === null) return '';
+                  return `${context.dataset.label}: ${context.parsed.y.toFixed(4)} kg/day`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: { 
+              ticks: {
+                font: { size: 11 }
+              },
+              title: { 
+                display: true, 
+                text: 'Weight (kg/day)',
+                font: { weight: 'bold', size: 12 }
+              },
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              }
+            },
+            x: { 
+              title: { 
+                display: true, 
+                text: `Period (${aggregation})`,
+                font: { weight: 'bold', size: 12 }
+              },
+              ticks: { 
+                maxRotation: 45, 
+                minRotation: 45,
+                autoSkip: false,
+                font: { size: 10 }
+              },
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              }
+            }
+          },
+          layout: {
+            padding: {
+              left: 10,
+              right: 30,
+              top: 10,
+              bottom: 10
+            }
           }
         }
-      }
+      });
+      console.log('✅ Chart 1 created');
     }
-  });
-
-  const categories = ['Biodegradable', 'Recyclable', 'Residual', 'Special/Hazardous'];
-  const categoryColors = {
-    'Biodegradable': 'rgba(76, 175, 80, 0.8)',
-    'Recyclable': 'rgba(33, 150, 243, 0.8)',
-    'Residual': 'rgba(158, 158, 158, 0.8)',
-    'Special/Hazardous': 'rgba(244, 67, 54, 0.8)'
-  };
-
-  const categoryDatasets = categories.map(cat => ({
-    label: cat,
-    data: timePeriods.map(period => dataToUse
-      .filter(d => formatDate(d, aggregation) === period && d.waste_type === cat)
-      .reduce((sum, d) => sum + (parseFloat(d.total_weight) || 0), 0)
-    ),
-    backgroundColor: categoryColors[cat],
-    borderColor: categoryColors[cat].replace('0.8', '1'),
-    borderWidth: 2,
-    fill: true,
-    tension: 0.4
-  }));
-
-  // Set container width for horizontal scrolling
-  document.getElementById('trendByCategoryContainer').style.width = Math.max(1000, timePeriods.length * 20) + 'px';
-
-  new Chart(document.getElementById('trendByCategory').getContext('2d'), {
-    type: 'line',
-    data: { labels: timePeriods, datasets: categoryDatasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { position: 'top' } },
-      scales: {
-        y: { stacked: true, beginAtZero: true, title: { display: true, text: 'Weight (kg)' } },
-        x: { 
-          stacked: true,
-          title: { display: true, text: 'Time Period' },
-          ticks: {
-            maxRotation: 45,
-            minRotation: 45,
-            autoSkip: true,
-            maxTicksLimit: 50
+    
+    // ========== CREATE CHART 2 ==========
+    console.log('🎨 Creating Chart 2: Per Capita');
+    
+    const perCapitaWidth = Math.max(1200, labels.length * 100);
+    const perCapitaContainer = document.getElementById('trendPerCapitaContainer');
+    if (perCapitaContainer) {
+      perCapitaContainer.style.width = perCapitaWidth + 'px';
+      perCapitaContainer.style.minWidth = perCapitaWidth + 'px';
+    }
+    
+    const perCapitaCanvas = document.getElementById('trendPerCapita');
+    if (perCapitaCanvas) {
+      new Chart(perCapitaCanvas.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Per Capita Waste',
+            data: perCapitaValues,
+            borderColor: '#FF9800',
+            backgroundColor: 'rgba(255, 152, 0, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 5,
+            borderWidth: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top' },
+            title: {
+              display: true,
+              text: 'Per Capita Waste Trend',
+              font: { size: 14, weight: 'bold' },
+              color: '#2d613f'
+            }
+          },
+          scales: {
+            y: { 
+              title: { display: true, text: 'kg/cap-day²' },
+              grid: { color: 'rgba(0, 0, 0, 0.05)' }
+            },
+            x: { 
+              title: { display: true, text: `Period (${aggregation})` }, 
+              ticks: { maxRotation: 45, minRotation: 45, autoSkip: false },
+              grid: { color: 'rgba(0, 0, 0, 0.05)' }
+            }
+          },
+          layout: {
+            padding: { left: 10, right: 30, top: 10, bottom: 10 }
           }
         }
-      }
+      });
+      console.log('✅ Chart 2 created');
     }
-  });
-
-  const complianceByPeriod = timePeriods.map(period => {
-    const periodData = dataToUse.filter(d => formatDate(d, aggregation) === period);
-    const compliant = periodData.filter(d => d.compliance_status === 'Compliant').length;
-    return periodData.length ? (compliant / periodData.length) * 100 : 0;
-  });
-
-  // Set container width for horizontal scrolling
-  document.getElementById('trendComplianceContainer').style.width = Math.max(1000, timePeriods.length * 20) + 'px';
-
-  new Chart(document.getElementById('trendCompliance').getContext('2d'), {
-    type: 'line',
-    data: {
-      labels: timePeriods,
-      datasets: [{
-        label: 'Compliance Rate (%)',
-        data: complianceByPeriod,
-        borderColor: '#2196F3',
-        backgroundColor: 'rgba(33, 150, 243, 0.1)',
+    
+    // ========== CREATE CHART 3 ==========
+    console.log('🎨 Creating Chart 3: By Category');
+    
+    const categoryWidth = Math.max(1200, labels.length * 100);
+    const categoryContainer = document.getElementById('trendByCategoryContainer');
+    if (categoryContainer) {
+      categoryContainer.style.width = categoryWidth + 'px';
+      categoryContainer.style.minWidth = categoryWidth + 'px';
+    }
+    
+    const categories = ['Biodegradable', 'Recyclable', 'Residual', 'Special/Hazardous'];
+    const categoryColors = {
+      'Biodegradable': 'rgba(76, 175, 80, 0.8)',
+      'Recyclable': 'rgba(33, 150, 243, 0.8)',
+      'Residual': 'rgba(158, 158, 158, 0.8)',
+      'Special/Hazardous': 'rgba(244, 67, 54, 0.8)'
+    };
+    
+    const categoryDatasets = categories.map(cat => {
+      const categoryData = sortedPeriods.map(p => {
+        const catWeight = aggregatedData[p].wasteByCategory[cat] || 0;
+        return catWeight / aggregatedData[p].timeSpan;
+      });
+      
+      return {
+        label: cat,
+        data: categoryData,
+        backgroundColor: categoryColors[cat],
+        borderColor: categoryColors[cat].replace('0.8', '1'),
+        borderWidth: 2,
         fill: true,
         tension: 0.4
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: 'top' } },
-      scales: {
-        y: { beginAtZero: true, max: 100, title: { display: true, text: 'Compliance Rate (%)' } },
-        x: {
-          title: { display: true, text: 'Time Period' },
-          ticks: {
-            maxRotation: 45,
-            minRotation: 45,
-            autoSkip: true,
-            maxTicksLimit: 50
+      };
+    });
+    
+    const categoryCanvas = document.getElementById('trendByCategory');
+    if (categoryCanvas) {
+      new Chart(categoryCanvas.getContext('2d'), {
+        type: 'line',
+        data: { labels: labels, datasets: categoryDatasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top' },
+            title: {
+              display: true,
+              text: 'Waste by Category',
+              font: { size: 14, weight: 'bold' },
+              color: '#2d613f'
+            }
+          },
+          scales: {
+            y: { 
+              stacked: true,
+              title: { display: true, text: 'Weight (kg/day)' },
+              grid: { color: 'rgba(0, 0, 0, 0.05)' }
+            },
+            x: { 
+              stacked: true, 
+              title: { display: true, text: `Period (${aggregation})` }, 
+              ticks: { maxRotation: 45, minRotation: 45, autoSkip: false },
+              grid: { color: 'rgba(0, 0, 0, 0.05)' }
+            }
+          },
+          layout: {
+            padding: { left: 10, right: 30, top: 10, bottom: 10 }
           }
         }
-      }
+      });
+      console.log('✅ Chart 3 created');
     }
-  });
-});
+    
+    // ========== CREATE CHART 4 - WITH RETRIEVAL ==========
+    console.log('🎨 Creating Chart 4: Compliance');
+    
+    const complianceWidth = Math.max(1200, labels.length * 100);
+    const complianceContainer = document.getElementById('trendComplianceContainer');
+    if (complianceContainer) {
+      complianceContainer.style.width = complianceWidth + 'px';
+      complianceContainer.style.minWidth = complianceWidth + 'px';
+    }
+    
+    const complianceCanvas = document.getElementById('trendCompliance');
+    if (complianceCanvas) {
+      new Chart(complianceCanvas.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Compliance Rate (%)',
+            data: complianceRates,
+            borderColor: '#2196F3',
+            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 5,
+            borderWidth: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top' },
+            title: {
+              display: true,
+              text: 'Compliance Rate Trend (4 Categories + 6 Sectors per Entry)',
+              font: { size: 14, weight: 'bold' },
+              color: '#2d613f'
+            },
+            tooltip: {
+              callbacks: {
+                label: (context) => {
+                  const periodKey = sortedPeriods[context.dataIndex];
+                  const data = aggregatedData[periodKey];
+                  const numEntries = data.totalComplianceItems / 10;
+                  
+                  return [
+                    `Compliance: ${context.parsed.y.toFixed(1)}%`,
+                    `Data Entries: ${numEntries}`,
+                    `Total Items: ${data.totalComplianceItems} (10 per entry)`,
+                    `Compliant: ${data.compliantItems}`
+                  ];
+                }
+              }
+            }
+          },
+          scales: {
+            y: { 
+              min: 0,
+              max: 100,
+              title: { display: true, text: 'Compliance Rate (%)' },
+              grid: { color: 'rgba(0, 0, 0, 0.05)' }
+            },
+            x: { 
+              title: { display: true, text: `Period (${aggregation})` }, 
+              ticks: { maxRotation: 45, minRotation: 45, autoSkip: false },
+              grid: { color: 'rgba(0, 0, 0, 0.05)' }
+            }
+          },
+          layout: {
+            padding: { left: 10, right: 30, top: 10, bottom: 10 }
+          }
+        }
+      });
+      console.log('✅ Chart 4 created');
+    }
+    
+    console.log('✅ All charts initialized successfully');
+    
+  } catch (error) {
+    console.error('❌ Error initializing charts:', error);
+    console.error('Stack:', error.stack);
+  }
+}
 </script>
 
 <!-- Pie chart script -->
@@ -1401,7 +1609,6 @@ const overallPhrases = {
     "Several categories contribute significant amounts. Consider combined campaigns (e.g., recycling + organics) rather than programs for a single type.<br><br>"
 };
 
-// quick recommendations per type
 const overallRecommendations = {
   Biodegradable: "Enhance composting initiatives and promote household segregation of organics.",
   Recyclable: "Expand recycling collection routes and promote local recycling markets.",
@@ -1434,23 +1641,20 @@ function generateOverallInsight(supertypeMapObj, grandTotalVal) {
 
   const fullBreakdown = shares.map(s => `${s.name}: ${s.pct.toFixed(1)}%`).join(', ');
 
-  let insightText = ""; // main insight
-  let recHTML = ""; // recommendations HTML
+  let insightText = "";
+  let recHTML = "";
 
-  // CASE 1: Evenly distributed (Condition 5)
   if (allBalanced && nonzero.length > 2) {
     insightText = overallPhrases.balanced;
     if (lowList.length) insightText += ` However, some categories appear minimal: ${lowList.join(', ')}.`;
     if (tinyList.length === 1) insightText += ` The category ${tinyList[0]} is noticeably small compared to others.`;
   }
 
-  // CASE 2: One dominant (Conditions 1 and 2)
   else if (top.pct >= 50) {
     insightText = `${overallPhrases.dominant} Currently, <strong>${top.name}</strong> represents ${top.pct.toFixed(1)}% of the total.`;
     if (lowList.length) insightText += ` Some low categories: ${lowList.join(', ')}.`;
     if (tinyList.length === 1) insightText += ` The category ${tinyList[0]} is noticeably small compared to others.`;
 
-    // add recommendation box for dominant type
     if (overallRecommendations[top.name]) {
       recHTML = `
         <div class="recommendation-box">
@@ -1464,7 +1668,6 @@ function generateOverallInsight(supertypeMapObj, grandTotalVal) {
     }
   }
 
-  // CASE 3: Two share dominance (Conditions 3a & 3b)
   else if (shares.filter(s => s.pct >= 20).length >= 2 &&
          shares.filter(s => s.pct >= 20).length <= 3) {
     const strongList = shares.filter(s => s.pct >= 20);
@@ -1484,17 +1687,14 @@ function generateOverallInsight(supertypeMapObj, grandTotalVal) {
       .join('');
   }
 
-  // CASE 4: Mainly low/underreported (Condition 4)
   else if (lowList.length === shares.length) {
     insightText = "All categories show minimal values; likely incomplete or unreported data.";
   }
 
-  // CASE 5: Some low but not all
   else if (lowList.length) {
     insightText = `${overallPhrases.lowReported} Notably low: ${lowList.join(', ')}.`;
   }
 
-  // CASE 6: Varied but not extreme (Condition 7)
   else {
     const uniquePattern = new Set(shares.map(s => Math.round(s.pct / 5) * 5)).size === shares.length;
     if (uniquePattern && !allBalanced && top.pct < 50) {
@@ -1523,11 +1723,10 @@ function generateSupertypeInsight(supertypeObj, grandTotalVal) {
   const top = pairs[0];
   const second = pairs[1] || null;
   const avgVal = pairs.reduce((a, b) => a + b.value, 0) / pairs.length;
-  const allBalanced = pairs.every(p => Math.abs(p.value - avgVal) < avgVal * 0.05); // within ±5%
+  const allBalanced = pairs.every(p => Math.abs(p.value - avgVal) < avgVal * 0.05);
   const lowList = pairs.filter(p => p.value < avgVal * 0.2).map(p => p.name);
   const highList = pairs.filter(p => p.value >= avgVal * 1.2);
 
-  // --- Recommendation dictionary ---
   const recs = {
     Biodegradable: {
       "Food / Kitchen Waste": "Promote household and commercial composting, and encourage portion control to minimize food waste.",
@@ -1573,7 +1772,6 @@ function generateSupertypeInsight(supertypeObj, grandTotalVal) {
     }
   };
 
-  // --- Helper to get recommendation HTML blocks ---
   const getRecommendation = (dominantList, supertype) => {
     const rset = recs[supertype] || {};
     const blocks = dominantList
@@ -1595,15 +1793,12 @@ function generateSupertypeInsight(supertypeObj, grandTotalVal) {
     return blocks ? `<br>${blocks}` : "";
   };
 
-  // --- Dominance conditions ---
-  // All are equal or nearly equal
   if (allBalanced) {
     let text = `Types under <strong>${supertypeObj.name}</strong> have nearly equal distribution.`;
     if (lowList.length) text += `<br>Lower types: <b>${lowList.join(', ')}</b>.`;
     return text;
   }
 
-  // One dominant
   if (second && top.value >= second.value * 1.5) {
     let text = `<strong>${top.name}</strong> dominates this category (${top.value.toFixed(1)} kg).`;
     text += getRecommendation([top], supertypeObj.name);
@@ -1611,7 +1806,6 @@ function generateSupertypeInsight(supertypeObj, grandTotalVal) {
     return text;
   }
 
-  // Two dominant
   const topTwoAvg = (top.value + (second?.value || 0)) / 2;
   if (
     pairs.length >= 2 &&
@@ -1625,7 +1819,6 @@ function generateSupertypeInsight(supertypeObj, grandTotalVal) {
     return text;
   }
 
-  // Multiple dominant
   if (highList.length >= 3 && highList.length < pairs.length) {
     let text = `Several types stand out within ${supertypeObj.name}: <b>${highList.map(p => p.name).join(', ')}</b>.`;
     text += getRecommendation(highList, supertypeObj.name);
@@ -1633,12 +1826,10 @@ function generateSupertypeInsight(supertypeObj, grandTotalVal) {
     return text;
   }
 
-  // All with low values
   if (lowList.length && lowList.length >= pairs.length - 1) {
     return `Most types under <strong>${supertypeObj.name}</strong> are minimal. This may be caused by low generation or incomplete entries (${lowList.join(', ')}).`;
   }
 
-  // Default
   return `The <strong>${supertypeObj.name}</strong> category shows varied distribution across its types.`;
 }
 
@@ -1656,7 +1847,6 @@ function generateSectorInsight(sectorName, pieDataForSector, sectorTotalValue, g
     return `${sectorName} has no recorded waste. Please check reporting completeness.`;
   }
 
-  // Helper to bold and format list with "and"
   const formatList = arr => {
     if (!arr.length) return '';
     const bolded = arr.map(l => `<b>${l}</b>`);
@@ -1670,25 +1860,22 @@ function generateSectorInsight(sectorName, pieDataForSector, sectorTotalValue, g
   const top = pairs[0];
   const second = pairs[1] || null;
   const lowList = pairs.filter(p => p.pct < 2).map(p => p.label);
-  const tinyList = pairs.filter(p => p.pct < 10).map(p => p.label); // Condition 6 helper
+  const tinyList = pairs.filter(p => p.pct < 10).map(p => p.label);
 
   let insight = '';
   let recHTML = '';
 
-  // CASE 1: Evenly distributed (Condition 5)
   if (allBalanced && pairs.length > 2) {
     insight = `Waste in the ${sectorName} sector is evenly distributed among all categories.`;
     if (lowList.length) insight += ` However, some categories appear minimal: ${formatList(lowList)}.`;
     if (tinyList.length === 1) insight += ` The ${formatList(tinyList)} category is noticeably small compared to others.`;
   }
 
-  // CASE 2: One dominant (Conditions 1 and 2)
   else if (top.pct >= 50) {
     insight = `<b>${top.label}</b> dominates waste generation in the ${sectorName} sector (${top.pct.toFixed(1)}%).`;
     if (lowList.length) insight += ` Other categories remain minimal: ${formatList(lowList)}.`;
     if (tinyList.length === 1) insight += ` The category ${formatList(tinyList)} shows an especially small share.`;
 
-    // add recommendation box for dominant type
     if (overallRecommendations[top.label]) {
       recHTML = `
         <div class="recommendation-box">
@@ -1702,14 +1889,12 @@ function generateSectorInsight(sectorName, pieDataForSector, sectorTotalValue, g
     }
   }
 
-  // CASE 3: Two share dominance (Conditions 3a & 3b)
   else if (pairs.filter(p => p.pct >= 20).length >= 2 && pairs.filter(p => p.pct >= 20).length < pairs.length) {
     const majors = pairs.filter(p => p.pct >= 20).map(p => p.label);
     insight = `Dominant waste types in the ${sectorName} sector are ${formatList(majors)}, sharing most of the total volume.`;
     if (lowList.length) insight += ` Smaller portions are seen in ${formatList(lowList)}.`;
     if (tinyList.length === 1) insight += ` The category ${formatList(tinyList)} has a noticeably small share.`;
 
-    // add multiple recommendation boxes for dominant types
     recHTML = majors
       .filter(l => overallRecommendations[l])
       .map(l => `
@@ -1724,14 +1909,12 @@ function generateSectorInsight(sectorName, pieDataForSector, sectorTotalValue, g
       .join('');
   }
 
-  // CASE 4: All/mostly low (Condition 4)
   else if (lowList.length === pairs.length) {
     insight = `All categories in the ${sectorName} sector show minimal proportions. This may indicate incomplete or underreported data.`;
   } else if (lowList.length) {
     insight = `Most waste types in the ${sectorName} sector have relatively low proportions. Notably low: ${formatList(lowList)}.`;
   }
 
-  // CASE 7: All different (varied but not extreme)
   else {
     const uniquePattern = new Set(pairs.map(p => Math.round(p.pct / 5) * 5)).size === pairs.length;
     if (uniquePattern && !allBalanced && top.pct < 50) {
@@ -1770,7 +1953,6 @@ function generateSectorOverviewInsight(sectorBarArr, grandTotalVal) {
   let insight = "";
   let recHTML = "";
 
-  // Recommendation text for sectors
   const sectorRecommendations = {
     Residential: "Focus on household waste segregation, composting, and localized recycling programs.",
     Commercial: "Promote waste audits for establishments and enforce segregation-at-source policies in markets, restaurants, and shops.",
@@ -1780,22 +1962,18 @@ function generateSectorOverviewInsight(sectorBarArr, grandTotalVal) {
     Health: "Ensure proper segregation of biomedical waste and coordinate with authorized hazardous waste treatment facilities."
   };
 
-  // Case 1: No data
   if (grandTotalVal === 0) {
     return "No waste totals found. Cannot determine sector distribution.";
   }
 
-  // Case 2: Even / balanced spread
   if (allBalanced && shares.length >= 3) {
     return "Waste generation is fairly balanced across sectors; no single area stands out as dominant.";
   }
 
-  // Case 3: One sector overwhelmingly dominant
   if (topPct >= 50) {
     insight = `<strong>${top.name}</strong> is the largest contributor, producing ${top.pct.toFixed(1)}% of all recorded waste.`;
     if (lowList.length) insight += ` Sectors with low generation include <b>${lowList.join(', ')}</b>.`;
 
-    // add recommendation block (only one sector)
     if (sectorRecommendations[top.name]) {
       recHTML = `
         <div class="recommendation-box">
@@ -1811,13 +1989,11 @@ function generateSectorOverviewInsight(sectorBarArr, grandTotalVal) {
     return `${insight}${recHTML}`;
   }
 
-  // Case 4: Two or more sectors are high and close
   if (topPct >= 30 && topPct < 50 && second && Math.abs(top.pct - second.pct) < 10) {
     const majorSectors = shares.filter(s => s.pct >= 30);
     insight = `Waste generation is shared across multiple sectors, led by ${majorSectors.map(s => `<strong>${s.name}</strong>`).join(' and ')}.`;
     if (lowList.length) insight += ` Some smaller sectors include <b>${lowList.join(', ')}</b>.`;
 
-    // recommendation boxes for dominant sectors
     recHTML = majorSectors
       .filter(s => sectorRecommendations[s.name])
       .map(s => `
@@ -1834,13 +2010,11 @@ function generateSectorOverviewInsight(sectorBarArr, grandTotalVal) {
     return `${insight}${recHTML}`;
   }
 
-  // Case 5: Gradual decrease (smooth slope)
   const isGradual = shares.every((s, i, arr) => !i || arr[i - 1].pct - s.pct < 8);
   if (isGradual && !allBalanced && shares.length > 3) {
     insight = `A gradual decline in waste generation is observed across sectors, with <b>${top.name}</b> contributing the most and <b>${shares[shares.length - 1].name}</b> the least.`;
     if (lowList.length) insight += ` Some sectors have minimal values such as <b>${lowList.join(', ')}</b>.`;
     
-    // add recommendation block (only one sector)
     if (sectorRecommendations[top.name]) {
       recHTML = `
         <div class="recommendation-box">
@@ -1856,7 +2030,6 @@ function generateSectorOverviewInsight(sectorBarArr, grandTotalVal) {
     return `${insight}${recHTML}`;
   }
 
-  // Case 6: Stepped decrease (clear drops)
   const hasSteps = shares.some((s, i) => i && shares[i - 1].pct - s.pct >= 10);
   if (hasSteps && !isGradual) {
     insight = `Waste generation by sector follows a stepped pattern where certain sectors contribute significantly more than others.`;
@@ -1864,12 +2037,10 @@ function generateSectorOverviewInsight(sectorBarArr, grandTotalVal) {
     return insight;
   }
 
-  // Case 7: Some sectors appear low or missing
   if (lowList.length) {
     return `Some sectors show minimal contribution (below 2%): <b>${lowList.join(', ')}</b>.`;
   }
 
-  // Default / fallback
   return "Sector contributions appear proportionate. Continue monitoring to identify future trends.";
 }
 
@@ -2055,7 +2226,6 @@ const createPieChart = (data, mode) => {
             });
           };
 
-          // Apply the left margin to both columns
           drawColumn(firstCol, chart.chartArea.left + legendLeftMargin);
           drawColumn(secondCol, chart.chartArea.left + colSpacing + legendLeftMargin);
         };
@@ -2066,17 +2236,20 @@ const createPieChart = (data, mode) => {
 
 let chart = createPieChart(summaryData, 'summary');
 
-document.getElementById('togglePieBtn').addEventListener('click', () => {
-  chart.destroy();
-  currentMode = currentMode === 'summary' ? 'detailed' : 'summary';
-  chart = createPieChart(
-    currentMode === 'summary' ? summaryData : detailedData,
-    currentMode
-  );
-  togglePieBtn.innerHTML = currentMode === 'summary'
-    ? '<i class="fa-solid fa-circle-info"></i>&nbsp; Show Detailed Pie Chart'
-    : '<i class="fa-solid fa-chart-pie"></i>&nbsp; Back to Summary Pie Chart';
-});
+const togglePieBtn = document.getElementById('togglePieBtn');
+if (togglePieBtn) {
+  togglePieBtn.addEventListener('click', () => {
+    chart.destroy();
+    currentMode = currentMode === 'summary' ? 'detailed' : 'summary';
+    chart = createPieChart(
+      currentMode === 'summary' ? summaryData : detailedData,
+      currentMode
+    );
+    togglePieBtn.innerHTML = currentMode === 'summary'
+      ? '<i class="fa-solid fa-circle-info"></i>&nbsp; Show Detailed Pie Chart'
+      : '<i class="fa-solid fa-chart-pie"></i>&nbsp; Back to Summary Pie Chart';
+  });
+}
 
 const createLegendHTML = (legendData, dataset) => {
   const total = dataset.reduce((a, b) => a + b, 0);
@@ -2105,7 +2278,6 @@ for (const [supertype, chartData] of Object.entries(barChartData)) {
   tabDiv.classList.add('bar-tabcontent');
   tabDiv.setAttribute('data-section', `types-${supertype.toLowerCase()}`);
 
-  // Header + description
   const headerDiv = document.createElement('div');
   headerDiv.classList.add('bar-header');
   headerDiv.innerHTML = `
@@ -2117,7 +2289,6 @@ for (const [supertype, chartData] of Object.entries(barChartData)) {
     </div>
   `;
 
-  // Bar chart
   const chartDiv = document.createElement('div');
   chartDiv.classList.add('bar-chart-wrapper');
   chartDiv.style.cssText = 'display: flex; justify-content: center; align-items: center; margin-bottom: 1.5rem;';
@@ -2129,7 +2300,6 @@ for (const [supertype, chartData] of Object.entries(barChartData)) {
 
   chartDiv.appendChild(canvas);
 
-  // Legend
   const legendDiv = document.createElement('div');
   legendDiv.classList.add('bar-legend-container');
   legendDiv.style.cssText = `
@@ -2141,11 +2311,9 @@ for (const [supertype, chartData] of Object.entries(barChartData)) {
   `;
   legendDiv.innerHTML = createLegendHTML(chartData.legend, chartData.data);
 
-  // Put sections together
   tabDiv.append(headerDiv, chartDiv, legendDiv);
   container.appendChild(tabDiv);
 
-  // Chart.js building
   new Chart(canvas.getContext('2d'), {
     type: 'bar',
     data: {
@@ -2227,8 +2395,6 @@ new Chart(tsCanvas.getContext('2d'), {
   }
 });
 
-console.log(tsContainer);
-
 const tsLegendDiv = document.createElement('div');
 tsLegendDiv.classList.add('bar-legend');
 tsLegendDiv.innerHTML = createLegendHTML(sectorBarData, sectorValues);
@@ -2245,7 +2411,6 @@ for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
   tabDiv.classList.add('sector-tabcontent');
   tabDiv.setAttribute('data-section', `top-${sectorName.toLowerCase()}`);
 
-  // Header + description
   const headerDiv = document.createElement('div');
   headerDiv.classList.add('sector-header');
   headerDiv.innerHTML = `
@@ -2257,7 +2422,6 @@ for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
     </div>
   `;
 
-  // Chart + legend wrapper
   const flexWrapper = document.createElement('div');
   flexWrapper.classList.add('sector-flex-wrapper');
   flexWrapper.style.cssText = `
@@ -2270,7 +2434,6 @@ for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
     width: fit-content;
   `;
 
-  // Pie chart
   const canvas = document.createElement('canvas');
   canvas.id = `pieChart-${sectorName.replace(/\s+/g, '-')}`;
   canvas.style.cssText = `
@@ -2279,7 +2442,6 @@ for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
     margin-bottom: 20px;
   `;
 
-  // Legend
   const legendDiv = document.createElement('div');
   legendDiv.classList.add('bar-legend');
   legendDiv.style.cssText = `
@@ -2298,12 +2460,10 @@ for (const [sectorName, pieData] of Object.entries(sectorPieData)) {
     pieData.data
   );
 
-  // Assemble structure
   flexWrapper.append(canvas, legendDiv);
   tabDiv.append(headerDiv, flexWrapper);
   sectorContainer.appendChild(tabDiv);
 
-  // Chart.js building
   new Chart(canvas.getContext('2d'), {
     type: 'pie',
     data: {
@@ -2346,7 +2506,7 @@ insertSectorOverviewInsight();
   const locations = {{{locations}}};
 
   if (locations.length === 0) {
-    alert("No coordinates available for the selected filters.");
+    console.warn("No coordinates available for the selected filters.");
   } else {
     const map = L.map('map').setView([locations[0].latitude, locations[0].longitude], 0);
 
@@ -2398,13 +2558,13 @@ insertSectorOverviewInsight();
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
-  flex-wrap: wrap; /* ensures stacking on smaller screens */
+  flex-wrap: wrap;
   width: 100%;
   box-sizing: border-box;
 }
 
 #summary-legend {
-  flex: 1 1 400px;       /* takes remaining space */
+  flex: 1 1 400px;
   min-width: 300px;
   max-width: 600px;
   box-sizing: border-box;
@@ -2599,250 +2759,59 @@ insertSectorOverviewInsight();
 }
 
 #trend-charts-wrapper {
-  /* display: grid; */
   gap: 1.5rem;
 }
 
-.btn-customize {
-    background: linear-gradient(135deg, #4CAF50 0%, #2d613f 100%);
-    color: white;
-    border: none;
-    padding: 0.875rem 2rem;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-    transition: all 0.3s;
+.trend-chart-box canvas {
+  background: linear-gradient(to bottom, #ffffff 0%, #f8fdf8 100%);
+  border-radius: 8px;
+  padding: 10px;
 }
 
-.btn-customize:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+.trend-chart-box {
+  position: relative;
+  overflow: visible;
 }
 
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5);
-    animation: fadeIn 0.3s;
+#trendTotalWasteContainer,
+#trendPerCapitaContainer,
+#trendByCategoryContainer,
+#trendComplianceContainer {
+  overflow-x: auto;
+  overflow-y: hidden;
+  position: relative;
+  height: 320px;
+  padding-bottom: 10px;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+#trendTotalWasteContainer::-webkit-scrollbar,
+#trendPerCapitaContainer::-webkit-scrollbar,
+#trendByCategoryContainer::-webkit-scrollbar,
+#trendComplianceContainer::-webkit-scrollbar {
+  height: 8px;
 }
 
-.modal-content {
-    background-color: #fff;
-    margin: 3% auto;
-    padding: 0;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 800px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    animation: slideDown 0.3s;
+#trendTotalWasteContainer::-webkit-scrollbar-track,
+#trendPerCapitaContainer::-webkit-scrollbar-track,
+#trendByCategoryContainer::-webkit-scrollbar-track,
+#trendComplianceContainer::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
 }
 
-@keyframes slideDown {
-    from {
-        transform: translateY(-50px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
+#trendTotalWasteContainer::-webkit-scrollbar-thumb,
+#trendPerCapitaContainer::-webkit-scrollbar-thumb,
+#trendByCategoryContainer::-webkit-scrollbar-thumb,
+#trendComplianceContainer::-webkit-scrollbar-thumb {
+  background: #4CAF50;
+  border-radius: 4px;
 }
 
-.modal-header {
-    padding: 1.5rem;
-    background: linear-gradient(135deg, #4CAF50 0%, #2d613f 100%);
-    color: white;
-    border-radius: 12px 12px 0 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.modal-header h2 {
-    margin: 0;
-    font-size: 1.4rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.close {
-    color: white;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: color 0.2s;
-}
-
-.close:hover {
-    color: #ffeb3b;
-}
-
-.modal-body {
-    padding: 2rem;
-    max-height: 65vh;
-    overflow-y: auto;
-}
-
-.modal-footer {
-    padding: 1rem 2rem;
-    background-color: #f8f9fa;
-    border-radius: 0 0 12px 12px;
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
-.filter-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.filter-tag {
-    background-color: #e8f5e9;
-    color: #2d613f;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    border: 1px solid #4CAF50;
-}
-
-.filter-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1.25rem;
-}
-
-.filter-grid label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: #2d613f;
-}
-
-.filter-grid label i {
-    margin-right: 0.5rem;
-    color: #4CAF50;
-}
-
-.filter-grid select {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 1rem;
-    transition: border-color 0.2s;
-}
-
-.filter-grid select:focus {
-    outline: none;
-    border-color: #4CAF50;
-    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
-}
-
-.checkbox-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 0.75rem;
-}
-
-.checkbox-grid label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 6px;
-    transition: background-color 0.2s;
-}
-
-.checkbox-grid label:hover {
-    background-color: #f5f5f5;
-}
-
-.checkbox-grid input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    accent-color: #4CAF50;
-}
-
-.checkbox-grid label i {
-    color: #4CAF50;
-    width: 18px;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #4CAF50 0%, #2d613f 100%);
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
-}
-
-.btn-secondary {
-    background-color: #6c757d;
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.btn-secondary:hover {
-    background-color: #5a6268;
-    transform: translateY(-2px);
-}
-
-hr {
-    margin: 1.5rem 0;
-    border: none;
-    border-top: 1px solid #ddd;
-}
-
-@media (max-width: 768px) {
-    .modal-content {
-        width: 95%;
-        margin: 2% auto;
-    }
-    
-    .filter-grid,
-    .checkbox-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .modal-footer {
-        flex-direction: column;
-    }
-    
-    .btn-primary,
-    .btn-secondary {
-        width: 100%;
-    }
+#trendTotalWasteContainer::-webkit-scrollbar-thumb:hover,
+#trendPerCapitaContainer::-webkit-scrollbar-thumb:hover,
+#trendByCategoryContainer::-webkit-scrollbar-thumb:hover,
+#trendComplianceContainer::-webkit-scrollbar-thumb:hover {
+  background: #388E3C;
 }
 
 .info-grid {
@@ -2964,8 +2933,8 @@ hr {
 }
 
 .pie-chart {
-  flex: 1 1 350px;       /* can shrink/grow, min width of 350px */
-  max-width: 500px;      /* keeps it from hogging the whole row */
+  flex: 1 1 350px;
+  max-width: 500px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -3188,6 +3157,7 @@ hr {
     page-break-inside: avoid;
   }
 }
+
 .simulation-container {
   background-color: #fdfdfd;
   padding: 1.5rem;
@@ -3229,6 +3199,7 @@ button:hover {
   background-color: #f9fff9;
   font-family: 'Segoe UI', sans-serif;
 }
+
 #simulationChart {
   background: #f8fdf8;
   border-radius: 12px;
