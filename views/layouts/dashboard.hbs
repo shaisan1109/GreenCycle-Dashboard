@@ -743,7 +743,11 @@ toggleBtn.addEventListener("click", () => {
   document.querySelectorAll("#pdfModal input[type=checkbox]").forEach(cb => {
     cb.checked = allSelected;
     cb.indeterminate = false;
+
+    // Trigger change event manually (simulation section)
+    cb.dispatchEvent(new Event("change"));
   });
+
   toggleBtn.textContent = allSelected ? "Deselect All" : "Select All";
 });
 
