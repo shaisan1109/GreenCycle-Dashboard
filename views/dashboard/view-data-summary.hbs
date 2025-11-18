@@ -198,7 +198,7 @@
         <i class="fa-solid fa-trash"></i> Total Waste Generation Trend with 3rd Degree Polynomial Regression
       </h3>
       <div style="overflow-x: auto; overflow-y: hidden; width: 100%;">
-        <div style="position: relative; height: 320px; min-width: 100%;" id="trendTotalWasteContainer">
+        <div style="position: relative; height: 420px; min-width: 100%;" id="trendTotalWasteContainer">
           <canvas id="trendTotalWaste"></canvas>
         </div>
       </div>
@@ -214,7 +214,7 @@
         <i class="fa-solid fa-user"></i> Per Capita Waste Trend
       </h3>
       <div style="overflow-x: auto; overflow-y: hidden; width: 100%;">
-        <div style="position: relative; height: 320px; min-width: 100%;" id="trendPerCapitaContainer">
+        <div style="position: relative; height: 420px; min-width: 100%;" id="trendPerCapitaContainer">
           <canvas id="trendPerCapita"></canvas>
         </div>
       </div>
@@ -226,7 +226,7 @@
         <i class="fa-solid fa-layer-group"></i> Waste by Category Over Time
       </h3>
       <div style="overflow-x: auto; overflow-y: hidden; width: 100%;">
-        <div style="position: relative; height: 350px; min-width: 100%;" id="trendByCategoryContainer">
+        <div style="position: relative; height: 420px; min-width: 100%;" id="trendByCategoryContainer">
           <canvas id="trendByCategory"></canvas>
         </div>
       </div>
@@ -238,7 +238,7 @@
         <i class="fa-solid fa-check-double"></i> Compliance Rate Trend
       </h3>
       <div style="overflow-x: auto; overflow-y: hidden; width: 100%;">
-        <div style="position: relative; height: 320px; min-width: 100%;" id="trendComplianceContainer">
+        <div style="position: relative; height: 420px; min-width: 100%;" id="trendComplianceContainer">
           <canvas id="trendCompliance"></canvas>
         </div>
       </div>
@@ -1064,6 +1064,49 @@ function evaluatePolynomial(coefficients, x) {
   return result;
 }
 
+function generateCompletePeriods(sortedPeriods, aggregation) {
+  if (sortedPeriods.length === 0) return [];
+
+  const start = sortedPeriods[0];
+  const end = sortedPeriods[sortedPeriods.length - 1];
+
+  const result = [];
+  let cursor = start;
+
+  while (cursor <= end) {
+    result.push(cursor);
+    cursor = nextPeriod(cursor, aggregation);
+  }
+
+  return result;
+}
+
+function nextPeriod(period, aggregation) {
+  if (aggregation === 'monthly') {
+    const [y, m] = period.split('-').map(Number);
+    const nextM = m === 12 ? 1 : m + 1;
+    const nextY = m === 12 ? y + 1 : y;
+    return `${nextY}-${String(nextM).padStart(2, '0')}`;
+  }
+
+  if (aggregation === 'weekly') {
+    const year = Number(period.slice(0, 4));
+    const week = Number(period.slice(4)); // YEARWEEK gives YYYYWW
+    return week === 53
+      ? `${year + 1}01`
+      : `${year}${String(week + 1).padStart(2, '0')}`;
+  }
+
+  if (aggregation === 'yearly') {
+    // For yearly we simply increment year
+    const y = Number(period);
+    return String(y + 1);
+  }
+
+  // default daily (rarely used here)
+  return period;
+}
+
 // Wait for both DOM and Chart.js to be ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initCharts);
@@ -1155,6 +1198,8 @@ function initCharts() {
     
     const aggregatedData = aggregateDataWithAveraging(rawData, aggregation);
     const sortedPeriods = Object.keys(aggregatedData).sort();
+    const completePeriods = generateCompletePeriods(sortedPeriods, aggregation);
+
     console.log('📊 Sorted periods:', sortedPeriods.length);
     
     if (sortedPeriods.length === 0) {
@@ -1162,17 +1207,35 @@ function initCharts() {
       return;
     }
     
-    const labels = sortedPeriods.map(p => formatPeriodLabel(p, aggregation));
-    const totalWeights = sortedPeriods.map(p => aggregatedData[p].avgTotalWeight);
-    const perCapitaValues = sortedPeriods.map(p => aggregatedData[p].avgPerCapita);
-    const complianceRates = sortedPeriods.map(p => aggregatedData[p].complianceRate);
+    const labels = completePeriods.map(p => formatPeriodLabel(p, aggregation));
+    const totalWeights = completePeriods.map(p =>
+      aggregatedData[p] ? aggregatedData[p].avgTotalWeight : null
+    );
+    const perCapitaValues = completePeriods.map(p =>
+      aggregatedData[p] ? aggregatedData[p].avgPerCapita : null
+    );
+    const complianceRates = completePeriods.map(p =>
+      aggregatedData[p] ? aggregatedData[p].complianceRate : null
+    );
     
     console.log('📈 Data points:', totalWeights.length);
     console.log('📊 Sample weights:', totalWeights.slice(0, 3));
     console.log('📊 Compliance rates:', complianceRates.slice(0, 3));
     
     const xValues = Array.from({ length: totalWeights.length }, (_, i) => i);
-    const regression = calculatePolynomialRegression(xValues, totalWeights, 3);
+
+    const filteredX = [];
+    const filteredY = [];
+
+    for (let i = 0; i < totalWeights.length; i++) {
+      if (totalWeights[i] !== null) {
+        filteredX.push(i);
+        filteredY.push(totalWeights[i]);
+      }
+    }
+
+    const regression = calculatePolynomialRegression(filteredX, filteredY, 3);
+
     console.log('📐 Regression R²:', regression.rSquared);
     
     const trendValuesActual = xValues.map(x => evaluatePolynomial(regression.coefficients, x));
@@ -1204,7 +1267,7 @@ function initCharts() {
     console.log('🎨 Creating Chart 1: Total Waste');
     
     const minWidth = 1400;
-    const pixelsPerLabel = 120;
+    const pixelsPerLabel = 50;
     const containerWidth = Math.max(minWidth, allLabels.length * pixelsPerLabel);
     
     const totalWasteContainer = document.getElementById('trendTotalWasteContainer');
@@ -1251,7 +1314,7 @@ function initCharts() {
               borderWidth: 2,
               fill: false,
               tension: 0.3,
-              spanGaps: false
+              spanGaps: true
             },
             {
               label: 'Trend Line (Actual)',
@@ -1262,7 +1325,7 @@ function initCharts() {
               tension: 0.4,
               pointRadius: 0,
               pointHoverRadius: 5,
-              spanGaps: false
+              spanGaps: true
             },
             {
               label: 'Trend Line (Projected)',
@@ -1274,7 +1337,7 @@ function initCharts() {
               tension: 0.4,
               pointRadius: 0,
               pointHoverRadius: 5,
-              spanGaps: false
+              spanGaps: true
             },
             {
               label: 'Projected Values',
@@ -1289,7 +1352,7 @@ function initCharts() {
               pointBorderColor: '#fff',
               pointBorderWidth: 2,
               borderWidth: 3,
-              spanGaps: false
+              spanGaps: true
             }
           ]
         },
@@ -1393,7 +1456,8 @@ function initCharts() {
             fill: true,
             tension: 0.4,
             pointRadius: 5,
-            borderWidth: 3
+            borderWidth: 3,
+            spanGaps: true
           }]
         },
         options: {
@@ -1524,7 +1588,8 @@ function initCharts() {
             fill: true,
             tension: 0.4,
             pointRadius: 5,
-            borderWidth: 3
+            borderWidth: 3,
+            spanGaps: true
           }]
         },
         options: {
