@@ -197,8 +197,26 @@
       <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
         <i class="fa-solid fa-trash"></i> Total Waste Generation Trend with 3rd Degree Polynomial Regression
       </h3>
-      <div style="overflow-x: auto; overflow-y: hidden; width: 100%;">
-        <div style="position: relative; height: 420px; min-width: 100%;" id="trendTotalWasteContainer">
+
+      <!-- Zoom -->
+      <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
+        <label style="font-size: 0.85rem; margin-right: 0.5rem; color: #2d613f;">
+          Zoom Width:
+        </label>
+        <input 
+          type="range" 
+          class="zoom-range" 
+          data-target="trendTotalWasteContainer"
+          min="40" 
+          max="200" 
+          value="50" 
+          step="5"
+          style="width: 220px; cursor: pointer;"
+        >
+      </div>
+
+      <div class="chart-viewport">
+        <div id="trendTotalWasteContainer" class="chart-content">
           <canvas id="trendTotalWaste"></canvas>
         </div>
       </div>
@@ -213,8 +231,26 @@
       <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
         <i class="fa-solid fa-user"></i> Per Capita Waste Trend
       </h3>
-      <div style="overflow-x: auto; overflow-y: hidden; width: 100%;">
-        <div style="position: relative; height: 420px; min-width: 100%;" id="trendPerCapitaContainer">
+
+      <!-- Zoom -->
+      <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
+        <label style="font-size: 0.85rem; margin-right: 0.5rem; color: #2d613f;">
+          Zoom Width:
+        </label>
+        <input 
+          type="range" 
+          class="zoom-range" 
+          data-target="trendPerCapitaContainer"
+          min="40" 
+          max="200" 
+          value="50" 
+          step="5"
+          style="width: 220px; cursor: pointer;"
+        >
+      </div>
+
+      <div class="chart-viewport">
+        <div id="trendPerCapitaContainer" class="chart-content">
           <canvas id="trendPerCapita"></canvas>
         </div>
       </div>
@@ -225,8 +261,26 @@
       <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
         <i class="fa-solid fa-layer-group"></i> Waste by Category Over Time
       </h3>
-      <div style="overflow-x: auto; overflow-y: hidden; width: 100%;">
-        <div style="position: relative; height: 420px; min-width: 100%;" id="trendByCategoryContainer">
+
+      <!-- Zoom -->
+      <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
+        <label style="font-size: 0.85rem; margin-right: 0.5rem; color: #2d613f;">
+          Zoom Width:
+        </label>
+        <input 
+          type="range" 
+          class="zoom-range" 
+          data-target="trendByCategoryContainer"
+          min="40" 
+          max="200" 
+          value="50" 
+          step="5"
+          style="width: 220px; cursor: pointer;"
+        >
+      </div>
+
+      <div class="chart-viewport">
+        <div id="trendByCategoryContainer" class="chart-content">
           <canvas id="trendByCategory"></canvas>
         </div>
       </div>
@@ -237,8 +291,26 @@
       <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
         <i class="fa-solid fa-check-double"></i> Compliance Rate Trend
       </h3>
-      <div style="overflow-x: auto; overflow-y: hidden; width: 100%;">
-        <div style="position: relative; height: 420px; min-width: 100%;" id="trendComplianceContainer">
+
+      <!-- Zoom -->
+      <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
+        <label style="font-size: 0.85rem; margin-right: 0.5rem; color: #2d613f;">
+          Zoom Width:
+        </label>
+        <input 
+          type="range" 
+          class="zoom-range" 
+          data-target="trendComplianceContainer"
+          min="40" 
+          max="200" 
+          value="50" 
+          step="5"
+          style="width: 220px; cursor: pointer;"
+        >
+      </div>
+
+      <div class="chart-viewport">
+        <div id="trendComplianceContainer" class="chart-content">
           <canvas id="trendCompliance"></canvas>
         </div>
       </div>
@@ -493,49 +565,6 @@ applyBtn.onclick = () => {
         window.location.href = currentUrl.toString();
     }
 }
-</script>
-
-<!-- Chart loading modal -->
-<script>
-  // --- Chart rendering loader ---
-  const chartModal = document.getElementById('chartLoadingModal');
-  const chartRenderTimeout = 300;
-  const maxWaitTime = 10000;
-  let showModalTimeout, hideModalTimeout;
-
-  function showChartLoader() {
-    if (chartModal) {
-      showModalTimeout = setTimeout(() => {
-        chartModal.style.display = 'block';
-      }, chartRenderTimeout);
-    }
-  }
-
-  function hideChartLoader() {
-    if (chartModal) {
-      clearTimeout(showModalTimeout);
-      clearTimeout(hideModalTimeout);
-      chartModal.style.display = 'none';
-    }
-  }
-
-  showChartLoader();
-  hideModalTimeout = setTimeout(hideChartLoader, maxWaitTime);
-
-  function whenChartsReady(callback) {
-    const checkReady = () => {
-      const charts = Object.keys(Chart.instances || {}).length;
-      const canvasList = document.querySelectorAll('canvas');
-      const allRendered = Array.from(canvasList).every(c => c.clientHeight > 0 && c.clientWidth > 0);
-      if (charts > 0 && allRendered) callback();
-      else requestAnimationFrame(checkReady);
-    };
-    requestAnimationFrame(checkReady);
-  }
-
-  whenChartsReady(() => {
-    setTimeout(hideChartLoader, 500);
-  });
 </script>
 
 <!-- DEBUG + WORKING handler -->
@@ -2445,6 +2474,52 @@ insertSectorOverviewInsight();
 
 </script>
 
+<!-- Trend zoom script -->
+<script>
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.zoom-range').forEach(slider => {
+    const targetId = slider.getAttribute('data-target');
+    const container = document.getElementById(targetId);
+
+    if (!container) {
+      console.error(`[Zoom] no element found for data-target="${targetId}"`);
+      return;
+    }
+
+    // This is the width you see on screen when page loads.
+    const initialWidth = container.getBoundingClientRect().width;
+
+    // Store the initial width as our 100% reference.
+    let baseWidth = initialWidth;
+
+    function applyZoom(rawValue) {
+      const percent = Number(rawValue);
+      if (isNaN(percent)) return;
+
+      // Convert 25–200% slider into pixel width
+      const newWidth = Math.max(200, baseWidth * (percent / 100));
+
+      container.style.width = `${newWidth}px`;
+      container.style.minWidth = `${newWidth}px`;
+    }
+
+    // Initialize the zoom according to current slider value
+    applyZoom(slider.value);
+
+    // Update continuously as user drags
+    slider.addEventListener('input', e => applyZoom(e.target.value));
+
+    // If the viewport changes size, recalibrate the base width
+    window.addEventListener('resize', () => {
+      baseWidth = container.getBoundingClientRect().width;
+      applyZoom(slider.value);
+    });
+  });
+});
+
+</script>
+
 <!-- Map view script -->
 <script>
   const locations = {{{locations}}};
@@ -2482,6 +2557,25 @@ insertSectorOverviewInsight();
 <script src="/js/tabs-sector-pie.js"></script>
 
 <style>
+
+.chart-viewport {
+  overflow-x: auto; overflow-y: hidden; width: 100%;
+}
+
+.chart-content {
+  width: 100%;     /* default baseline */
+  min-width: 300px;
+}
+
+.zoom-range {
+  accent-color: #2d613f; 
+}
+
+.chart-zoom-slider {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 
 .recommendation-box {
   background: #fff;
@@ -2694,6 +2788,22 @@ insertSectorOverviewInsight();
   border-radius: 8px;
   margin-bottom: 1.5rem;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.trend-chart-box canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+}
+
+/* Prevent Chart.js from keeping a minimum width */
+.chart-canvas-wrapper,
+.trend-chart-box [id$="Container"] {
+  min-width: 0 !important;
+}
+
+[style*="overflow-x: auto"] {
+  min-width: 0 !important;
 }
 
 .trend-chart-box h3 {
