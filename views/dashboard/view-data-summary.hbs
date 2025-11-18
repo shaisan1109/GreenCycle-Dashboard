@@ -246,70 +246,45 @@
   </div>
 </div>
 
-<!-- Waste Simulation Forecast Section -->
-<div class="form-section" style="background-color: #f4fff6; padding: 2rem; border-radius: 12px; border-left: 6px solid #43a047;" data-section="simulation">
-  <h2 style="color: #2e7d32; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center;">
-    <i class="fa-solid fa-flask" style="margin-right: 10px; color: #43a047;"></i>
-    Waste Simulation Forecast
-  </h2>
+<!-- SIMULATION UI (REPLACE existing simulation JS block with this ENTIRE block) -->
+<div class="form-section" data-section="simulation" style="background:#f4fff6;padding:1rem;border-radius:8px">
+  <h3>Waste Simulation Forecast</h3>
 
-  <p style="color: #555; margin-bottom: 1.5rem;">
-    Run predictive models to simulate future waste generation based on trends and company participation data.
-    Use the settings below to adjust model type, forecast horizon, and mode.
-  </p>
-
-  <!-- Simulation Controls -->
-  <div class="no-print" style="background: #e8f5e9; padding: 1rem; border-radius: 8px;">
+  <div style="display:flex;gap:0.5rem;align-items:flex-end;margin-bottom:0.75rem">
     <div>
-      <label for="forecastMonths">Forecast Horizon (months)</label>
-      <input type="number" id="forecastMonths" class="form-control" value="12" min="1" max="60">
+      <label for="forecastMonths">Forecast horizon (months)</label><br>
+      <input id="forecastMonths" type="number" value="12" min="1" style="width:110px">
     </div>
 
     <div>
-      <label for="modelSelect">Model Type</label>
-      <select id="modelSelect">
-        <option value="hybrid">Hybrid (All)</option>
-        <option value="arima">ARIMA</option>
-        <option value="sd">System Dynamics</option>
-        <option value="mc">Monte Carlo</option>
-      </select>
+      <label for="historyWindow">Reference window (months)</label><br>
+      <input id="historyWindow" type="number" value="12" min="1" style="width:110px">
     </div>
 
     <div>
-      <div style="display: flex;">
-        <input type="checkbox" id="deterministic">&nbsp; Deterministic Mode
-      </div>
-
-      <div style="display: flex;">
-        <input type="checkbox" id="interpolate" checked>&nbsp; Interpolate Missing
-      </div>
+      <label for="projectedCompanies">Projected companies (optional)</label><br>
+      <input id="projectedCompanies" type="number" placeholder="e.g. 20" style="width:140px">
     </div>
 
     <div>
-      <button class="btn btn-success" onclick="runSimulation()">
-        <i class="fa-solid fa-play"></i> Run Simulation
-      </button>
+      <button id="runSimBtn" class="btn btn-success" style="height:38px">Run Simulation</button>
     </div>
   </div>
 
-  <!-- Chart Display -->
-  <div style="border: none;">
-    <div style="background-color: #ffffff; border-radius: 8px;">
-      <canvas id="simulationChart" height="600"></canvas>
-    </div>
+  <div id="simStatus" style="color:#b71c1c;margin-bottom:0.5rem"></div>
+
+  <div style="background:#fff;padding:0.5rem;border-radius:8px">
+    <canvas id="simulationChart" height="300"></canvas>
   </div>
 
-  <!-- Diagnostics Table -->
-  <div>
-    <h3 id="simHeader" style="text-align: center;">
-    </h3>
-    <div>
-      <table style="border: 2px solid lightgray; border-radius: 7px;">
-        <tbody id="simDiagnostics" style="font-size: 0.9rem;"></tbody>
-      </table>
-    </div>
+  <div style="margin-top:0.75rem">
+    <h4 id="simHeader" style="margin:0"></h4>
+    <table id="simDiagnostics" style="width:100%;font-size:0.95rem"></table>
   </div>
 </div>
+
+
+
 
 <!-- Compliance Overview -->
 <div class="form-section" style="background-color: rgb(240, 255, 240); padding: 10px 15px; border-left: 4px solid #4caf50; margin-bottom: 15px;">
@@ -563,215 +538,116 @@ applyBtn.onclick = () => {
   });
 </script>
 
-<!-- Run Simulation -->
+<!-- DEBUG + WORKING handler -->
 <script>
+(function() {
+  // ensure window.currentFilters exists (if server didn't inject it)
+  if (!window.currentFilters) {
+    // fallback: empty filters but we show a warning. Replace with server-side injection in production.
+    window.currentFilters = window.currentFilters || {};
+    console.warn('window.currentFilters missing — simulation will run on all approved entries until server injects filters.');
+    document.getElementById('simStatus').innerText = 'Warning: currentFilters not set by server — running on all approved entries.';
+  }
 
-async function runSimulation() {
-  const deterministic = document.getElementById("deterministic").checked;
-  const interpolate = document.getElementById("interpolate").checked;
-  const forecastMonths = parseInt(document.getElementById("forecastMonths").value, 10);
-  const selectedModel = document.getElementById("modelSelect").value;
-
-  const btn = document.querySelector('button[onclick="runSimulation()"]');
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Running...';
-  btn.disabled = true;
-
-  try {
-    const res = await fetch("/api/simulate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        horizon: forecastMonths,
-        deterministic,
-        interpolate,
-        model: selectedModel,
-      }),
-    });
-
-    const json = await res.json();
-    console.table(json.forecast.arima);
-    console.table(json.forecast.sd);
-    console.table(json.forecast.mc);
-
-    if (!res.ok || !json.forecast) {
-      console.error("❌ Simulation failed:", json.error);
-      alert("Simulation failed: " + (json.error || "No forecast data"));
+  // Safe attach after DOM content loaded
+  function init() {
+    const btn = document.getElementById('runSimBtn');
+    if (!btn) {
+      console.error('Run Simulation button not found (id=runSimBtn).');
       return;
     }
 
-    renderSimulationChart(json.forecast, selectedModel);
-    renderDiagnostics(json.diagnostics);
-  } catch (err) {
-    console.error("❌ Simulation fetch error:", err);
-    alert("Simulation fetch error: see console");
-  } finally {
-    btn.innerHTML = '<i class="fa-solid fa-play"></i> Run Simulation';
-    btn.disabled = false;
-  }
-}
+    btn.addEventListener('click', async function handleClick(e) {
+      e.preventDefault();
+      document.getElementById('simStatus').innerText = ''; // clear status
+      btn.disabled = true;
+      btn.innerText = 'Running...';
 
-function renderSimulationChart(forecast, selectedModel) {
-  const ctx = document.getElementById("simulationChart").getContext("2d");
-  if (!ctx) {
-    console.error("⚠️ No canvas context found for #simulationChart!");
-    return;
-  }
+      try {
+        const horizon = Number(document.getElementById('forecastMonths').value) || 12;
+        const windowMonths = Number(document.getElementById('historyWindow').value) || 12;
+        const projVal = document.getElementById('projectedCompanies').value;
+        const projectedCompanyCount = projVal ? Number(projVal) : null;
+        const filters = window.currentFilters || {};
 
-  if (window.simChart instanceof Chart) {
-    console.log("🧹 Destroying old chart instance...");
-    window.simChart.destroy();
-  }
+        const payload = { horizon, windowMonths, projectedCompanyCount, ...filters };
+        console.log('[SIM] Sending payload to /api/simulate:', payload);
 
-  const labels = (
-  forecast[selectedModel]?.length
-    ? forecast[selectedModel].map((d) => `T+${d.step}`)
-    : forecast.arima?.length
-    ? forecast.arima.map((d) => `T+${d.step}`)
-    : forecast.sd?.length
-    ? forecast.sd.map((d) => `T+${d.step}`)
-    : forecast.mc?.length
-    ? forecast.mc.map((d) => `T+${d.step}`)
-    : []
-);
+        const res = await fetch('/api/simulate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
 
-  const datasets = [];
+        // Network-level check
+        if (!res) throw new Error('No response from fetch()');
 
-  if (selectedModel === "arima" || selectedModel === "hybrid") {
-    if (forecast.arima) {
-      datasets.push({
-        label: "ARIMA",
-        data: forecast.arima.map((d) => d.mean),
-        borderColor: "rgb(75, 192, 192)",
-        borderWidth: 2.5,
-        fill: false,
-        tension: 0.3,
-      });
-    }
-  }
+        console.log('[SIM] HTTP status:', res.status);
+        const json = await res.json().catch(err => {
+          throw new Error('Response is not valid JSON: ' + err.message);
+        });
 
-  if (selectedModel === "sd" || selectedModel === "hybrid") {
-    if (forecast.sd) {
-      datasets.push({
-        label: "System Dynamics",
-        data: forecast.sd.map((d) => d.mean),
-        borderColor: "rgb(255, 205, 86)",
-        borderWidth: 2.5,
-        fill: false,
-        tension: 0.3,
-      });
-    }
+        console.log('[SIM] Response JSON:', json);
+
+        if (!res.ok) {
+          const msg = json && (json.error || json.message) ? (json.error || json.message) : 'Server returned non-OK';
+          document.getElementById('simStatus').innerText = 'Simulation failed: ' + msg;
+          console.error('Simulation failed:', msg, json);
+          return;
+        }
+
+        if (!json.forecast || !Array.isArray(json.forecast)) {
+          document.getElementById('simStatus').innerText = 'Simulation returned no forecast.';
+          console.warn('No forecast in response:', json);
+          return;
+        }
+
+        document.getElementById('simStatus').innerText = 'Simulation completed.';
+        renderSimulationChart(json.forecast);
+        renderDiagnostics(json.diagnostics || {});
+      } catch (err) {
+        console.error('[SIM] Error running simulation:', err);
+        document.getElementById('simStatus').innerText = 'Error: ' + (err.message || 'See console');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Run Simulation';
+      }
+    });
   }
 
-  if (selectedModel === "mc" || selectedModel === "hybrid") {
-    if (forecast.mc) {
-      datasets.push({
-        label: "Monte Carlo",
-        data: forecast.mc.map((d) => d.mean),
-        borderColor: "rgb(255, 99, 132)",
-        borderDash: [6, 4],
-        borderWidth: 2.5,
-        fill: false,
-        tension: 0.3,
-      });
-    }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
   }
 
-  if (datasets.length === 0) {
-    console.warn("⚠️ No datasets to render!");
-    return;
+  // Chart rendering (basic)
+  function renderSimulationChart(forecast) {
+    const ctx = document.getElementById('simulationChart').getContext('2d');
+    if (window.simChart) window.simChart.destroy();
+    const labels = forecast.map(f => f.period);
+    const data = forecast.map(f => f.mean);
+    window.simChart = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets: [{ label: 'Forecast (kg)', data, borderColor: 'rgb(75,192,192)', fill:false }] },
+      options: { responsive:true, maintainAspectRatio:false }
+    });
   }
 
-  window.simChart = new Chart(ctx, {
-    type: "line",
-    data: { labels, datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: "bottom",
-          labels: { color: "#2e7d32", font: { size: 13 } },
-        },
-        title: {
-          display: true,
-          text:
-            "Waste Simulation Forecast (" +
-            (selectedModel === "hybrid" ? "All Models" : selectedModel.toUpperCase()) +
-            ")",
-          color: "#1b5e20",
-          font: { size: 16, weight: "600" },
-        },
-        tooltip: {
-          backgroundColor: "rgba(46, 125, 50, 0.9)",
-          titleColor: "#fff",
-          bodyColor: "#fff",
-          cornerRadius: 6,
-          padding: 12,
-        },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: { color: "rgba(76,175,80,0.15)" },
-          ticks: { color: "#388e3c", font: { size: 12 } },
-          title: {
-            display: true,
-            text: "Waste (kg)",
-            color: "#2e7d32",
-            font: { weight: "600" },
-          },
-        },
-        x: {
-          grid: { color: "rgba(76,175,80,0.1)" },
-          ticks: { color: "#388e3c", font: { size: 12 } },
-          title: {
-            display: true,
-            text: "Forecast Step",
-            color: "#2e7d32",
-            font: { weight: "600" },
-          },
-        },
-      },
-      elements: {
-        line: { borderWidth: 3, tension: 0.3 },
-        point: { radius: 3, hoverRadius: 6 },
-      },
-    },
-  });
-}
+  function renderDiagnostics(d) {
+    const el = document.getElementById('simDiagnostics');
+    const diag = d || {};
+    el.innerHTML = `
+      <tr><th style="text-align:left;padding:6px">Horizon</th><td style="padding:6px">${diag.horizon || '-'}</td></tr>
+      <tr><th style="text-align:left;padding:6px">WindowMonths</th><td style="padding:6px">${diag.windowMonths || '-'}</td></tr>
+      <tr><th style="text-align:left;padding:6px">Historical months used</th><td style="padding:6px">${diag.nHistoricalMonths || '-'}</td></tr>
+      <tr><th style="text-align:left;padding:6px">Actual companies</th><td style="padding:6px">${diag.actualCompanyCount || '-'}</td></tr>
+      <tr><th style="text-align:left;padding:6px">Target companies</th><td style="padding:6px">${diag.targetCompanies || '-'}</td></tr>
+      <tr><th style="text-align:left;padding:6px">Scale factor</th><td style="padding:6px">${diag.scaleFactor || '-'}</td></tr>
+    `;
+  }
 
-function renderDiagnostics(diagnostics, companies) {
-  const diagHeader = document.getElementById("simHeader");
-  const diagEl = document.getElementById("simDiagnostics");
-
-  diagHeader.innerHTML = "Simulation Diagnostics";
-  diagEl.innerHTML = `
-    <tr><th>Forecast Horizon</th><td>${diagnostics.horizon} months</td></tr>
-    <tr><th>Deterministic</th><td>${diagnostics.deterministic ? "Yes" : "No"}</td></tr>
-    <tr><th>Interpolation</th><td>${diagnostics.interpolate ? "Yes" : "No"}</td></tr>
-    <tr><th>Model</th><td>${diagnostics.model.toUpperCase()}</td></tr>
-    <tr><th>Companies (by size)</th>
-      <td>
-        Small: ${companies?.small || 0}, 
-        Medium: ${companies?.medium || 0}, 
-        Large: ${companies?.large || 0}
-      </td>
-    </tr>
-  `;
-}
-</script>
-
-<!-- Toggle participants section -->
-<script>
-
-function toggleCategory(header) {
-  const category = header.parentElement;
-  category.classList.toggle('open');
-
-  const content = category.querySelector('.participants-list');
-  content.style.display = content.style.display === 'block' ? 'none' : 'block';
-}
-
+})(); // IIFE
 </script>
 
 <!-- CORRECTED - Retrieves Individual Category/Sector Compliance Status -->

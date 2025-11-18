@@ -97,7 +97,7 @@ import {
   updateWasteQuotaForOrg,
 updateSectorQuotaForOrg,
 getTimeSeriesData,
-runHybridSimulation, getCompanyCounts,
+runSimulation,
 } from './database.js'
 
 // File Upload
@@ -3229,53 +3229,38 @@ app.get('/control-panel/entry-statistics', async (req, res) => {
   });
 })
 
-// server.js — /api/simulation
-
-app.post("/api/simulate", async (req, res) => {
+// server.js — simulation endpoint
+app.post('/api/simulate', async (req, res) => {
   try {
-    const { horizon, deterministic, interpolate, model, data_entry_id } = req.body;
-    console.log("[API] /api/simulate request received", {
+    const {
       horizon,
-      deterministic,
-      interpolate,
-      model,
-      data_entry_id
-    });
+      windowMonths,
+      projectedCompanyCount,
+      title,
+      locationCode,
+      name,
+      companyName,
+      startDate,
+      endDate
+    } = req.body;
 
-    // ✅ Fetch real company data from DB
-    const companiesSummary = await getCompanyCounts();
-    console.log("[API] company summary:", companiesSummary);
+    const filters = { title, locationCode, name, companyName, startDate, endDate };
 
-    // ✅ Run simulation (using your actual function)
-    const { forecast, diagnostics } = await runHybridSimulation({
-      horizon,
-      deterministic,
-      interpolate,
-      model,
-      data_entry_id
-    });
+    console.log('[API] /api/simulate request', { horizon, windowMonths, projectedCompanyCount, filters });
 
-    console.log("[API] Simulation complete. Returning response.");
+    const result = await runSimulation(
+      Number(horizon) || 12,
+      filters,
+      Number(windowMonths) || 12,
+      projectedCompanyCount ? Number(projectedCompanyCount) : null
+    );
 
-    res.json({
-      forecast,
-      diagnostics: {
-        ...diagnostics,
-        horizon,
-        deterministic,
-        interpolate,
-        model
-      },
-      companies: companiesSummary
-    });
+    res.json({ success: true, ...result });
   } catch (err) {
-    console.error("❌ Simulation API error:", err);
-    res.status(500).json({ error: err.message });
+    console.error('[SIM] Simulation fetch error:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
-
-
-
 
 // Compliance API for dropdown
 app.get('/api/compliance', async (req, res) => {
