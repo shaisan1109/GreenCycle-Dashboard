@@ -185,7 +185,7 @@
   <p style="color: #555; margin-bottom: 1.5rem;">
     Visualize waste generation patterns over time using averaging aggregation:<br>
     <h2>
-      <math style="background-color: #fff; padding: 10px; border-radius: 5px;">y(fc) = 1/(T2-T1) × Σy(i)</math>
+      y(fc) = 1/(T<sub>2</sub> - T<sub>1</sub>) × &sum;y(i)
     </h2>
     Use the aggregation selector to switch between monthly or yearly views. You may drag the horizontal scrollbar on each chart to view further time periods.
   </p>
@@ -813,6 +813,44 @@ function getTimeSpanInDays(startDate, endDate) {
   return Math.round((endDate - startDate) / msPerDay) + 1;
 }
 
+// Generate continuous list of periods between startPeriod and endPeriod
+function generateCompletePeriods(sortedPeriods, aggregation) {
+  if (sortedPeriods.length === 0) return [];
+
+  const start = sortedPeriods[0];
+  const end = sortedPeriods[sortedPeriods.length - 1];
+
+  const result = [];
+  let cursor = start;
+
+  while (cursor <= end) {
+    result.push(cursor);
+    cursor = nextPeriod(cursor, aggregation);  // monthly or weekly
+  }
+
+  return result;
+}
+
+// Time increments
+function nextPeriod(period, aggregation) {
+  if (aggregation === 'monthly') {
+    const [y, m] = period.split('-').map(Number);
+    const nextM = m === 12 ? 1 : m + 1;
+    const nextY = m === 12 ? y + 1 : y;
+    return `${nextY}-${String(nextM).padStart(2, '0')}`;
+  }
+
+  if (aggregation === 'weekly') {
+    const year = Number(period.slice(0, 4));
+    const week = Number(period.slice(4)); // YEARWEEK produces YYYYWW
+    return week === 53
+      ? `${year + 1}01`
+      : `${year}${String(week + 1).padStart(2, '0')}`;
+  }
+
+  return period; // daily not used here
+}
+
 // Expected category and sector names
 const CATEGORY_NAMES = ['Biodegradable', 'Recyclable', 'Residual', 'Special/Hazardous'];
 const SECTOR_NAMES = ['Residential', 'Commercial', 'Institutional', 'Industrial', 'Health', 'Agriculture and Livestock'];
@@ -1155,6 +1193,7 @@ function initCharts() {
     
     const aggregatedData = aggregateDataWithAveraging(rawData, aggregation);
     const sortedPeriods = Object.keys(aggregatedData).sort();
+    const completePeriods = generateCompletePeriods(sortedPeriods, aggregation);
     console.log('📊 Sorted periods:', sortedPeriods.length);
     
     if (sortedPeriods.length === 0) {
@@ -1162,17 +1201,35 @@ function initCharts() {
       return;
     }
     
-    const labels = sortedPeriods.map(p => formatPeriodLabel(p, aggregation));
-    const totalWeights = sortedPeriods.map(p => aggregatedData[p].avgTotalWeight);
-    const perCapitaValues = sortedPeriods.map(p => aggregatedData[p].avgPerCapita);
-    const complianceRates = sortedPeriods.map(p => aggregatedData[p].complianceRate);
+    const labels = completePeriods.map(p => formatPeriodLabel(p, aggregation));
+    const totalWeights = completePeriods.map(p =>
+      aggregatedData[p] ? aggregatedData[p].avgTotalWeight : null
+    );
+    const perCapitaValues = completePeriods.map(p =>
+      aggregatedData[p] ? aggregatedData[p].avgPerCapita : null
+    );
+    const complianceRates = completePeriods.map(p =>
+      aggregatedData[p] ? aggregatedData[p].complianceRate : null
+    );
     
     console.log('📈 Data points:', totalWeights.length);
     console.log('📊 Sample weights:', totalWeights.slice(0, 3));
     console.log('📊 Compliance rates:', complianceRates.slice(0, 3));
     
     const xValues = Array.from({ length: totalWeights.length }, (_, i) => i);
-    const regression = calculatePolynomialRegression(xValues, totalWeights, 3);
+
+    // Get regression
+    const filteredX = [];
+    const filteredY = [];
+
+    for (let i = 0; i < totalWeights.length; i++) {
+      if (totalWeights[i] !== null) {
+        filteredX.push(i);
+        filteredY.push(totalWeights[i]);
+      }
+    }
+
+    const regression = calculatePolynomialRegression(filteredX, filteredY, 3);
     console.log('📐 Regression R²:', regression.rSquared);
     
     const trendValuesActual = xValues.map(x => evaluatePolynomial(regression.coefficients, x));
@@ -1204,7 +1261,7 @@ function initCharts() {
     console.log('🎨 Creating Chart 1: Total Waste');
     
     const minWidth = 1400;
-    const pixelsPerLabel = 120;
+    const pixelsPerLabel = 50;
     const containerWidth = Math.max(minWidth, allLabels.length * pixelsPerLabel);
     
     const totalWasteContainer = document.getElementById('trendTotalWasteContainer');
@@ -1241,6 +1298,7 @@ function initCharts() {
         data: {
           labels: allLabels,
           datasets: [
+            // Actual data (scatter)
             {
               label: 'Actual Data (kg/day)',
               data: actualData,
@@ -1251,8 +1309,11 @@ function initCharts() {
               borderWidth: 2,
               fill: false,
               tension: 0.3,
-              spanGaps: false
+              spanGaps: false,
+              showLine: false
             },
+
+            // Red trend line
             {
               label: 'Trend Line (Actual)',
               data: trendData,
@@ -1264,6 +1325,8 @@ function initCharts() {
               pointHoverRadius: 5,
               spanGaps: false
             },
+
+            // Projected trend line
             {
               label: 'Trend Line (Projected)',
               data: projectedTrendData,
@@ -1276,6 +1339,8 @@ function initCharts() {
               pointHoverRadius: 5,
               spanGaps: false
             },
+
+            // Projected scatter points
             {
               label: 'Projected Values',
               data: projectedData,
@@ -1289,7 +1354,8 @@ function initCharts() {
               pointBorderColor: '#fff',
               pointBorderWidth: 2,
               borderWidth: 3,
-              spanGaps: false
+              spanGaps: false,
+              showLine: false
             }
           ]
         },
@@ -1346,8 +1412,8 @@ function initCharts() {
                 font: { weight: 'bold', size: 12 }
               },
               ticks: { 
-                maxRotation: 45, 
-                minRotation: 45,
+                maxRotation: 30, 
+                minRotation: 30,
                 autoSkip: false,
                 font: { size: 10 }
               },
@@ -1415,12 +1481,12 @@ function initCharts() {
             },
             x: { 
               title: { display: true, text: `Period (${aggregation})` }, 
-              ticks: { maxRotation: 45, minRotation: 45, autoSkip: false },
+              ticks: { maxRotation: 30, minRotation: 30, autoSkip: false },
               grid: { color: 'rgba(0, 0, 0, 0.05)' }
             }
           },
           layout: {
-            padding: { left: 10, right: 30, top: 10, bottom: 10 }
+            padding: { left: 0, right: 0, top: 10, bottom: 10 }
           }
         }
       });
