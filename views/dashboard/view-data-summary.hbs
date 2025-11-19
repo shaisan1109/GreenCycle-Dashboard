@@ -597,18 +597,13 @@ async function runSimulation() {
   // interpret projectedCompanies as ADDITIONAL companies to add
   const projectedAdditional = (projectedRaw === '' ? null : Number(projectedRaw));
 
-  const filters = (window.currentFilters && typeof window.currentFilters === 'object') ? window.currentFilters : collectFiltersFallback();
+  const filters = window.currentFilters || {};
 
   const payload = {
     horizon,
     windowMonths,
     projectedCompanyCount: projectedAdditional,
-    title: filters.title,
-    locationCode: filters.locationCode,
-    name: filters.name,
-    companyName: filters.companyName,
-    startDate: filters.startDate,
-    endDate: filters.endDate
+    filters
   };
 
   btn.disabled = true;
