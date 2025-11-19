@@ -537,6 +537,8 @@
 <!-- Modal Script -->
 <script>
 
+window.currentFilters = {{{json query}}};
+
 const applyBtn = document.getElementById('applyBtn');
 
 applyBtn.onclick = () => {
@@ -599,7 +601,7 @@ applyBtn.onclick = () => {
         const projectedCompanyCount = projVal ? Number(projVal) : null;
         const filters = window.currentFilters || {};
 
-        const payload = { horizon, windowMonths, projectedCompanyCount, ...filters };
+        const payload = { horizon, windowMonths, projectedCompanyCount, filters };
         console.log('[SIM] Sending payload to /api/simulate:', payload);
 
         const res = await fetch('/api/simulate', {

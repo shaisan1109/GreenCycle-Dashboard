@@ -3236,15 +3236,10 @@ app.post('/api/simulate', async (req, res) => {
       horizon,
       windowMonths,
       projectedCompanyCount,
-      title,
-      locationCode,
-      name,
-      companyName,
-      startDate,
-      endDate
+      filters
     } = req.body;
 
-    const filters = { title, locationCode, name, companyName, startDate, endDate };
+    //const filters = { title, locationCode, name, companyName, startDate, endDate };
 
     console.log('[API] /api/simulate request', { horizon, windowMonths, projectedCompanyCount, filters });
 

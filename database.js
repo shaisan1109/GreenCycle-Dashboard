@@ -2121,8 +2121,11 @@ function makePlaceholders(arr) {
 }
 
 // Get data_entry_ids matching provided summary filters
-export async function getApprovedDataEntryIds(filters = {}) {
-  const { title, locationCode, name, companyName, startDate, endDate } = filters;
+export async function getApprovedDataEntryIds(filters) {
+  const { title, barangay, municipality, province, region, author, company, startDate, endDate } = filters;
+  const locationCode = barangay || municipality || province || region || null;
+
+  console.log('getApprovedDataEntryIds filters: ', filters)
 
   let query = `
     SELECT dat.data_entry_id
@@ -2135,12 +2138,16 @@ export async function getApprovedDataEntryIds(filters = {}) {
   const params = [];
 
   if (title) { conditions.push(`dat.title LIKE ?`); params.push(`%${title}%`); }
+
   if (locationCode) {
     conditions.push(`(dat.region_id = ? OR dat.province_id = ? OR dat.municipality_id = ? OR dat.barangay_id = ?)`);
     params.push(locationCode, locationCode, locationCode, locationCode);
   }
-  if (name) { conditions.push(`(u.lastname LIKE ? OR u.firstname LIKE ?)`); params.push(`%${name}%`, `%${name}%`); }
-  if (companyName) { conditions.push(`(c.company_name LIKE ? OR u.company_name LIKE ?)`); params.push(`%${companyName}%`, `%${companyName}%`); }
+
+  if (author) { conditions.push(`(u.lastname LIKE ? OR u.firstname LIKE ?)`); params.push(`%${author}%`, `%${author}%`); }
+
+  if (company) { conditions.push(`(c.company_name LIKE ? OR u.company_name LIKE ?)`); params.push(`%${company}%`, `%${company}%`); }
+
   if (startDate && endDate) { conditions.push(`(dat.collection_start >= ? AND dat.collection_end <= ?)`); params.push(startDate, endDate); }
   else if (startDate) { conditions.push(`dat.collection_start >= ?`); params.push(startDate); }
   else if (endDate) { conditions.push(`dat.collection_end <= ?`); params.push(endDate); }
@@ -2180,9 +2187,11 @@ export async function getCompanyCountsForDataEntryIds(dataEntryIds = []) {
 /**
  * runSimulation - deterministic seasonal-scaling simulation (professor-style)
 */
-export async function runSimulation(horizon = 12, filters = {}, windowMonths = 12, projectedCompanyCount = null) {
+export async function runSimulation(horizon, filters, windowMonths, projectedCompanyCount) {
   // 1) fetch filtered data_entry_ids
   const dataEntryIds = await getApprovedDataEntryIds(filters);
+  console.log(dataEntryIds);
+
   if (!dataEntryIds || dataEntryIds.length === 0) {
     return {
       forecast: [],
@@ -2198,7 +2207,7 @@ export async function runSimulation(horizon = 12, filters = {}, windowMonths = 1
   // 2) fetch month totals (grouped) for the filtered entries (we'll later use last N months)
   const [monthlyRows] = await sql.query(`
     SELECT DATE_FORMAT(de.collection_end, '%Y-%m') AS month,
-           SUM(dw.waste_amount) AS total_waste_kg
+      SUM(dw.waste_amount) AS total_waste_kg
     FROM data_entry de
     JOIN data_waste_composition dw ON de.data_entry_id = dw.data_entry_id
     WHERE de.status = 'Approved'
