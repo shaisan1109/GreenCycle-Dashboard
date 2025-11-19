@@ -1,4 +1,4 @@
-<!-- Display search parameters if current route has query -->    
+s<!-- Display search parameters if current route has query -->    
 <div id="filter-section" class="filter-section" data-section="filters">
     <center>
         <h2 style="margin: 0;">Search Parameters</h2>
@@ -318,45 +318,44 @@
   </div>
 </div>
 
-<!-- SIMULATION UI (REPLACE existing simulation JS block with this ENTIRE block) -->
-<div class="form-section" data-section="simulation" style="background:#f4fff6;padding:1rem;border-radius:8px">
-  <h3>Waste Simulation Forecast</h3>
 
-  <div style="display:flex;gap:0.5rem;align-items:flex-end;margin-bottom:0.75rem">
+<!-- Simulation UI (replace existing simulation section) -->
+<div class="form-section" style="background-color:#f4fff6;padding:1.5rem;border-radius:10px;border-left:6px solid #43a047;">
+  <h2 style="color:#2e7d32;display:flex;align-items:center;"><i class="fa-solid fa-flask" style="margin-right:8px;color:#43a047"></i>Waste Simulation Forecast</h2>
+  <p style="color:#555">Deterministic simulation using <strong>data_entry.annual</strong>. "Additional Companies" means how many new companies to add on top of the companies involved in this summary.</p>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;background:#e8f5e9;padding:12px;border-radius:8px;">
     <div>
-      <label for="forecastMonths">Forecast horizon (months)</label><br>
-      <input id="forecastMonths" type="number" value="12" min="1" style="width:110px">
+      <label for="forecastMonths">Forecast Horizon (months)</label>
+      <input id="forecastMonths" type="number" class="form-control" value="12" min="1" max="60">
     </div>
 
     <div>
-      <label for="historyWindow">Reference window (months)</label><br>
-      <input id="historyWindow" type="number" value="12" min="1" style="width:110px">
+      <label for="historyWindow">Reference Window (months)</label>
+      <input id="historyWindow" type="number" class="form-control" value="12" min="1" max="120">
     </div>
 
     <div>
-      <label for="projectedCompanies">Projected companies (optional)</label><br>
-      <input id="projectedCompanies" type="number" placeholder="e.g. 20" style="width:140px">
+      <label for="projectedCompanies">Additional Companies (leave blank for 0)</label>
+      <input id="projectedCompanies" type="number" class="form-control" placeholder="e.g. 2">
     </div>
 
-    <div>
-      <button id="runSimBtn" class="btn btn-success" style="height:38px">Run Simulation</button>
+    <div style="align-self:end;">
+      <button id="runSimBtn" class="btn btn-success"><i class="fa-solid fa-play"></i> Run Simulation</button>
     </div>
   </div>
 
-  <div id="simStatus" style="color:#b71c1c;margin-bottom:0.5rem"></div>
-
-  <div style="background:#fff;padding:0.5rem;border-radius:8px">
-    <canvas id="simulationChart" height="300"></canvas>
+  <div style="margin-top:12px;background:#fff;padding:12px;border-radius:8px;">
+    <canvas id="simulationChart" height="340"></canvas>
   </div>
 
-  <div style="margin-top:0.75rem">
-    <h4 id="simHeader" style="margin:0"></h4>
-    <table id="simDiagnostics" style="width:100%;font-size:0.95rem"></table>
+  <div style="margin-top:12px;">
+    <h3 id="simHeader"></h3>
+    <table style="width:100%;border:1px solid #eee;border-radius:6px;">
+      <tbody id="simDiagnostics" style="font-size:0.95rem;"></tbody>
+    </table>
   </div>
 </div>
-
-
-
 
 <!-- Compliance Overview -->
 <div class="form-section" style="background-color: rgb(240, 255, 240); padding: 10px 15px; border-left: 4px solid #4caf50; margin-bottom: 15px;">
@@ -569,117 +568,117 @@ applyBtn.onclick = () => {
 }
 </script>
 
-<!-- DEBUG + WORKING handler -->
 <script>
-(function() {
-  // ensure window.currentFilters exists (if server didn't inject it)
-  if (!window.currentFilters) {
-    // fallback: empty filters but we show a warning. Replace with server-side injection in production.
-    window.currentFilters = window.currentFilters || {};
-    console.warn('window.currentFilters missing — simulation will run on all approved entries until server injects filters.');
-    document.getElementById('simStatus').innerText = 'Warning: currentFilters not set by server — running on all approved entries.';
-  }
+/* small helper to collect current filters (server may set window.currentFilters on render) */
+function collectFiltersFallback() {
+  const maybe = {};
+  const titleEl = document.querySelector('#filterTitle, input[name="title"]');
+  const companyEl = document.querySelector('#filterCompanyName, input[name="companyName"]');
+  const nameEl = document.querySelector('#filterAuthor, input[name="name"]');
+  const startEl = document.querySelector('#filterStartDate, input[name="startDate"]');
+  const endEl = document.querySelector('#filterEndDate, input[name="endDate"]');
+  const locEl = document.querySelector('#filterLocationCode, input[name="locationCode"]');
 
-  // Safe attach after DOM content loaded
-  function init() {
-    const btn = document.getElementById('runSimBtn');
-    if (!btn) {
-      console.error('Run Simulation button not found (id=runSimBtn).');
+  if (titleEl) maybe.title = titleEl.value || undefined;
+  if (companyEl) maybe.companyName = companyEl.value || undefined;
+  if (nameEl) maybe.name = nameEl.value || undefined;
+  if (startEl) maybe.startDate = startEl.value || undefined;
+  if (endEl) maybe.endDate = endEl.value || undefined;
+  if (locEl) maybe.locationCode = locEl.value || undefined;
+
+  return maybe;
+}
+
+async function runSimulation() {
+  const btn = document.getElementById('runSimBtn');
+  const horizon = Number(document.getElementById('forecastMonths').value) || 12;
+  const windowMonths = Number(document.getElementById('historyWindow').value) || 12;
+  const projectedRaw = document.getElementById('projectedCompanies').value;
+  // interpret projectedCompanies as ADDITIONAL companies to add
+  const projectedAdditional = (projectedRaw === '' ? null : Number(projectedRaw));
+
+  const filters = (window.currentFilters && typeof window.currentFilters === 'object') ? window.currentFilters : collectFiltersFallback();
+
+  const payload = {
+    horizon,
+    windowMonths,
+    projectedCompanyCount: projectedAdditional,
+    title: filters.title,
+    locationCode: filters.locationCode,
+    name: filters.name,
+    companyName: filters.companyName,
+    startDate: filters.startDate,
+    endDate: filters.endDate
+  };
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Running...';
+  console.log('[SIM] payload', payload);
+
+  try {
+    const res = await fetch('/api/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+
+    if (!res.ok || !json.forecast || json.forecast.length === 0) {
+      console.warn('[SIM] No forecast returned', json);
+      alert('No forecast returned. Ensure filtered entries include annual values.');
+      if (json.diagnostics) renderDiagnostics(json.diagnostics);
       return;
     }
 
-    btn.addEventListener('click', async function handleClick(e) {
-      e.preventDefault();
-      document.getElementById('simStatus').innerText = ''; // clear status
-      btn.disabled = true;
-      btn.innerText = 'Running...';
-
-      try {
-        const horizon = Number(document.getElementById('forecastMonths').value) || 12;
-        const windowMonths = Number(document.getElementById('historyWindow').value) || 12;
-        const projVal = document.getElementById('projectedCompanies').value;
-        const projectedCompanyCount = projVal ? Number(projVal) : null;
-        const filters = window.currentFilters || {};
-
-        const payload = { horizon, windowMonths, projectedCompanyCount, filters };
-        console.log('[SIM] Sending payload to /api/simulate:', payload);
-
-        const res = await fetch('/api/simulate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        // Network-level check
-        if (!res) throw new Error('No response from fetch()');
-
-        console.log('[SIM] HTTP status:', res.status);
-        const json = await res.json().catch(err => {
-          throw new Error('Response is not valid JSON: ' + err.message);
-        });
-
-        console.log('[SIM] Response JSON:', json);
-
-        if (!res.ok) {
-          const msg = json && (json.error || json.message) ? (json.error || json.message) : 'Server returned non-OK';
-          document.getElementById('simStatus').innerText = 'Simulation failed: ' + msg;
-          console.error('Simulation failed:', msg, json);
-          return;
-        }
-
-        if (!json.forecast || !Array.isArray(json.forecast)) {
-          document.getElementById('simStatus').innerText = 'Simulation returned no forecast.';
-          console.warn('No forecast in response:', json);
-          return;
-        }
-
-        document.getElementById('simStatus').innerText = 'Simulation completed.';
-        renderSimulationChart(json.forecast);
-        renderDiagnostics(json.diagnostics || {});
-      } catch (err) {
-        console.error('[SIM] Error running simulation:', err);
-        document.getElementById('simStatus').innerText = 'Error: ' + (err.message || 'See console');
-      } finally {
-        btn.disabled = false;
-        btn.innerText = 'Run Simulation';
-      }
-    });
+    renderSimulationChart(json.forecast);
+    renderDiagnostics(json.diagnostics || {});
+  } catch (err) {
+    console.error('Simulation fetch error', err);
+    alert('Simulation fetch error — check console.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-play"></i> Run Simulation';
   }
+}
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+function renderSimulationChart(forecast) {
+  const ctx = document.getElementById('simulationChart').getContext('2d');
+  if (window.simChart && typeof window.simChart.destroy === 'function') window.simChart.destroy();
 
-  // Chart rendering (basic)
-  function renderSimulationChart(forecast) {
-    const ctx = document.getElementById('simulationChart').getContext('2d');
-    if (window.simChart) window.simChart.destroy();
-    const labels = forecast.map(f => f.period);
-    const data = forecast.map(f => f.mean);
-    window.simChart = new Chart(ctx, {
-      type: 'line',
-      data: { labels, datasets: [{ label: 'Forecast (kg)', data, borderColor: 'rgb(75,192,192)', fill:false }] },
-      options: { responsive:true, maintainAspectRatio:false }
-    });
-  }
+  const labels = forecast.map(d => d.period);
+  const data = forecast.map(d => Number(d.mean));
 
-  function renderDiagnostics(d) {
-    const el = document.getElementById('simDiagnostics');
-    const diag = d || {};
-    el.innerHTML = `
-      <tr><th style="text-align:left;padding:6px">Horizon</th><td style="padding:6px">${diag.horizon || '-'}</td></tr>
-      <tr><th style="text-align:left;padding:6px">WindowMonths</th><td style="padding:6px">${diag.windowMonths || '-'}</td></tr>
-      <tr><th style="text-align:left;padding:6px">Historical months used</th><td style="padding:6px">${diag.nHistoricalMonths || '-'}</td></tr>
-      <tr><th style="text-align:left;padding:6px">Actual companies</th><td style="padding:6px">${diag.actualCompanyCount || '-'}</td></tr>
-      <tr><th style="text-align:left;padding:6px">Target companies</th><td style="padding:6px">${diag.targetCompanies || '-'}</td></tr>
-      <tr><th style="text-align:left;padding:6px">Scale factor</th><td style="padding:6px">${diag.scaleFactor || '-'}</td></tr>
-    `;
-  }
+  window.simChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Simulated Monthly Waste (kg)', data, borderColor: 'rgb(75,192,192)', borderWidth: 2.5, fill: false, tension: 0.25 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins:{legend:{position:'bottom'}} }
+  });
+}
 
-})(); // IIFE
+function renderDiagnostics(d) {
+  document.getElementById('simHeader').innerText = 'Simulation Diagnostics';
+  const weights = Array.isArray(d.monthWeights) ? d.monthWeights : [];
+  const monthStr = weights.length === 12 ? weights.map((w,i) => `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i]}: ${w.toFixed(3)}`).join(', ') : '-';
+
+  document.getElementById('simDiagnostics').innerHTML = `
+    <tr><th>Forecast Horizon</th><td>${d.horizon ?? '-' } months</td></tr>
+    <tr><th>Reference Window</th><td>${d.windowMonths ?? '-' } months</td></tr>
+    <tr><th>Historical Companies Used</th><td>${d.nHistoricalCompanies ?? '-'}</td></tr>
+    <tr><th>Target Companies (actual + additional)</th><td>${d.targetCompanies ?? '-'}</td></tr>
+    <tr><th>Scale Factor</th><td>${d.scaleFactor ?? '-'}</td></tr>
+    <tr><th>Sum Annual (all entries)</th><td>${d.sumAnnualAllCompanies ? Number(d.sumAnnualAllCompanies).toLocaleString() : '-'}</td></tr>
+    <tr><th>Avg Annual / Company</th><td>${d.avgAnnualPerCompany ?? '-'}</td></tr>
+    <tr><th>Month Weights (Jan→Dec)</th><td style="white-space:normal;">${monthStr}</td></tr>
+    <tr><th>Companies Involved</th><td>${Array.isArray(d.companiesInvolved) ? Array.from(new Set(d.companiesInvolved)).join(', ') : '-'}</td></tr>
+    <tr><th>Note</th><td>${d.note ?? '-'}</td></tr>
+  `;
+}
+
+/* attach */
+document.getElementById('runSimBtn').addEventListener('click', runSimulation);
 </script>
+
+
 
 <!-- CORRECTED - Retrieves Individual Category/Sector Compliance Status -->
 <script>

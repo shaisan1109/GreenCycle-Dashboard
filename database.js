@@ -2112,10 +2112,7 @@ export async function getTimeSeriesData(title, locationCode, author, company, st
   const [rows] = await sql.query(query, params);
   return rows;
 }
-
-// --- database.js (paste/replace the simulation-related helpers and runSimulation) ---
-
-// Helper to build "?,?..." placeholders for variable-length IN clauses
+// Helpers (put near other helpers)
 function makePlaceholders(arr) {
   return arr.map(() => '?').join(',');
 }
@@ -2128,7 +2125,7 @@ export async function getApprovedDataEntryIds(filters) {
   console.log('getApprovedDataEntryIds filters: ', filters)
 
   let query = `
-    SELECT dat.data_entry_id
+    SELECT dat.data_entry_id, dat.user_id, dat.collection_end
     FROM data_entry dat
     JOIN user u ON u.user_id = dat.user_id
     LEFT JOIN companies c ON c.user_id = u.user_id
@@ -2155,136 +2152,154 @@ export async function getApprovedDataEntryIds(filters) {
   if (conditions.length) query += ' AND ' + conditions.join(' AND ');
 
   const [rows] = await sql.query(query, params);
-  return rows.map(r => Number(r.data_entry_id));
+  // return distinct numeric ids and user_ids for later use
+  return (rows || []).map(r => ({ data_entry_id: Number(r.data_entry_id), user_id: Number(r.user_id), collection_end: r.collection_end }));
 }
 
-// Count companies strictly linked to the given data_entry_ids (safely using placeholders)
-export async function getCompanyCountsForDataEntryIds(dataEntryIds = []) {
-  if (!Array.isArray(dataEntryIds) || dataEntryIds.length === 0) return { small: 0, medium: 0, large: 0, total: 0 };
-
-  const ids = Array.from(new Set(dataEntryIds.map(id => Number(id))));
-  const placeholders = makePlaceholders(ids);
-
-  const sqlText = `
-    SELECT
-      COALESCE(SUM(CASE WHEN filtered.company_size = 'small' THEN 1 ELSE 0 END),0) AS small,
-      COALESCE(SUM(CASE WHEN filtered.company_size = 'medium' THEN 1 ELSE 0 END),0) AS medium,
-      COALESCE(SUM(CASE WHEN filtered.company_size = 'large' THEN 1 ELSE 0 END),0) AS large,
-      COALESCE(COUNT(*),0) AS total_companies
-    FROM (
-      SELECT DISTINCT c.company_id, COALESCE(c.company_size, '') AS company_size
-      FROM companies c
-      JOIN user u ON u.user_id = c.user_id
-      JOIN data_entry de ON de.user_id = u.user_id
-      WHERE de.data_entry_id IN (${placeholders})
-    ) AS filtered
-  `;
-  const [rows] = await sql.query(sqlText, ids);
-  const r = rows && rows[0] ? rows[0] : { small: 0, medium: 0, large: 0, total_companies: 0 };
-  return { small: Number(r.small), medium: Number(r.medium), large: Number(r.large), total: Number(r.total_companies) };
-}
-
-/**
- * runSimulation - deterministic seasonal-scaling simulation (professor-style)
-*/
-export async function runSimulation(horizon, filters, windowMonths, projectedCompanyCount) {
-  // 1) fetch filtered data_entry_ids
-  const dataEntryIds = await getApprovedDataEntryIds(filters);
-  console.log(dataEntryIds);
-
-  if (!dataEntryIds || dataEntryIds.length === 0) {
+// Main deterministic simulation (replaces runSimulation)
+export async function runSimulation(horizon = 12, filters = {}, windowMonths = 12, projectedAdditionalCompanies = null) {
+  // 1) collect filtered entries (data_entry ids + user_ids)
+  const entryRows = await getApprovedDataEntryIds(filters);
+  if (!entryRows || entryRows.length === 0) {
     return {
       forecast: [],
-      diagnostics: {
-        error: 'No approved data entries found for provided filters',
-        horizon, windowMonths, nHistoricalMonths: 0, actualCompanyCount: 0
-      }
+      diagnostics: { error: 'No approved data entries for filters', horizon: Number(horizon || 12), windowMonths: Number(windowMonths || 12), nHistoricalCompanies: 0 }
     };
   }
-  const ids = Array.from(new Set(dataEntryIds.map(id => Number(id))));
-  const placeholders = makePlaceholders(ids);
 
-  // 2) fetch month totals (grouped) for the filtered entries (we'll later use last N months)
-  const [monthlyRows] = await sql.query(`
-    SELECT DATE_FORMAT(de.collection_end, '%Y-%m') AS month,
-      SUM(dw.waste_amount) AS total_waste_kg
+  // flatten entry ids & user ids
+  const dataEntryIds = Array.from(new Set(entryRows.map(r => Number(r.data_entry_id))));
+  const userIds = Array.from(new Set(entryRows.map(r => Number(r.user_id))));
+
+  // placeholders
+  const entryPlaceholders = makePlaceholders(dataEntryIds);
+  const userPlaceholders = makePlaceholders(userIds);
+
+  // 2) get per-entry annual values (use data_entry.annual field) and collection_end
+  const sqlEntryRows = `
+    SELECT de.data_entry_id, de.user_id, de.collection_end,
+           CAST(de.annual AS DECIMAL(20,6)) AS annual_value
     FROM data_entry de
-    JOIN data_waste_composition dw ON de.data_entry_id = dw.data_entry_id
     WHERE de.status = 'Approved'
-      AND de.data_entry_id IN (${placeholders})
-    GROUP BY month
-    ORDER BY month ASC
-  `, ids);
+      AND de.data_entry_id IN (${entryPlaceholders})
+  `;
+  const [entryDetailRows] = await sql.query(sqlEntryRows, dataEntryIds);
 
-  // Build month list and reduce to last windowMonths months
-  let months = Array.from(new Set(monthlyRows.map(r => r.month))).sort();
-  if (months.length === 0) {
-    return {
-      forecast: [],
-      diagnostics: { error: 'No monthly data for filtered entries', horizon, windowMonths, nHistoricalMonths: 0 }
-    };
+  // sum annual across the filtered entries
+  const sumAnnualAll = (entryDetailRows || []).reduce((s, r) => s + (Number(r.annual_value) || 0), 0);
+
+  // 3) distinct companies involved (use companies table where possible; fallback to user.company_name)
+  // Get companies linked to the users who submitted the filtered entries
+  let companies = [];
+  if (userIds.length > 0) {
+    const sqlCompanies = `
+      SELECT DISTINCT COALESCE(c.company_name, u.company_name) AS company_name,
+             COALESCE(c.company_size, '') AS company_size
+      FROM user u
+      LEFT JOIN companies c ON c.user_id = u.user_id
+      WHERE u.user_id IN (${userPlaceholders})
+    `;
+    const [companyRows] = await sql.query(sqlCompanies, userIds);
+    companies = (companyRows || []).map(r => ({
+      company_name: r.company_name || 'Unknown',
+      company_size: r.company_size || ''
+    }));
   }
-  if (months.length > windowMonths) months = months.slice(-windowMonths);
 
-  // Map month -> total
-  const monthTotalsMap = {};
-  monthlyRows.forEach(r => { if (months.includes(r.month)) monthTotalsMap[r.month] = Number(r.total_waste_kg || 0); });
+  const distinctCompanyCount = Array.from(new Set(companies.map(c => c.company_name))).length;
 
-  // 3) determine number of distinct companies that contributed to these filtered entries
-  const [companyCountRows] = await sql.query(`
-    SELECT COUNT(DISTINCT c.company_id) AS num_companies
-    FROM companies c
-    JOIN user u ON u.user_id = c.user_id
-    JOIN data_entry de ON de.user_id = u.user_id
-    WHERE de.data_entry_id IN (${placeholders})
-  `, ids);
-
-  const actualCompanyCount = (companyCountRows && companyCountRows[0] && Number(companyCountRows[0].num_companies)) || 0;
-  const companiesForAvg = actualCompanyCount || 1; // avoid division by zero; if zero, treat as 1 to produce zeros
-
-  // 4) compute per-company monthly average template (avgPerCompany[monthIndex])
-  const avgPerCompany = months.map(m => {
-    const total = Number(monthTotalsMap[m] || 0);
-    return total / companiesForAvg;
+  // 4) compute month weights: sum(annual_value) grouped by collection_end month (01..12)
+  // We'll use the entryDetailRows collection_end -> month; if missing collection_end exclude them from month weights
+  const monthSums = Array(12).fill(0); // index 0 -> Jan
+  (entryDetailRows || []).forEach(r => {
+    if (!r.collection_end) return;
+    const dt = new Date(r.collection_end);
+    if (isNaN(dt)) {
+      // try parsing YYYY-MM or SQL format
+      const parsed = new Date(String(r.collection_end));
+      if (!isNaN(parsed)) {
+        const m = parsed.getMonth(); // 0..11
+        monthSums[m] += Number(r.annual_value) || 0;
+      }
+      return;
+    }
+    const m = dt.getMonth(); // 0..11
+    monthSums[m] += Number(r.annual_value) || 0;
   });
 
-  // 5) determine target company count and scale factor
-  const targetCompanies = projectedCompanyCount && Number(projectedCompanyCount) > 0 ? Number(projectedCompanyCount) : actualCompanyCount;
-  const scaleFactor = (actualCompanyCount > 0) ? (targetCompanies / actualCompanyCount) : 1;
+  const monthTotal = monthSums.reduce((s, v) => s + v, 0);
+  let monthWeights;
+  if (monthTotal > 0) {
+    monthWeights = monthSums.map(v => v / monthTotal);
+  } else {
+    // fallback equal weights (no monthly signal)
+    monthWeights = Array(12).fill(1 / 12);
+  }
 
-  // 6) Generate forecast: use the template cyclically to preserve seasonality and scale
-  const lastMonth = months[months.length - 1];
-  const lastMonthDate = new Date(lastMonth + '-01');
+  // 5) compute avg annual per company
+  const actualCompanyCount = distinctCompanyCount || 0;
+  const avgAnnualPerCompany = actualCompanyCount > 0 ? (sumAnnualAll / actualCompanyCount) : 0;
 
+  // 6) determine target companies (PROJECTED is additional companies to add)
+  // If projectedAdditionalCompanies is null/undefined => user left blank -> treat as 0 additional (target = actual)
+  const add = (projectedAdditionalCompanies === null || projectedAdditionalCompanies === undefined) ? 0 : Number(projectedAdditionalCompanies);
+  const targetCompanies = actualCompanyCount + Math.max(0, isNaN(add) ? 0 : Math.floor(add));
+
+  // scaleFactor = target / actual (if actual==0 then scaleFactor := (target>0 ? target : 1) )
+  const scaleFactor = actualCompanyCount > 0 ? (targetCompanies / actualCompanyCount) : (targetCompanies > 0 ? targetCompanies : 1);
+
+  // 7) template per company for 12 months: templatePerCompany[0..11] = avgAnnualPerCompany * monthWeights[monthIndex]
+  const templatePerCompany = monthWeights.map(w => avgAnnualPerCompany * w);
+
+  // 8) lastMonth = max(collection_end) among filtered entries (use as anchor)
+  const latest = entryDetailRows.reduce((best, r) => {
+    if (!r.collection_end) return best;
+    const d = new Date(r.collection_end);
+    if (isNaN(d)) return best;
+    if (!best || d > best) return d;
+    return best;
+  }, null);
+  const lastMonthDate = latest ? new Date(latest) : new Date();
+
+  // 9) build forecast for horizon months (cycle through template)
+  const horizonN = Number(horizon) || 12;
   const forecast = [];
-  for (let step = 1; step <= horizon; step++) {
-    const templateIdx = (months.length === 0) ? 0 : ((months.length - 1 + step) % months.length);
-    const templateAvgPerCompany = avgPerCompany[templateIdx] || 0;
-    const simulatedTotal = templateAvgPerCompany * targetCompanies; // template * projected companies
+  for (let step = 1; step <= horizonN; step++) {
+    const idx = ((step - 1) % 12); // pick month slot
+    const perCompanyMonth = templatePerCompany[idx] || 0;
+    const simulatedTotal = perCompanyMonth * targetCompanies;
+
     const futureDate = new Date(lastMonthDate);
     futureDate.setMonth(lastMonthDate.getMonth() + step);
     const period = futureDate.toISOString().slice(0,7); // YYYY-MM
-    const mean = Number(simulatedTotal.toFixed(2));
-    forecast.push({ step, period, mean, upper: mean, lower: mean });
+
+    forecast.push({
+      step,
+      period,
+      mean: Number(simulatedTotal.toFixed(2)),
+      upper: Number(simulatedTotal.toFixed(2)),
+      lower: Number(simulatedTotal.toFixed(2))
+    });
   }
 
-  // 7) get company breakdown (sizes) for diagnostics (uses safe placeholders)
-  const companyCounts = await getCompanyCountsForDataEntryIds(ids);
-
+  // Diagnostics (concise labels)
   const diagnostics = {
-    horizon,
-    windowMonths,
-    nHistoricalMonths: months.length,
-    monthsUsed: months,
-    actualCompanyCount,
+    horizon: horizonN,
+    windowMonths: Number(windowMonths || 12),
+    nHistoricalCompanies: actualCompanyCount,
     targetCompanies,
-    scaleFactor: Number(scaleFactor.toFixed(4)),
-    companies: companyCounts,
-    algorithm: 'per-company seasonal template scaled by company count (deterministic)'
+    scaleFactor: Number(scaleFactor.toFixed(6)),
+    sumAnnualAllCompanies: Number(sumAnnualAll.toFixed(6)),
+    avgAnnualPerCompany: Number(avgAnnualPerCompany.toFixed(6)),
+    monthWeights, // 12-element array (0..11 -> Jan..Dec)
+    companiesInvolved: companies.map(c => c.company_name), // distinct name list (may include duplicates if DB has multiples)
+    note: 'Deterministic seasonal-scaling using per-entry data_entry.annual aggregated by collection_end month'
   };
 
   return { forecast, diagnostics };
 }
+
+
 
 
 

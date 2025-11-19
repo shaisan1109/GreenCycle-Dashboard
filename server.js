@@ -3229,7 +3229,7 @@ app.get('/control-panel/entry-statistics', async (req, res) => {
   });
 })
 
-// server.js — simulation endpoint
+// server.js — /api/simulate
 app.post('/api/simulate', async (req, res) => {
   try {
     const {
@@ -3247,7 +3247,7 @@ app.post('/api/simulate', async (req, res) => {
       Number(horizon) || 12,
       filters,
       Number(windowMonths) || 12,
-      projectedCompanyCount ? Number(projectedCompanyCount) : null
+      (projectedCompanyCount === '' || projectedCompanyCount === null || projectedCompanyCount === undefined) ? null : Number(projectedCompanyCount)
     );
 
     res.json({ success: true, ...result });
@@ -3256,6 +3256,9 @@ app.post('/api/simulate', async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+
+
 
 // Compliance API for dropdown
 app.get('/api/compliance', async (req, res) => {
