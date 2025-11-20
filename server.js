@@ -1024,6 +1024,29 @@ app.get('/dashboard/data/summary', async (req, res, next) => {
     }
 })
 
+// Return ONLY time series for the requested aggregation
+app.get('/api/data/summary/timeseries', async (req, res, next) => {
+  try {
+    const { title, region, province, municipality, barangay, author, company, startDate, endDate, aggregation } = req.query;
+
+    const locationCode = await getLocationCode(region, province, municipality, barangay);
+
+    const timeSeriesData = await getTimeSeriesData(
+      title,
+      locationCode,
+      author,
+      company,
+      startDate,
+      endDate,
+      aggregation || 'daily'
+    );
+
+    res.json({ timeSeriesData });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Get all approved data entries
 app.get('/dashboard/data/all', async (req, res, next) => {
   // Clean query before proceeding

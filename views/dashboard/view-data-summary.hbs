@@ -185,7 +185,22 @@
   <p style="color: #555; margin-bottom: 1.5rem;">
     Visualize waste generation patterns over time using averaging aggregation:<br>
     <h2>
-      <math style="background-color: #fff; padding: 10px; border-radius: 5px;">y(fc) = 1/(T2-T1) × Σy(i)</math>
+      <math style="background-color:#fff;padding:10px;border-radius:5px;">
+        <mrow>
+          <mi>y</mi><mi>(</mi><mi>fc</mi><mi>)</mi>
+          <mo>=</mo>
+          <mfrac>
+            <mn>1</mn>
+            <mrow>
+              <msub><mi>T</mi><mn>2</mn></msub>
+              <mo>-</mo>
+              <msub><mi>T</mi><mn>1</mn></msub>
+            </mrow>
+          </mfrac>
+          <mo>×</mo>
+          <mi>Σy(i)</mi>
+        </mrow>
+      </math>
     </h2>
     Use the aggregation selector to switch between monthly or yearly views. You may drag the horizontal scrollbar on each chart to view further time periods.
   </p>
@@ -538,41 +553,64 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-<!-- Modal Script -->
+<!-- Participants toggle -->
+<script>
+function toggleCategory(header) {
+    const category = header.parentElement;
+    category.classList.toggle('open');
+
+    const content = category.querySelector('.participants-list');
+    content.style.display = content.style.display === 'block' ? 'none' : 'block';
+}
+</script>
+
+<!-- Aggregation Selection Script -->
 <script>
 
 window.currentFilters = {{{json query}}};
 
 const applyBtn = document.getElementById('applyBtn');
 
-applyBtn.onclick = () => {
+applyBtn.onclick = async () => {
     const aggregation = document.getElementById('select-aggregation').value;
-    
+
+    // Section toggle logic stays the same
     const selectedSections = Array.from(document.querySelectorAll('input[name="section"]:checked'))
         .map(cb => cb.value);
-    
+
     document.querySelectorAll('[data-section]').forEach(el => {
         if (el.getAttribute('data-section') !== 'filters' && el.getAttribute('data-section') !== 'data-title') {
             el.style.display = 'none';
         }
     });
-    
+
     selectedSections.forEach(section => {
-        const elements = document.querySelectorAll(`[data-section="${section}"]`);
-        elements.forEach(el => el.style.display = '');
+        document.querySelectorAll(`[data-section="${section}"]`).forEach(el => el.style.display = '');
     });
-    
-    const currentUrl = new URL(window.location.href);
-    
-    if (aggregation) currentUrl.searchParams.set('aggregation', aggregation);
-    else currentUrl.searchParams.delete('aggregation');
-    
-    if (aggregation) {
-        window.location.href = currentUrl.toString();
-    }
-}
+
+    // Build query params from current filters
+    const url = new URL('/dashboard/data/summary/timeseries', window.location.origin);
+    const params = new URLSearchParams(window.location.search);
+
+    params.set('aggregation', aggregation);
+    url.search = params.toString();
+
+    // Fetch updated time-series without reloading page
+    const response = await fetch(url.toString());
+    const data = await response.json();
+
+    // Update chart (example)
+    updateTimeSeriesChart(data.timeSeriesData);
+
+    // Optional: update query param in URL without reload
+    const newPageUrl = new URL(window.location.href);
+    newPageUrl.searchParams.set('aggregation', aggregation);
+    window.history.replaceState({}, '', newPageUrl.toString());
+};
+
 </script>
 
+<!-- Simulation script -->
 <script>
 /* small helper to collect current filters (server may set window.currentFilters on render) */
 function collectFiltersFallback() {
@@ -677,8 +715,6 @@ function renderDiagnostics(d) {
 /* attach */
 document.getElementById('runSimBtn').addEventListener('click', runSimulation);
 </script>
-
-
 
 <!-- CORRECTED - Retrieves Individual Category/Sector Compliance Status -->
 <script>
@@ -1015,12 +1051,12 @@ function nextPeriod(period, aggregation) {
 
 // Wait for both DOM and Chart.js to be ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initCharts);
+  document.addEventListener('DOMContentLoaded', initChartsWithAggregation('{{query.aggregation}}' || 'monthly'));
 } else {
-  initCharts();
+  initChartsWithAggregation('{{query.aggregation}}' || 'monthly');
 }
 
-function initCharts() {
+function initChartsWithAggregation(aggregation) {
   console.log('🚀 Initializing charts...');
   
   if (typeof Chart === 'undefined') {
@@ -1051,8 +1087,8 @@ function initCharts() {
     console.log('📋 Sample data point structure:', Object.keys(rawData[0]));
     console.log('📋 Sample data point:', rawData[0]);
 
-    const aggregation = '{{query.aggregation}}' || 'monthly';
-    console.log('📅 Aggregation:', aggregation);
+    //const aggregation = '{{query.aggregation}}' || 'monthly';
+    //console.log('📅 Aggregation:', aggregation);
     
     const regionName = '{{regionName}}';
     const provinceName = '{{provinceName}}';
@@ -1106,11 +1142,9 @@ function initCharts() {
       const applyBtn2 = document.getElementById('applyBtn2');
       if (applyBtn2) {
         applyBtn2.onclick = () => {
-          const agg = document.getElementById('select-aggregation').value;
-          const currentUrl = new URL(window.location.href);
-          if (agg) currentUrl.searchParams.set('aggregation', agg);
-          else currentUrl.searchParams.delete('aggregation');
-          window.location.href = currentUrl.toString();
+          const newAggregation = document.getElementById('select-aggregation').value;
+          // Re-initialize charts with the new aggregation without reloading
+          initChartsWithAggregation(newAggregation);
         };
       }
     }
@@ -1197,6 +1231,9 @@ function initCharts() {
     
     const totalWasteCanvas = document.getElementById('trendTotalWaste');
     if (totalWasteCanvas) {
+      // Destroy previous chart instance if it exists
+      if (totalWasteCanvas.chartInstance) totalWasteCanvas.chartInstance.destroy();
+
       const ctx = totalWasteCanvas.getContext('2d');
       if (!ctx) {
         console.error('❌ Cannot get canvas context');
@@ -1218,7 +1255,7 @@ function initCharts() {
         ...futureY
       ];
       
-      new Chart(ctx, {
+      totalWasteCanvas.chartInstance = new Chart(ctx, {
         type: 'line',
         data: {
           labels: allLabels,
@@ -1363,7 +1400,10 @@ function initCharts() {
     
     const perCapitaCanvas = document.getElementById('trendPerCapita');
     if (perCapitaCanvas) {
-      new Chart(perCapitaCanvas.getContext('2d'), {
+      // Destroy previous chart instance if it exists
+      if (perCapitaCanvas.chartInstance) perCapitaCanvas.chartInstance.destroy();
+
+      perCapitaCanvas.chartInstance = new Chart(perCapitaCanvas.getContext('2d'), {
         type: 'line',
         data: {
           labels: labels,
@@ -1410,44 +1450,35 @@ function initCharts() {
       console.log('✅ Chart 2 created');
     }
     
-    // ========== CREATE CHART 3 ==========
+    // ========== CREATE/UPDATE CHART 3 ==========
     console.log('🎨 Creating Chart 3: By Category');
-    
-    const categoryWidth = Math.max(1200, labels.length * 100);
-    const categoryContainer = document.getElementById('trendByCategoryContainer');
-    if (categoryContainer) {
-      categoryContainer.style.width = categoryWidth + 'px';
-      categoryContainer.style.minWidth = categoryWidth + 'px';
-    }
-    
-    const categories = ['Biodegradable', 'Recyclable', 'Residual', 'Special/Hazardous'];
-    const categoryColors = {
-      'Biodegradable': 'rgba(76, 175, 80, 0.8)',
-      'Recyclable': 'rgba(33, 150, 243, 0.8)',
-      'Residual': 'rgba(158, 158, 158, 0.8)',
-      'Special/Hazardous': 'rgba(244, 67, 54, 0.8)'
-    };
-    
-    const categoryDatasets = categories.map(cat => {
-      const categoryData = sortedPeriods.map(p => {
-        const catWeight = aggregatedData[p].wasteByCategory[cat] || 0;
-        return catWeight / aggregatedData[p].timeSpan;
-      });
-      
-      return {
-        label: cat,
-        data: categoryData,
-        backgroundColor: categoryColors[cat],
-        borderColor: categoryColors[cat].replace('0.8', '1'),
-        borderWidth: 2,
-        fill: true,
-        tension: 0.4
-      };
-    });
-    
+
     const categoryCanvas = document.getElementById('trendByCategory');
     if (categoryCanvas) {
-      new Chart(categoryCanvas.getContext('2d'), {
+      const categories = ['Biodegradable', 'Recyclable', 'Residual', 'Special/Hazardous'];
+      const categoryColors = {
+        'Biodegradable': 'rgba(76, 175, 80, 0.8)',
+        'Recyclable': 'rgba(33, 150, 243, 0.8)',
+        'Residual': 'rgba(158, 158, 158, 0.8)',
+        'Special/Hazardous': 'rgba(244, 67, 54, 0.8)'
+      };
+      
+      const categoryDatasets = categories.map(cat => {
+        return {
+          label: cat,
+          data: sortedPeriods.map(p => (aggregatedData[p]?.wasteByCategory[cat] || 0) / aggregatedData[p].timeSpan),
+          backgroundColor: categoryColors[cat],
+          borderColor: categoryColors[cat].replace('0.8', '1'),
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4
+        };
+      });
+
+      // Destroy previous chart instance if exists
+      if (categoryCanvas.chartInstance) categoryCanvas.chartInstance.destroy();
+
+      categoryCanvas.chartInstance = new Chart(categoryCanvas.getContext('2d'), {
         type: 'line',
         data: { labels: labels, datasets: categoryDatasets },
         options: {
@@ -1463,20 +1494,8 @@ function initCharts() {
             }
           },
           scales: {
-            y: { 
-              stacked: true,
-              title: { display: true, text: 'Weight (kg/day)' },
-              grid: { color: 'rgba(0, 0, 0, 0.05)' }
-            },
-            x: { 
-              stacked: true, 
-              title: { display: true, text: `Period (${aggregation})` }, 
-              ticks: { maxRotation: 45, minRotation: 45, autoSkip: false },
-              grid: { color: 'rgba(0, 0, 0, 0.05)' }
-            }
-          },
-          layout: {
-            padding: { left: 10, right: 30, top: 10, bottom: 10 }
+            y: { stacked: true, title: { display: true, text: 'Weight (kg/day)' } },
+            x: { stacked: true, title: { display: true, text: `Period (${aggregation})` } }
           }
         }
       });
@@ -1495,7 +1514,10 @@ function initCharts() {
     
     const complianceCanvas = document.getElementById('trendCompliance');
     if (complianceCanvas) {
-      new Chart(complianceCanvas.getContext('2d'), {
+      // Destroy previous chart instance if it exists
+      if (complianceCanvas.chartInstance) complianceCanvas.chartInstance.destroy();
+
+      complianceCanvas.chartInstance = new Chart(complianceCanvas.getContext('2d'), {
         type: 'line',
         data: {
           labels: labels,
