@@ -333,36 +333,55 @@
   </div>
 </div>
 
-
-<!-- Simulation UI (replace existing simulation section) -->
+<!-- Simulation UI (updated) -->
 <div class="form-section" style="background-color:#f4fff6;padding:1.5rem;border-radius:10px;border-left:6px solid #43a047;">
-  <h2 style="color:#2e7d32;display:flex;align-items:center;"><i class="fa-solid fa-flask" style="margin-right:8px;color:#43a047"></i>Waste Simulation Forecast</h2>
-  <p style="color:#555">
-    Deterministic simulation using <strong>data_entry.annual</strong>.<br>
-    The <b>Additional Companies</b> field is for adding a hypothetical number of companies involved in this summary.
+  <h2 style="color:#2e7d32;display:flex;align-items:center;">
+    <i class="fa-solid fa-flask" style="margin-right:8px;color:#43a047"></i>
+    Waste Simulation Forecast
+  </h2>
+
+  <p style="color:#555;margin-bottom:1rem;">
+    Uses historical <strong>data_entry.annual</strong> values. Population input is a whole
+    percentage (e.g. <b>1</b> = 1%). Linear yearly auto-increment is fixed at <b>5% per year</b>.
   </p>
 
-  <div style="background:#e8f5e9;padding:12px;border-radius:8px;display:flex;flex-direction:column;gap:10px;">
+  <div style="background:#e8f5e9;padding:14px;border-radius:10px;display:flex;flex-direction:column;gap:12px;">
 
     <div class="sim-row">
-      <label for="forecastMonths">Forecast Horizon (months)</label>
-      <input id="forecastMonths" type="number" class="form-control" value="12" min="1" max="60">
+      <label for="forecastMonths" style="font-weight:600;">Forecast Horizon (months)</label>
+      <input id="forecastMonths" type="number" class="form-control" value="12" min="1" max="240">
     </div>
 
     <div class="sim-row">
-      <label for="historyWindow">Reference Window (months)</label>
-      <input id="historyWindow" type="number" class="form-control" value="12" min="1" max="120">
+      <label style="font-weight:600;">Additional Companies (can be negative)</label>
+      <div style="display:flex;gap:12px;margin-top:6px;">
+        <div style="flex:1;">
+          <label for="addSmall" style="font-size:0.9rem;">Small</label>
+          <input id="addSmall" type="number" class="form-control" value="0" step="1">
+        </div>
+        <div style="flex:1;">
+          <label for="addMedium" style="font-size:0.9rem;">Medium</label>
+          <input id="addMedium" type="number" class="form-control" value="0" step="1">
+        </div>
+        <div style="flex:1;">
+          <label for="addLarge" style="font-size:0.9rem;">Large</label>
+          <input id="addLarge" type="number" class="form-control" value="0" step="1">
+        </div>
+      </div>
+     <small style="color:#555;">
+        Enter negative numbers to indicate companies that left the system or are no longer part of the simulation (e.g. -1).
+     </small>
     </div>
 
     <div class="sim-row">
-      <label for="projectedCompanies">Additional Companies</label>
-      <input id="projectedCompanies" type="number" class="form-control" placeholder="e.g. 2">
+      <label for="populationInputWhole" style="font-weight:600;">Population (whole percent)</label>
+      <input id="populationInputWhole" type="number" class="form-control" value="0" step="1" placeholder="e.g. 1 = 1%">
+      <small style="color:#555;">This whole-number percent is converted to a decimal and <b>added</b> to the scale (not multiplied).</small>
     </div>
 
-    <button id="runSimBtn" class="btn btn-success">
+    <button id="runSimBtn" class="btn btn-success" style="margin-top:6px;">
       <i class="fa-solid fa-play"></i> Run Simulation
     </button>
-
   </div>
 
   <div style="margin-top:12px;background:#fff;padding:12px;border-radius:8px;">
@@ -376,6 +395,7 @@
     </table>
   </div>
 </div>
+
 
 <!-- Compliance Overview -->
 <div class="form-section" style="background-color: rgb(240, 255, 240); padding: 10px 15px; border-left: 4px solid #4caf50; margin-bottom: 15px;">
@@ -611,47 +631,28 @@ applyBtn.onclick = async () => {
 </script>
 
 <!-- Simulation script -->
+
 <script>
-/* small helper to collect current filters (server may set window.currentFilters on render) */
-function collectFiltersFallback() {
-  const maybe = {};
-  const titleEl = document.querySelector('#filterTitle, input[name="title"]');
-  const companyEl = document.querySelector('#filterCompanyName, input[name="companyName"]');
-  const nameEl = document.querySelector('#filterAuthor, input[name="name"]');
-  const startEl = document.querySelector('#filterStartDate, input[name="startDate"]');
-  const endEl = document.querySelector('#filterEndDate, input[name="endDate"]');
-  const locEl = document.querySelector('#filterLocationCode, input[name="locationCode"]');
-
-  if (titleEl) maybe.title = titleEl.value || undefined;
-  if (companyEl) maybe.companyName = companyEl.value || undefined;
-  if (nameEl) maybe.name = nameEl.value || undefined;
-  if (startEl) maybe.startDate = startEl.value || undefined;
-  if (endEl) maybe.endDate = endEl.value || undefined;
-  if (locEl) maybe.locationCode = locEl.value || undefined;
-
-  return maybe;
-}
-
 async function runSimulation() {
   const btn = document.getElementById('runSimBtn');
   const horizon = Number(document.getElementById('forecastMonths').value) || 12;
-  const windowMonths = Number(document.getElementById('historyWindow').value) || 12;
-  const projectedRaw = document.getElementById('projectedCompanies').value;
-  // interpret projectedCompanies as ADDITIONAL companies to add
-  const projectedAdditional = (projectedRaw === '' ? null : Number(projectedRaw));
+
+  const additions = {
+    small: Number(document.getElementById('addSmall').value) || 0,
+    medium: Number(document.getElementById('addMedium').value) || 0,
+    large: Number(document.getElementById('addLarge').value) || 0
+  };
+
+  // population as WHOLE number: 1 = 1%
+  const populationInputWhole = Number(document.getElementById('populationInputWhole').value) || 0;
 
   const filters = window.currentFilters || {};
 
-  const payload = {
-    horizon,
-    windowMonths,
-    projectedCompanyCount: projectedAdditional,
-    filters
-  };
+  const payload = { horizon, filters, additions, populationInputWhole };
+  console.log('[UI] payload', payload);
 
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Running...';
-  console.log('[SIM] payload', payload);
 
   try {
     const res = await fetch('/api/simulate', {
@@ -659,19 +660,20 @@ async function runSimulation() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    const json = await res.json();
 
-    if (!res.ok || !json.forecast || json.forecast.length === 0) {
-      console.warn('[SIM] No forecast returned', json);
+    const json = await res.json();
+    console.log('[UI] Simulation Response:', json);
+
+    if (!json.success || !json.forecast || json.forecast.length === 0) {
       alert('No forecast returned. Ensure filtered entries include annual values.');
       if (json.diagnostics) renderDiagnostics(json.diagnostics);
       return;
     }
 
     renderSimulationChart(json.forecast);
-    renderDiagnostics(json.diagnostics || {});
+    renderDiagnostics(json.diagnostics);
   } catch (err) {
-    console.error('Simulation fetch error', err);
+    console.error('[UI] Simulation fetch error:', err && err.stack ? err.stack : err);
     alert('Simulation fetch error — check console.');
   } finally {
     btn.disabled = false;
@@ -680,39 +682,58 @@ async function runSimulation() {
 }
 
 function renderSimulationChart(forecast) {
-  const ctx = document.getElementById('simulationChart').getContext('2d');
+  const canvas = document.getElementById('simulationChart');
+  if (!canvas) { console.error('Chart canvas not found'); return; }
+  const ctx = canvas.getContext('2d');
+  if (!ctx) { console.error('getContext() returned null'); return; }
+
   if (window.simChart && typeof window.simChart.destroy === 'function') window.simChart.destroy();
 
-  const labels = forecast.map(d => d.period);
-  const data = forecast.map(d => Number(d.mean));
+  const labels = forecast.map(f => f.period);
+  const data = forecast.map(f => Number(f.mean));
 
   window.simChart = new Chart(ctx, {
     type: 'line',
-    data: { labels, datasets: [{ label: 'Simulated Monthly Waste (kg)', data, borderColor: 'rgb(75,192,192)', borderWidth: 2.5, fill: false, tension: 0.25 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins:{legend:{position:'bottom'}} }
+    data: {
+      labels,
+      datasets: [{
+        label: 'Simulated Monthly Waste (kg)',
+        data,
+        borderColor: 'rgb(75,192,192)',
+        borderWidth: 2.5,
+        tension: 0.25,
+        fill: false
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
   });
 }
 
 function renderDiagnostics(d) {
   document.getElementById('simHeader').innerText = 'Simulation Diagnostics';
-  const weights = Array.isArray(d.monthWeights) ? d.monthWeights : [];
-  const monthStr = weights.length === 12 ? weights.map((w,i) => `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i]}: ${w.toFixed(3)}`).join(', ') : '-';
+
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const template = Array.isArray(d.monthTemplatePerCompany) ? d.monthTemplatePerCompany : [];
+  const templateStr = template.length === 12 ? template.map((v,i) => `${monthNames[i]}: ${v.toFixed(2)}`).join(', ') : '-';
 
   document.getElementById('simDiagnostics').innerHTML = `
     <tr><th>Forecast Horizon</th><td>${d.horizon ?? '-' } months</td></tr>
-    <tr><th>Reference Window</th><td>${d.windowMonths ?? '-' } months</td></tr>
-    <tr><th>Historical Companies Used</th><td>${d.nHistoricalCompanies ?? '-'}</td></tr>
-    <tr><th>Target Companies (actual + additional)</th><td>${d.targetCompanies ?? '-'}</td></tr>
-    <tr><th>Scale Factor</th><td>${d.scaleFactor ?? '-'}</td></tr>
-    <tr><th>Sum Annual (all entries)</th><td>${d.sumAnnualAllCompanies ? Number(d.sumAnnualAllCompanies).toLocaleString() : '-'}</td></tr>
-    <tr><th>Avg Annual / Company</th><td>${d.avgAnnualPerCompany ?? '-'}</td></tr>
-    <tr><th>Month Weights (Jan→Dec)</th><td style="white-space:normal;">${monthStr}</td></tr>
-    <tr><th>Companies Involved</th><td>${Array.isArray(d.companiesInvolved) ? Array.from(new Set(d.companiesInvolved)).join(', ') : '-'}</td></tr>
+    <tr><th>Anchor Month</th><td>${d.anchorMonth ?? '-'}</td></tr>
+    <tr><th>Distinct Companies</th><td>${d.distinctCompanies ?? '-'}</td></tr>
+    <tr><th>Actual Company Equivalent</th><td>${d.actualCompanyEquivalent ?? '-'}</td></tr>
+    <tr><th>Additions (S/M/L)</th><td>${d.additions ? `${d.additions.small}/${d.additions.medium}/${d.additions.large}` : '-'}</td></tr>
+    <tr><th>Added Equivalent</th><td>${d.addEquivalent ?? '-'}</td></tr>
+    <tr><th>Company Base</th><td>${d.companyBase ?? '-'}</td></tr>
+    <tr><th>Population Input (whole %)</th><td>${d.populationInputWhole ?? '-'}</td></tr>
+    <tr><th>Population Offset Applied</th><td>${d.populationOffsetApplied ?? '-'}</td></tr>
+    <tr><th>Scale Base</th><td>${d.scaleBase ?? '-'}</td></tr>
+    <tr><th>Yearly Increment Rate</th><td>5% (auto)</td></tr>
+    <tr><th>Monthly Template (per company)</th><td style="white-space:normal;">${templateStr}</td></tr>
+    <tr><th>Companies Involved</th><td>${(d.companiesInvolved || []).join(', ')}</td></tr>
     <tr><th>Note</th><td>${d.note ?? '-'}</td></tr>
   `;
 }
 
-/* attach */
 document.getElementById('runSimBtn').addEventListener('click', runSimulation);
 </script>
 

@@ -3253,30 +3253,40 @@ app.get('/control-panel/entry-statistics', async (req, res) => {
 })
 
 // server.js — /api/simulate
+
 app.post('/api/simulate', async (req, res) => {
   try {
-    const {
-      horizon,
-      windowMonths,
-      projectedCompanyCount,
-      filters
-    } = req.body;
+    let { horizon, filters, additions, populationInputWhole } = req.body || {};
 
-    //const filters = { title, locationCode, name, companyName, startDate, endDate };
+    horizon = Number(horizon) || 12;
+    filters = filters || {};
+    additions = additions || {};
+    const safeAdditions = {
+      small: Number(additions.small) || 0,
+      medium: Number(additions.medium) || 0,
+      large: Number(additions.large) || 0
+    };
 
-    console.log('[API] /api/simulate request', { horizon, windowMonths, projectedCompanyCount, filters });
+    // populationInputWhole is expected as whole number (1 => 1%). Accept legacy key "populationPct" too.
+    if (populationInputWhole === undefined && req.body.populationPct !== undefined) {
+      // backward compatibility: if frontend still sends decimal/whole under populationPct, use it
+      populationInputWhole = Number(req.body.populationPct) || 0;
+    }
+    populationInputWhole = Number(populationInputWhole) || 0;
+
+    console.log('[API] /api/simulate request normalized:', { horizon, filters, safeAdditions, populationInputWhole });
 
     const result = await runSimulation(
-      Number(horizon) || 12,
+      horizon,
       filters,
-      Number(windowMonths) || 12,
-      (projectedCompanyCount === '' || projectedCompanyCount === null || projectedCompanyCount === undefined) ? null : Number(projectedCompanyCount)
+      safeAdditions,
+      populationInputWhole
     );
 
-    res.json({ success: true, ...result });
+    return res.json({ success: true, ...result });
   } catch (err) {
-    console.error('[SIM] Simulation fetch error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    console.error('[SIM] Simulation fetch error (route):', err && err.stack ? err.stack : err);
+    return res.status(500).json({ success: false, error: err.message || String(err) });
   }
 });
 
