@@ -1,4 +1,4 @@
-s<!-- Display search parameters if current route has query -->    
+<!-- Display search parameters if current route has query -->    
 <div id="filter-section" class="filter-section" data-section="filters">
     <center>
         <h2 style="margin: 0;">Search Parameters</h2>
@@ -1054,13 +1054,22 @@ function initCharts() {
     const aggregation = '{{query.aggregation}}' || 'monthly';
     console.log('📅 Aggregation:', aggregation);
     
-    const regionName = '{{regionName}}' || 'ALL';
-    const provinceName = '{{provinceName}}' || 'ALL';
-    const municipalityName = '{{municipalityName}}' || 'ALL';
+    const regionName = '{{regionName}}';
+    const provinceName = '{{provinceName}}';
+    const municipalityName = '{{municipalityName}}';
     const startDate = '{{query.startDate}}' || '';
     const endDate = '{{query.endDate}}' || '';
-    
-    let locationText = `${regionName}, ${provinceName}, ${municipalityName}`;
+
+    // Helper: skip blanks and "ALL"
+    const sanitize = v => v && v !== 'ALL';
+
+    // Build location text
+    const locationParts = [municipalityName, provinceName, regionName]
+      .filter(sanitize);
+
+    const locationText = locationParts.join(', ');
+
+    // Build period text
     let periodText = '';
     if (startDate && endDate) {
       periodText = `from ${startDate} to ${endDate}`;
@@ -1069,8 +1078,12 @@ function initCharts() {
     } else if (endDate) {
       periodText = `until ${endDate}`;
     }
-    
-    const chartTitleText = `Waste Trends for ${locationText}${periodText ? ' ' + periodText : ''}`;
+
+    // Build chart title
+    // "for" only appears if locationText is not empty
+    const chartTitleText =
+      `Waste Trends${locationText ? ' for ' + locationText : ''}` +
+      `${periodText ? ' ' + periodText : ''}`;
     
     const mainTitle = document.getElementById('trends-main-title');
     if (mainTitle) {
