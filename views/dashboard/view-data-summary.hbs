@@ -322,27 +322,32 @@ s<!-- Display search parameters if current route has query -->
 <!-- Simulation UI (replace existing simulation section) -->
 <div class="form-section" style="background-color:#f4fff6;padding:1.5rem;border-radius:10px;border-left:6px solid #43a047;">
   <h2 style="color:#2e7d32;display:flex;align-items:center;"><i class="fa-solid fa-flask" style="margin-right:8px;color:#43a047"></i>Waste Simulation Forecast</h2>
-  <p style="color:#555">Deterministic simulation using <strong>data_entry.annual</strong>. "Additional Companies" means how many new companies to add on top of the companies involved in this summary.</p>
+  <p style="color:#555">
+    Deterministic simulation using <strong>data_entry.annual</strong>.<br>
+    The <b>Additional Companies</b> field is for adding a hypothetical number of companies involved in this summary.
+  </p>
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;background:#e8f5e9;padding:12px;border-radius:8px;">
-    <div>
+  <div style="background:#e8f5e9;padding:12px;border-radius:8px;display:flex;flex-direction:column;gap:10px;">
+
+    <div class="sim-row">
       <label for="forecastMonths">Forecast Horizon (months)</label>
       <input id="forecastMonths" type="number" class="form-control" value="12" min="1" max="60">
     </div>
 
-    <div>
+    <div class="sim-row">
       <label for="historyWindow">Reference Window (months)</label>
       <input id="historyWindow" type="number" class="form-control" value="12" min="1" max="120">
     </div>
 
-    <div>
-      <label for="projectedCompanies">Additional Companies (leave blank for 0)</label>
+    <div class="sim-row">
+      <label for="projectedCompanies">Additional Companies</label>
       <input id="projectedCompanies" type="number" class="form-control" placeholder="e.g. 2">
     </div>
 
-    <div style="align-self:end;">
-      <button id="runSimBtn" class="btn btn-success"><i class="fa-solid fa-play"></i> Run Simulation</button>
-    </div>
+    <button id="runSimBtn" class="btn btn-success">
+      <i class="fa-solid fa-play"></i> Run Simulation
+    </button>
+
   </div>
 
   <div style="margin-top:12px;background:#fff;padding:12px;border-radius:8px;">
@@ -2553,6 +2558,22 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="/js/tabs-sector-pie.js"></script>
 
 <style>
+
+.sim-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sim-row label {
+  width: 180px;          /* equal label width */
+  font-weight: 500;
+}
+.sim-row input {
+  width: 160px !important;          /* equal input width */
+}
+#runSimBtn {
+  width: fit-content;
+}
 
 .chart-viewport {
   overflow-x: auto; overflow-y: hidden; width: 100%;
