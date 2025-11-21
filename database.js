@@ -2057,6 +2057,7 @@ export async function getTimeSeriesData(title, locationCode, author, company, st
       SUM(dwc.waste_amount) AS total_weight,
       AVG(dat.per_capita) AS avg_per_capita,
       ws.name AS waste_type,
+      u.company_name AS company,
       CASE
         WHEN SUM(dwc.waste_amount) > 0 THEN 'Compliant'
         ELSE 'Non-Compliant'
@@ -2105,13 +2106,14 @@ export async function getTimeSeriesData(title, locationCode, author, company, st
   if (conditions.length > 0) query += ` AND ` + conditions.join(' AND ');
 
   query += `
-    GROUP BY date, ws.name
+    GROUP BY date, ws.name, u.company_name
     ORDER BY date ASC;
   `;
 
   const [rows] = await sql.query(query, params);
   return rows;
 }
+
 // Helpers
 function makePlaceholders(arr) {
   if (!Array.isArray(arr) || arr.length === 0) return 'NULL';

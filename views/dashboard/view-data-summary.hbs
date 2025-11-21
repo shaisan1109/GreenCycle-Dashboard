@@ -1070,6 +1070,45 @@ function nextPeriod(period, aggregation) {
   return period;
 }
 
+// Build maps: company -> color
+function randomColor() {
+  const r = Math.floor(150 + Math.random() * 105);
+  const g = Math.floor(150 + Math.random() * 105);
+  const b = Math.floor(150 + Math.random() * 105);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+// Gradient (for points with multiple companies)
+function buildPointColors(allLabels, dateCompaniesMap, companyColorMap, ctx) {
+  return allLabels.map(label => {
+    const companies = dateCompaniesMap[label];
+
+    // No companies for this point
+    if (!companies || companies.length === 0) {
+      return '#2196F3'; // default actual data color
+    }
+
+    // Only one company → simple color
+    if (companies.length === 1) {
+      return companyColorMap[companies[0]];
+    }
+
+    // Multiple companies → create a radial gradient
+    const gradient = ctx.createRadialGradient(6, 6, 2, 6, 6, 6);
+    let step = 0;
+
+    companies.forEach((comp, idx) => {
+      const color = companyColorMap[comp];
+      const stop = (idx + 1) / companies.length;
+      gradient.addColorStop(step, color);
+      gradient.addColorStop(stop, color);
+      step = stop;
+    });
+
+    return gradient;
+  });
+}
+
 // Wait for both DOM and Chart.js to be ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initChartsWithAggregation('{{query.aggregation}}' || 'monthly'));
@@ -1093,6 +1132,7 @@ function initChartsWithAggregation(aggregation) {
 
   try {
     const rawData = {{{timeSeriesData}}};
+    console.log("RAW ROWS SAMPLE:", rawData.slice(0, 10));
     console.log('📊 Raw data length:', rawData ? rawData.length : 0);
     
     if (!rawData || rawData.length === 0) {
@@ -1104,12 +1144,37 @@ function initChartsWithAggregation(aggregation) {
       return;
     }
 
-    // Log first data point structure to help debug field names
-    console.log('📋 Sample data point structure:', Object.keys(rawData[0]));
-    console.log('📋 Sample data point:', rawData[0]);
+    // Build maps: company -> color
+    function randomColor() {
+      const r = Math.floor(150 + Math.random() * 105);
+      const g = Math.floor(150 + Math.random() * 105);
+      const b = Math.floor(150 + Math.random() * 105);
+      return `rgb(${r}, ${g}, ${b})`;
+    }
 
-    //const aggregation = '{{query.aggregation}}' || 'monthly';
-    //console.log('📅 Aggregation:', aggregation);
+    const companyColorMap = {};
+    const dateCompaniesMap = {}; 
+    // Example: { '2024-01-01': ['Company A','Company B'] }
+
+    rawData.forEach(row => {
+      // Assign new color if first time seeing company
+      if (!companyColorMap[row.company]) {
+        companyColorMap[row.company] = randomColor();
+      }
+      const dateObj = parseFlexibleDate(row.date);
+      if (dateObj) {
+        let aggKey;
+
+        if (aggregation === 'monthly') {
+          aggKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+        } else if (aggregation === 'yearly') {
+          aggKey = `${dateObj.getFullYear()}`;
+        }
+
+        if (!dateCompaniesMap[aggKey]) dateCompaniesMap[aggKey] = [];
+        dateCompaniesMap[aggKey].push(row.company);
+      }
+    });
     
     const regionName = '{{regionName}}';
     const provinceName = '{{provinceName}}';
@@ -1218,7 +1283,7 @@ function initChartsWithAggregation(aggregation) {
     const futurePeriods = generateFutureLabels(lastPeriod, aggregation, 3);
     const futureLabels = futurePeriods.map(p => formatPeriodLabel(p, aggregation));
     const allLabels = [...labels, ...futureLabels];
-    
+
     const futureX = [totalWeights.length, totalWeights.length + 1, totalWeights.length + 2];
     const futureY = futureX.map(x => evaluatePolynomial(regression.coefficients, x));
     
@@ -1260,6 +1325,10 @@ function initChartsWithAggregation(aggregation) {
         console.error('❌ Cannot get canvas context');
         return;
       }
+
+      // Add company colors
+      const periodKeys = completePeriods.concat(futurePeriods); // ['2024-01', '2024-02', ...]
+      const pointColors = buildPointColors(periodKeys, dateCompaniesMap, companyColorMap, ctx);
       
       const lastTrendValue = evaluatePolynomial(regression.coefficients, totalWeights.length - 1);
       
@@ -1275,6 +1344,10 @@ function initChartsWithAggregation(aggregation) {
         lastTrendValue,
         ...futureY
       ];
+
+      console.log("Labels:", allLabels);
+      console.log("Period keys:", completePeriods); // or whatever you used
+      console.log("DateCompaniesMap:", dateCompaniesMap);
       
       totalWasteCanvas.chartInstance = new Chart(ctx, {
         type: 'line',
@@ -1291,7 +1364,11 @@ function initChartsWithAggregation(aggregation) {
               borderWidth: 2,
               fill: false,
               tension: 0.3,
-              spanGaps: true
+              spanGaps: true,
+              // Company point colors
+              pointBackgroundColor: pointColors,
+              pointBorderColor: pointColors,
+              pointBorderWidth: 1
             },
             {
               label: 'Trend Line (Actual)',
@@ -1360,7 +1437,16 @@ function initChartsWithAggregation(aggregation) {
               callbacks: {
                 label: (context) => {
                   if (context.parsed.y === null) return '';
-                  return `${context.dataset.label}: ${context.parsed.y.toFixed(4)} kg/day`;
+
+                  const date = context.label;
+                  const comps = dateCompaniesMap[date] || [];
+
+                  let companyList = '';
+                  if (comps.length > 0) {
+                    companyList = ' | Companies: ' + comps.join(', ');
+                  }
+
+                  return `${context.dataset.label}: ${context.parsed.y.toFixed(4)} kg/day${companyList}`;
                 }
               }
             }
