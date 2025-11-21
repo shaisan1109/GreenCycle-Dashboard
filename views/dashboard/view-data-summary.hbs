@@ -1079,33 +1079,21 @@ function randomColor() {
 }
 
 // Gradient (for points with multiple companies)
-function buildPointColors(allLabels, dateCompaniesMap, companyColorMap, ctx) {
-  return allLabels.map(label => {
-    const companies = dateCompaniesMap[label];
+function buildPointColors(allLabels, dateCompaniesMap, companyColorMap) {
+  return allLabels.map(period => {
+    const list = dateCompaniesMap[period] || [];
+    const unique = [...new Set(list.filter(x => x))];
 
-    // No companies for this point
-    if (!companies || companies.length === 0) {
-      return '#2196F3'; // default actual data color
+    if (unique.length === 0) {
+      return '#2196F3';
     }
 
-    // Only one company → simple color
-    if (companies.length === 1) {
-      return companyColorMap[companies[0]];
+    if (unique.length === 1) {
+      return companyColorMap[unique[0]];
     }
 
-    // Multiple companies → create a radial gradient
-    const gradient = ctx.createRadialGradient(6, 6, 2, 6, 6, 6);
-    let step = 0;
-
-    companies.forEach((comp, idx) => {
-      const color = companyColorMap[comp];
-      const stop = (idx + 1) / companies.length;
-      gradient.addColorStop(step, color);
-      gradient.addColorStop(stop, color);
-      step = stop;
-    });
-
-    return gradient;
+    // Multiple companies → plugin draws visible dots
+    return 'rgba(0,0,0,0)'; 
   });
 }
 
@@ -1329,6 +1317,14 @@ function initChartsWithAggregation(aggregation) {
       // Add company colors
       const periodKeys = completePeriods.concat(futurePeriods); // ['2024-01', '2024-02', ...]
       const pointColors = buildPointColors(periodKeys, dateCompaniesMap, companyColorMap, ctx);
+
+      // Detect multiple companies sharing one data point
+      const periodCompanySets = periodKeys.map(period => {
+        const list = dateCompaniesMap[period] || [];
+        // Remove null and duplicates
+        const unique = [...new Set(list.filter(x => x))];
+        return unique;
+      });
       
       const lastTrendValue = evaluatePolynomial(regression.coefficients, totalWeights.length - 1);
       
@@ -1348,6 +1344,49 @@ function initChartsWithAggregation(aggregation) {
       console.log("Labels:", allLabels);
       console.log("Period keys:", completePeriods); // or whatever you used
       console.log("DateCompaniesMap:", dateCompaniesMap);
+
+      const MultipleCompanyPointsPlugin = {
+        id: 'multiCompanyPoints',
+        afterDatasetsDraw(chart, args, opts) {
+          const { ctx } = chart;
+
+          const datasetIndex = opts.datasetIndex ?? 0; // your main Actual Data dataset
+          const meta = chart.getDatasetMeta(datasetIndex);
+
+          periodCompanySets.forEach((companies, i) => {
+            if (companies.length <= 1) return;
+
+            const point = meta.data[i];
+            if (!point) return;
+
+            const baseX = point.x;
+            const baseY = point.y;
+
+            const radius = 5;
+            const spacing = 12; // vertical spacing
+            const total = companies.length;
+
+            // Vertically center the stacked dots
+            const startOffset = -((total - 1) * spacing) / 2;
+
+            companies.forEach((company, idx) => {
+              const color = companyColorMap[company];
+              const offsetY = startOffset + idx * spacing;
+
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(baseX, baseY + offsetY, radius, 0, Math.PI * 2);
+              ctx.fillStyle = color;
+              ctx.fill();
+              ctx.lineWidth = 1;
+              ctx.strokeStyle = color;
+              ctx.stroke();
+              ctx.restore();
+            });
+          });
+        }
+      };
+      Chart.register(MultipleCompanyPointsPlugin);
       
       totalWasteCanvas.chartInstance = new Chart(ctx, {
         type: 'line',
