@@ -205,6 +205,20 @@
     Use the aggregation selector to switch between monthly or yearly views. You may drag the horizontal scrollbar on each chart to view further time periods.
   </p>
 
+  <!-- Company color legend -->
+  <div style="
+      background-color: #fff;
+      padding: 10px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;">
+    <center>
+      <h2 style="margin: 0;">COMPANY LEGEND</h2>
+      <p>GreenCycle uses data provided by different organizations. Below is a color legend for the organizations used in this data summary.</p>
+    </center>
+    <div class="companyLegend"></div>
+  </div>
+
   <!-- Trend Charts Container -->
   <div id="trend-charts-wrapper">
     <!-- Total Waste Trend with Regression -->
@@ -212,6 +226,8 @@
       <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
         <i class="fa-solid fa-trash"></i> Total Waste Generation Trend with 3rd Degree Polynomial Regression
       </h3>
+
+      <div class="companyLegend"></div>
 
       <!-- Zoom -->
       <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
@@ -247,6 +263,8 @@
         <i class="fa-solid fa-user"></i> Per Capita Waste Trend
       </h3>
 
+      <div class="companyLegend"></div>
+
       <!-- Zoom -->
       <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
         <label style="font-size: 0.85rem; margin-right: 0.5rem; color: #2d613f;">
@@ -277,6 +295,8 @@
         <i class="fa-solid fa-layer-group"></i> Waste by Category Over Time
       </h3>
 
+      <div class="companyLegend"></div>
+
       <!-- Zoom -->
       <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
         <label style="font-size: 0.85rem; margin-right: 0.5rem; color: #2d613f;">
@@ -306,6 +326,8 @@
       <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
         <i class="fa-solid fa-check-double"></i> Compliance Rate Trend
       </h3>
+
+      <div class="companyLegend"></div>
 
       <!-- Zoom -->
       <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
@@ -631,7 +653,6 @@ applyBtn.onclick = async () => {
 </script>
 
 <!-- Simulation script -->
-
 <script>
 async function runSimulation() {
   const btn = document.getElementById('runSimBtn');
@@ -1071,11 +1092,42 @@ function nextPeriod(period, aggregation) {
 }
 
 // Build maps: company -> color
-function randomColor() {
-  const r = Math.floor(150 + Math.random() * 105);
-  const g = Math.floor(150 + Math.random() * 105);
-  const b = Math.floor(150 + Math.random() * 105);
-  return `rgb(${r}, ${g}, ${b})`;
+// Function is able to make colors that aren't too similar to each other
+
+const usedHues = new Set(); // Tracks all assigned hue values
+
+function generateDistinctColor() {
+  const saturation = 100;
+  const lightness = Math.floor(15 + Math.random() * 5); // 15–18%
+
+  const minHueDifference = 40; // Enforced strictly
+
+  // Try random hues until a valid one is found
+  // With ~360 degrees and 40° separation, you can safely generate up to ~9 colors.
+  while (true) {
+    const hue = Math.floor(Math.random() * 360);
+
+    // Check against all used hues
+    let ok = true;
+    for (const h of usedHues) {
+      const diff = Math.abs(h - hue);
+      const circularDiff = Math.abs((h - hue + 360) % 360);
+      if (diff < minHueDifference || circularDiff < minHueDifference) {
+        ok = false;
+        break;
+      }
+    }
+
+    if (ok) {
+      usedHues.add(hue);
+      return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    }
+
+    // If we spin too long, the palette is exhausted
+    if (usedHues.size >= Math.floor(360 / minHueDifference)) {
+      throw new Error("No more distinct hues available with this separation.");
+    }
+  }
 }
 
 // Gradient (for points with multiple companies)
@@ -1094,6 +1146,68 @@ function buildPointColors(allLabels, dateCompaniesMap, companyColorMap) {
 
     // Multiple companies → plugin draws visible dots
     return 'rgba(0,0,0,0)'; 
+  });
+}
+
+// Render company color legend
+function renderCompanyLegend(companyColorMap) {
+  const legendContainers = document.querySelectorAll('.companyLegend');
+
+  // Prepare company list
+  const companies = Object.entries(companyColorMap);
+  companies.sort((a, b) => a[0].localeCompare(b[0]));
+
+  const half = Math.ceil(companies.length / 2);
+  const leftColumn = companies.slice(0, half);
+  const rightColumn = companies.slice(half);
+
+  // Helper to build a single column
+  function createColumn(list) {
+    const col = document.createElement('div');
+    col.style.display = 'flex';
+    col.style.flexDirection = 'column';
+    col.style.gap = '8px';
+
+    list.forEach(([company, color]) => {
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.style.gap = '6px';
+
+      const dot = document.createElement('div');
+      dot.style.width = '14px';
+      dot.style.height = '14px';
+      dot.style.borderRadius = '50%';
+      dot.style.backgroundColor = color;
+      dot.style.border = '1px solid #333';
+
+      const label = document.createElement('span');
+      label.textContent = company;
+      label.style.fontSize = '0.9rem';
+
+      row.appendChild(dot);
+      row.appendChild(label);
+      col.appendChild(row);
+    });
+
+    return col;
+  }
+
+  // Build the legend for each container
+  legendContainers.forEach(container => {
+    container.innerHTML = '';
+
+    const wrapper = document.createElement('div');
+    wrapper.style.display = 'flex';
+    wrapper.style.justifyContent = 'center';
+    wrapper.style.gap = '80px';
+    wrapper.style.margin = '0 auto';
+    wrapper.style.width = 'fit-content';
+
+    wrapper.appendChild(createColumn(leftColumn));
+    wrapper.appendChild(createColumn(rightColumn));
+
+    container.appendChild(wrapper);
   });
 }
 
@@ -1163,6 +1277,9 @@ function initChartsWithAggregation(aggregation) {
         dateCompaniesMap[aggKey].push(row.company);
       }
     });
+
+    // Build company color legend
+    renderCompanyLegend(companyColorMap);
     
     const regionName = '{{regionName}}';
     const provinceName = '{{provinceName}}';
