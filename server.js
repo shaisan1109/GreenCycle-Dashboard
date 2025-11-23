@@ -98,6 +98,11 @@ import {
 updateSectorQuotaForOrg,
 getTimeSeriesData,
 runSimulation,
+  getMonthlySubmissionStats,
+  getUserSubmissionMonths,       // <-- add this
+  saveComplianceRecord,
+  getComplianceTable,
+  getComplianceMonths,
 } from './database.js'
 
 // File Upload
@@ -551,6 +556,26 @@ app.get('/dashboard/deadline', async (req, res) => {
   } catch (err) {
     console.error("Error loading deadline:", err);
     res.status(500).send("Failed to load deadline page");
+  }
+});
+
+app.get("/api/compliance/deadlines", async (req, res) => {
+  try {
+    const data = await getComplianceTable();
+    res.json(data);
+  } catch (err) {
+    console.error("Error fetching compliance table:", err);
+    res.status(500).json({ error: "Failed to load compliance data" });
+  }
+});
+
+app.get("/api/compliance/months", async (req, res) => {
+  try {
+    const months = await getComplianceMonths();
+    res.json(months);
+  } catch (err) {
+    console.error("Error fetching compliance months:", err);
+    res.status(500).json({ error: "Failed to fetch compliance months" });
   }
 });
 
@@ -3779,35 +3804,86 @@ app.get('*', function(req, res){
 /* ---------------------------------------
     NODE-CRON TIMER
 --------------------------------------- */
-// Run every 30 minutes (minute 0 and 30 of every hour)
-cron.schedule("0,0 * * * *", async () => {
+cron.schedule("*/30 * * * * *", async () => {
   try {
     const users = await getUsers();
+    const now = new Date();
 
     for (const user of users) {
-      const timer = await getDeadlineTimer(user.user_id);  // use user_id
 
-      // Skip if no deadline, already submitted, or exempt
-      if (!timer || !timer.deadline || timer.submitted || timer.exempt) continue;
+      // 1. Skip non-client roles
+      const timer = await getDeadlineTimer(user.user_id);
+      if (!timer || timer.exempt) continue;
 
-      const deadline = new Date(timer.deadline);
-      if (isNaN(deadline)) continue;  // prevent "Invalid Date"
-      if (deadline <= new Date()) continue;  // deadline already passed
+      // 2. Get all months this user submitted (example: ["2025-07","2025-08","2025-09"])
+      const submittedMonths = await getUserSubmissionMonths(user.user_id);
 
-      const msg = `Reminder: Your data submission deadline is on ${deadline.toLocaleString()}. Please submit before time runs out.`;
+      // 3. Add the current month even if no submission
+      const currentMonth = now.toISOString().slice(0, 7);
+      if (!submittedMonths.includes(currentMonth)) {
+        submittedMonths.push(currentMonth);
+      }
 
-      await createNotification(
-        user.user_id,
-        "Warning",   // shorter, fits DB column
-        msg,
-        "/dashboard"
-      );
+      // 4. Process each submission month independently
+      for (const monthYear of submittedMonths) {
+
+        // Determine the correct deadline for that month
+        const [year, month] = monthYear.split("-");
+        const deadline = new Date(year, month, 0, 23, 59, 59); // last day of that month
+
+        // 5. Count submissions + earliest submission for that month
+        const stats = await getMonthlySubmissionStats(user.user_id, monthYear);
+        const submission_count = stats.count;
+        const earliestSubmission = stats.earliest ? new Date(stats.earliest) : null;
+
+        let submitted_before_deadline = 0;
+        let fine = 0;
+
+        // 6. Determine compliance
+        if (submission_count > 0 && earliestSubmission <= deadline) {
+          submitted_before_deadline = 1;
+        } 
+        else if (now > deadline) {
+          // LATE for this month → calculate fine
+          const overdueWeeks = Math.floor((now - deadline) / (1000 * 60 * 60 * 24 * 7));
+          fine = 500 * (overdueWeeks + 1);
+        }
+
+        const compliance_status = submitted_before_deadline
+          ? "Compliant"
+          : "Non-Compliant";
+
+        // 7. Save the compliance record
+        await saveComplianceRecord({
+          user_id: user.user_id,
+          month_year: monthYear,
+          submission_count,
+          deadline,
+          submitted_before_deadline,
+          total_fine: fine,
+          compliance_status
+        });
+
+        // Debug log for every record
+        console.log("Compliance Record Updated:", {
+          user_id: user.user_id,
+          month_year: monthYear,
+          submission_count,
+          earliestSubmission,
+          deadline,
+          submitted_before_deadline,
+          fine,
+          compliance_status
+        });
+      }
     }
+
+    console.log("[CRON] All compliance statistics updated (every 30 seconds).");
+
   } catch (err) {
-    console.error("Failed to run reminder job:", err);
+    console.error("Compliance Cron Error:", err);
   }
 });
-
 
 /* ---------------------------------------
     APP LISTENER AND APP LOCALS FUNCTIONS

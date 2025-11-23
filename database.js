@@ -1997,7 +1997,6 @@ export async function getTopDashboardData() {
   }
 }
 
-// dashboard.js
 export async function getDeadlineTimer(userId) {
   // First get the user role supertype
   const [userRows] = await sql.query(`
@@ -2039,6 +2038,83 @@ export async function getDeadlineTimer(userId) {
     exempt: false
   };
 }
+
+export async function getMonthlySubmissionStats(userId, monthYear) {
+  const [rows] = await sql.query(`
+    SELECT COUNT(*) AS count,
+           MIN(date_submitted) AS earliest
+    FROM data_entry
+    WHERE user_id = ?
+      AND status = 'Approved'
+      AND DATE_FORMAT(date_submitted, '%Y-%m') = ?
+  `, [userId, monthYear]);
+
+  return rows[0];
+}
+// database.js (already in the file)
+export async function getUserSubmissionMonths(userId) {
+  const [rows] = await sql.query(`
+    SELECT DISTINCT DATE_FORMAT(date_submitted, '%Y-%m') AS monthYear
+    FROM data_entry
+    WHERE user_id = ?
+      AND status = 'Approved'
+    ORDER BY monthYear ASC
+  `, [userId]);
+
+  return rows.map(r => r.monthYear);
+}
+export async function getComplianceMonths() {
+  const [rows] = await sql.query(`
+    SELECT DISTINCT month_year
+    FROM submission_compliance
+    ORDER BY month_year DESC
+  `);
+
+  return rows.map(r => r.month_year);
+}
+
+
+export async function saveComplianceRecord({
+  user_id,
+  month_year,
+  submission_count,
+  deadline,
+  submitted_before_deadline,
+  total_fine,
+  compliance_status
+}) {
+  await sql.query(`
+    INSERT INTO submission_compliance (
+      user_id, month_year, submission_count, deadline,
+      submitted_before_deadline, total_fine, compliance_status
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      submission_count = VALUES(submission_count),
+      submitted_before_deadline = VALUES(submitted_before_deadline),
+      total_fine = VALUES(total_fine),
+      compliance_status = VALUES(compliance_status)
+  `, [
+    user_id,
+    month_year,
+    submission_count,
+    deadline,
+    submitted_before_deadline,
+    total_fine,
+    compliance_status
+  ]);
+}
+
+export async function getComplianceTable() {
+  const [rows] = await sql.query(`
+    SELECT sc.*, u.firstname, u.lastname, u.company_name
+    FROM submission_compliance sc
+    JOIN user u ON sc.user_id = u.user_id
+    ORDER BY u.lastname ASC
+  `);
+  return rows;
+}
+
 
 // Get time series data (for trend charts)
 export async function getTimeSeriesData(title, locationCode, author, company, startDate, endDate, aggregation = 'daily') {

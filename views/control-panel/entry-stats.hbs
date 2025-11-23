@@ -112,6 +112,169 @@ async function fetchComplianceData() {
 fetchComplianceData();
 </script>
 
+<div class="form-section">
+  <h2>Deadline Compliance Statistics</h2>
+  <p>Monitor all clients and track whether they submitted before their monthly deadline.</p>
+
+  <label for="month-filter"><b>Select Month:</b></label>
+  <select id="month-filter" onchange="loadFilteredCompliance()" style="margin-left:10px; padding:5px;">
+    <!-- Filled dynamically -->
+  </select>
+
+  <table class="user-profile" style="width:100%; margin-top: 1rem;">
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Organization</th>
+        <th>Submissions</th>
+        <th>Deadline</th>
+        <th>Time Remaining</th> <!-- NEW -->
+        <th>Submitted Before the Deadline?</th>
+        <th>Total Fine</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="deadline-compliance-body">
+      <!-- filled dynamically -->
+    </tbody>
+  </table>
+</div>
+
+<script>
+// -------------------------------
+// LOAD MONTHS FOR DROPDOWN
+// -------------------------------
+async function loadMonths() {
+  try {
+    const res = await fetch("/api/compliance/months");
+    if (!res.ok) throw new Error("Failed to load months");
+
+    const months = await res.json();
+    const dropdown = document.getElementById("month-filter");
+
+    dropdown.innerHTML = "";
+
+    if (!months.length) {
+      dropdown.innerHTML = "<option>No months available</option>";
+      return;
+    }
+
+    months.forEach(m => {
+      const option = document.createElement("option");
+      option.value = m;
+      option.textContent = formatMonth(m);
+      dropdown.appendChild(option);
+    });
+
+    // load latest month automatically
+    loadFilteredCompliance();
+  } catch (err) {
+    console.error("Month loading error:", err);
+  }
+}
+
+// Format YYYY-MM to "Month YYYY"
+function formatMonth(monthYear) {
+  const [year, month] = monthYear.split("-");
+  const date = new Date(year, month - 1);
+  return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+
+// -------------------------------
+// LOAD COMPLIANCE ROWS FOR SELECTED MONTH
+// -------------------------------
+async function loadFilteredCompliance() {
+  const selectedMonth = document.getElementById("month-filter").value;
+
+  const res = await fetch(`/api/compliance/deadlines`);
+  const data = await res.json();
+
+  const tbody = document.getElementById("deadline-compliance-body");
+  tbody.innerHTML = "";
+
+  // Filter by the month
+  const filtered = data.filter(row => row.month_year === selectedMonth);
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="8">No records for this month.</td></tr>`;
+    return;
+  }
+
+  filtered.forEach(row => {
+    const submittedIcon = row.submitted_before_deadline
+      ? "<span style='color:green;font-weight:bold;'>✔</span>"
+      : "<span style='color:red;font-weight:bold;'>✖</span>";
+
+    const statusColor = row.compliance_status === "Compliant" ? "green" : "red";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${row.lastname.toUpperCase()}, ${row.firstname}</td>
+      <td>${row.company_name || "-"}</td>
+      <td>${row.submission_count}</td>
+
+      <td>${new Date(row.deadline).toLocaleString()}</td>
+
+      <!-- Timer cell -->
+      <td><span class="timer" data-deadline="${row.deadline}" id="timer-${row.user_id}-${row.month_year}"></span></td>
+
+      <td>${submittedIcon}</td>
+      <td>₱${row.total_fine}</td>
+      <td><span style="color:${statusColor};font-weight:bold;">${row.compliance_status}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Start timers AFTER rendering rows
+  startTableTimers();
+}
+
+// -------------------------------
+// LIVE COUNTDOWN TIMERS (1 per row)
+// -------------------------------
+function startTableTimers() {
+  const timers = document.querySelectorAll(".timer");
+
+  timers.forEach(timerEl => {
+    const deadline = new Date(timerEl.dataset.deadline);
+
+    function updateTimer() {
+      const now = new Date();
+      const remaining = deadline - now;
+
+      // Already overdue?
+      if (remaining <= 0) {
+        timerEl.textContent = "⛔ Deadline Passed";
+        timerEl.style.color = "red";
+        return;
+      }
+
+      const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+      // color change as deadline approaches
+      if (remaining < 1000 * 60 * 60 * 24) {
+        timerEl.style.color = "orange"; // under 24 hours
+      }
+      if (remaining < 1000 * 60 * 60) {
+        timerEl.style.color = "red"; // under 1 hour
+      }
+
+      timerEl.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    updateTimer();
+    setInterval(updateTimer, 1000);
+  });
+}
+
+// Start everything on page load
+loadMonths();
+</script>
+
+
 
 
 <!-- Latest Submissions + Top Contributors -->
