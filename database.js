@@ -2182,22 +2182,18 @@ export async function runSimulation(
   horizon = 12,
   filters = {},
   additions = { small: 0, medium: 0, large: 0 },
-  populationInputWhole = 0    // user input as whole number, e.g. 1 => 1%
+  annualGrowthFactorWhole = 0   // whole number % (e.g. 5 means 5%)
 ) {
-  // Normalize inputs
+  // Normalize numeric inputs
   const horizonN = Number(horizon) || 12;
   const addSmall = Number(additions?.small) || 0;
   const addMedium = Number(additions?.medium) || 0;
   const addLarge = Number(additions?.large) || 0;
-  const popWhole = Number(populationInputWhole) || 0;
 
-  // convert population whole number to decimal offset: 1 -> 0.01
-  const popOffset = popWhole / 100;
+  // convert whole-number annual growth (5 => 0.05)
+  const annualGrowthFactor = (Number(annualGrowthFactorWhole) || 0) / 100;
 
-  // fixed yearly linear increment (5% per completed year)
-  const yearlyIncrementRate = 0.05;
-
-  // 1) collect filtered entries
+  // 1) Fetch filtered entries
   const entryRows = await getApprovedDataEntryIds(filters);
   if (!entryRows || entryRows.length === 0) {
     return {
@@ -2212,7 +2208,7 @@ export async function runSimulation(
   const dataEntryIds = [...new Set(entryRows.map(r => Number(r.data_entry_id)))];
   const userIds = [...new Set(entryRows.map(r => Number(r.user_id)))];
 
-  // 2) load detail rows (annual values + collection_end)
+  // 2) Load entry details (annual values + end dates)
   const [entryDetailRows] = await sql.query(
     `SELECT data_entry_id, user_id, collection_end,
             CAST(annual AS DECIMAL(20,6)) AS annual_value
@@ -2221,7 +2217,7 @@ export async function runSimulation(
     dataEntryIds
   );
 
-  // 3) load company rows (distinct by user)
+  // 3) Load companies (one row per user)
   const [companyRowsRaw] = await sql.query(
     `SELECT DISTINCT COALESCE(c.company_name, u.company_name) AS company_name,
              COALESCE(c.company_size, 'medium') AS company_size
@@ -2231,24 +2227,25 @@ export async function runSimulation(
     userIds
   );
 
-  // Build unique company -> size map
+  // Build a unique map companyName -> size
   const uniqCompanyMap = {};
   (companyRowsRaw || []).forEach(r => {
-    const name = (r.company_name || 'Unknown');
-    uniqCompanyMap[name] = (r.company_size || 'medium').toLowerCase();
+    const name = r.company_name || "Unknown";
+    uniqCompanyMap[name] = (r.company_size || "medium").toLowerCase();
   });
+
   const distinctCompanyNames = Object.keys(uniqCompanyMap);
 
-  // size weights
+  // weights
   const sizeWeight = { small: 0.5, medium: 1.0, large: 2.0 };
 
-  // actual company-equivalent (size-weighted)
+  // 4) Calculate actual company equivalent
   const actualCompanyEquivalent = distinctCompanyNames.reduce(
     (s, name) => s + (sizeWeight[uniqCompanyMap[name]] || 1.0),
     0
   );
 
-  // 4) month sums (bucket by collection_end month)
+  // 5) Month sums (stationary seasonality)
   const monthSums = Array(12).fill(0);
   (entryDetailRows || []).forEach(r => {
     if (!r.collection_end) return;
@@ -2257,53 +2254,47 @@ export async function runSimulation(
     monthSums[d.getMonth()] += Number(r.annual_value) || 0;
   });
 
-  // 5) template per company (monthSums divided by actualCompanyEquivalent)
-  const templatePerCompany = actualCompanyEquivalent > 0
-    ? monthSums.map(total => total / actualCompanyEquivalent)
-    : Array(12).fill(0);
+  // 6) Template per company = month sum / actual company equivalent
+  const templatePerCompany =
+    actualCompanyEquivalent > 0
+      ? monthSums.map(total => total / actualCompanyEquivalent)
+      : Array(12).fill(0);
 
-  // 6) convert additions to equivalent (size-weighted)
+  // 7) Convert additions to equivalent weight
   const addEquivalent =
     (addSmall * sizeWeight.small) +
     (addMedium * sizeWeight.medium) +
     (addLarge * sizeWeight.large);
 
-  // company base (before population offset and yearly auto increments)
-  const companyBase = actualCompanyEquivalent + addEquivalent;
+  // 8) New company base (clamped ≥ 0)
+  let companyBase = actualCompanyEquivalent + addEquivalent;
+  if (companyBase < 0) companyBase = 0;
 
-  // clamp companyBase to >= 0
-  const companyBaseClamped = companyBase < 0 ? 0 : companyBase;
-
-  // 7) scaleBase: add population offset (popWhole / 100)
-  const scaleBase = companyBaseClamped + popOffset;
-
-  // 8) anchor (start month aligned to current month)
+  // 9) Anchor = current month
   const now = new Date();
   const anchor = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  // 9) build forecast (linear yearly increments auto: +0.05 per completed year)
+  // 10) Build forecast using ANNUAL GROWTH FACTOR ONLY
   const forecast = [];
   for (let step = 1; step <= horizonN; step++) {
-    // month index aligned to anchor
-    const monthIndex = (anchor.getMonth() + step - 1) % 12;
+
+    // month index from anchor
+    const monthIndex = (anchor.getMonth() + (step - 1)) % 12;
     const basePerCompany = templatePerCompany[monthIndex] || 0;
 
-    // years elapsed (0 for months 1..12, 1 for 13..24, etc.)
+    // full years passed (0 for months 1–12)
     const yearsElapsed = Math.floor((step - 1) / 12);
 
-    // linear yearly increment added to scale
-    const linearIncrement = yearlyIncrementRate * yearsElapsed;
+    // Apply annual growth factor ONLY
+    const scaleFinal =
+      companyBase * (1 + annualGrowthFactor * yearsElapsed);
 
-    // final scale: scaleBase + linearIncrement
-    const scaleFinal = scaleBase + linearIncrement;
-
-    // final monthly value: template * scaleFinal
     let raw = basePerCompany * scaleFinal;
     if (!Number.isFinite(raw) || raw < 0) raw = 0;
 
     const future = new Date(anchor);
     future.setMonth(anchor.getMonth() + step);
-    const period = future.toISOString().slice(0, 7);
+    const period = future.toISOString().slice(0,7);
 
     forecast.push({
       step,
@@ -2314,28 +2305,32 @@ export async function runSimulation(
     });
   }
 
-  // diagnostics
   const diagnostics = {
     horizon: horizonN,
     anchorMonth: anchor.toISOString().slice(0,7),
+
     distinctCompanies: distinctCompanyNames.length,
-    actualCompanyEquivalent: Number(actualCompanyEquivalent.toFixed(6)),
+    actualCompanyEquivalent: Number(actualCompanyEquivalent.toFixed(4)),
+
     additions: { small: addSmall, medium: addMedium, large: addLarge },
-    addEquivalent: Number(addEquivalent.toFixed(6)),
-    companyBase: Number(companyBaseClamped.toFixed(6)),
-    populationInputWhole: popWhole,         // user-entered whole number
-    populationOffsetApplied: Number(popOffset.toFixed(6)), // decimal added to scale
-    scaleBase: Number(scaleBase.toFixed(6)),
-    yearlyIncrementRate,                   // always 0.05
-    monthTemplatePerCompany: templatePerCompany.map(v => Number(v.toFixed(6))),
-    monthSums: monthSums.map(v => Number(v.toFixed(6))),
+    addEquivalent: Number(addEquivalent.toFixed(4)),
+
+    companyBase: Number(companyBase.toFixed(4)),
+
+    annualGrowthFactorWhole,
+    annualGrowthFactorDecimal: annualGrowthFactor,
+
+    monthTemplatePerCompany: templatePerCompany.map(v => Number(v.toFixed(4))),
+    monthSums: monthSums.map(v => Number(v.toFixed(4))),
+
     companiesInvolved: distinctCompanyNames,
-    note: "scaleBase = companyBase + (populationInput/100); scaleFinal = scaleBase + yearlyIncrementRate * yearsElapsed"
+
+    note:
+      "Linear annual growth = (1 + annualGrowthFactor × yearsElapsed). No separate yearly increment rate is used."
   };
 
   return { forecast, diagnostics };
 }
-
 
 
 /* ---------------------------------------

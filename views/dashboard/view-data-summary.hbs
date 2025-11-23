@@ -333,7 +333,7 @@
   </div>
 </div>
 
-<!-- Simulation UI (updated) -->
+<!-- Simulation UI (FINAL UPDATED VERSION) -->
 <div class="form-section" style="background-color:#f4fff6;padding:1.5rem;border-radius:10px;border-left:6px solid #43a047;">
   <h2 style="color:#2e7d32;display:flex;align-items:center;">
     <i class="fa-solid fa-flask" style="margin-right:8px;color:#43a047"></i>
@@ -341,8 +341,8 @@
   </h2>
 
   <p style="color:#555;margin-bottom:1rem;">
-    Uses historical <strong>data_entry.annual</strong> values. Population input is a whole
-    percentage (e.g. <b>1</b> = 1%). Linear yearly auto-increment is fixed at <b>5% per year</b>.
+    Uses historical <strong>data_entry.annual</strong> values.  
+    Annual growth factor is a <b>whole-number percentage</b> (example: 5 = 5% per year).
   </p>
 
   <div style="background:#e8f5e9;padding:14px;border-radius:10px;display:flex;flex-direction:column;gap:12px;">
@@ -368,15 +368,17 @@
           <input id="addLarge" type="number" class="form-control" value="0" step="1">
         </div>
       </div>
-     <small style="color:#555;">
+      <small style="color:#555;">
         Enter negative numbers to indicate companies that left the system or are no longer part of the simulation (e.g. -1).
-     </small>
+      </small>
     </div>
 
     <div class="sim-row">
-      <label for="populationInputWhole" style="font-weight:600;">Population (whole percent)</label>
-      <input id="populationInputWhole" type="number" class="form-control" value="0" step="1" placeholder="e.g. 1 = 1%">
-      <small style="color:#555;">This whole-number percent is converted to a decimal and <b>added</b> to the scale (not multiplied).</small>
+      <label for="annualGrowthFactorWhole" style="font-weight:600;">Annual Growth Factor (whole %)</label>
+      <input id="annualGrowthFactorWhole" type="number" class="form-control" value="0" step="1" placeholder="Example: 5 = 5% per year">
+      <small style="color:#555;">
+        This percentage is applied <b>once per year</b> of the forecast horizon.
+      </small>
     </div>
 
     <button id="runSimBtn" class="btn btn-success" style="margin-top:6px;">
@@ -395,6 +397,7 @@
     </table>
   </div>
 </div>
+
 
 
 <!-- Compliance Overview -->
@@ -631,10 +634,10 @@ applyBtn.onclick = async () => {
 </script>
 
 <!-- Simulation script -->
-
 <script>
 async function runSimulation() {
   const btn = document.getElementById('runSimBtn');
+
   const horizon = Number(document.getElementById('forecastMonths').value) || 12;
 
   const additions = {
@@ -643,13 +646,19 @@ async function runSimulation() {
     large: Number(document.getElementById('addLarge').value) || 0
   };
 
-  // population as WHOLE number: 1 = 1%
-  const populationInputWhole = Number(document.getElementById('populationInputWhole').value) || 0;
+  const annualGrowthFactorWhole =
+    Number(document.getElementById('annualGrowthFactorWhole').value) || 0;
 
   const filters = window.currentFilters || {};
 
-  const payload = { horizon, filters, additions, populationInputWhole };
-  console.log('[UI] payload', payload);
+  const payload = {
+    horizon,
+    filters,
+    additions,
+    annualGrowthFactorWhole
+  };
+
+  console.log('[UI] payload:', payload);
 
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Running...';
@@ -665,15 +674,16 @@ async function runSimulation() {
     console.log('[UI] Simulation Response:', json);
 
     if (!json.success || !json.forecast || json.forecast.length === 0) {
-      alert('No forecast returned. Ensure filtered entries include annual values.');
+      alert('No forecast returned. Check if your filters include annual data.');
       if (json.diagnostics) renderDiagnostics(json.diagnostics);
       return;
     }
 
     renderSimulationChart(json.forecast);
     renderDiagnostics(json.diagnostics);
+
   } catch (err) {
-    console.error('[UI] Simulation fetch error:', err && err.stack ? err.stack : err);
+    console.error('[UI] Simulation fetch error:', err);
     alert('Simulation fetch error — check console.');
   } finally {
     btn.disabled = false;
@@ -681,13 +691,16 @@ async function runSimulation() {
   }
 }
 
+
 function renderSimulationChart(forecast) {
   const canvas = document.getElementById('simulationChart');
-  if (!canvas) { console.error('Chart canvas not found'); return; }
+  if (!canvas) { console.error('Chart canvas missing'); return; }
+
   const ctx = canvas.getContext('2d');
   if (!ctx) { console.error('getContext() returned null'); return; }
 
-  if (window.simChart && typeof window.simChart.destroy === 'function') window.simChart.destroy();
+  if (window.simChart && typeof window.simChart.destroy === 'function')
+    window.simChart.destroy();
 
   const labels = forecast.map(f => f.period);
   const data = forecast.map(f => Number(f.mean));
@@ -701,41 +714,61 @@ function renderSimulationChart(forecast) {
         data,
         borderColor: 'rgb(75,192,192)',
         borderWidth: 2.5,
-        tension: 0.25,
-        fill: false
+        tension: 0.25
       }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' } }
+    }
   });
 }
+
 
 function renderDiagnostics(d) {
   document.getElementById('simHeader').innerText = 'Simulation Diagnostics';
 
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const template = Array.isArray(d.monthTemplatePerCompany) ? d.monthTemplatePerCompany : [];
-  const templateStr = template.length === 12 ? template.map((v,i) => `${monthNames[i]}: ${v.toFixed(2)}`).join(', ') : '-';
+  const templateStr = template.length === 12
+    ? template.map((v,i) => `${monthNames[i]}: ${v.toFixed(2)}`).join(', ')
+    : '-';
 
   document.getElementById('simDiagnostics').innerHTML = `
-    <tr><th>Forecast Horizon</th><td>${d.horizon ?? '-' } months</td></tr>
-    <tr><th>Anchor Month</th><td>${d.anchorMonth ?? '-'}</td></tr>
-    <tr><th>Distinct Companies</th><td>${d.distinctCompanies ?? '-'}</td></tr>
-    <tr><th>Actual Company Equivalent</th><td>${d.actualCompanyEquivalent ?? '-'}</td></tr>
-    <tr><th>Additions (S/M/L)</th><td>${d.additions ? `${d.additions.small}/${d.additions.medium}/${d.additions.large}` : '-'}</td></tr>
-    <tr><th>Added Equivalent</th><td>${d.addEquivalent ?? '-'}</td></tr>
-    <tr><th>Company Base</th><td>${d.companyBase ?? '-'}</td></tr>
-    <tr><th>Population Input (whole %)</th><td>${d.populationInputWhole ?? '-'}</td></tr>
-    <tr><th>Population Offset Applied</th><td>${d.populationOffsetApplied ?? '-'}</td></tr>
-    <tr><th>Scale Base</th><td>${d.scaleBase ?? '-'}</td></tr>
-    <tr><th>Yearly Increment Rate</th><td>5% (auto)</td></tr>
-    <tr><th>Monthly Template (per company)</th><td style="white-space:normal;">${templateStr}</td></tr>
-    <tr><th>Companies Involved</th><td>${(d.companiesInvolved || []).join(', ')}</td></tr>
-    <tr><th>Note</th><td>${d.note ?? '-'}</td></tr>
+    <tr><th>Forecast Horizon</th><td>${d.horizon}</td></tr>
+    <tr><th>Anchor Month</th><td>${d.anchorMonth}</td></tr>
+
+    <tr><th>Distinct Companies</th><td>${d.distinctCompanies}</td></tr>
+    <tr><th>Actual Company Equivalent</th><td>${d.actualCompanyEquivalent}</td></tr>
+
+    <tr><th>Additions (S/M/L)</th>
+        <td>${d.additions.small}/${d.additions.medium}/${d.additions.large}</td></tr>
+
+    <tr><th>Added Equivalent</th><td>${d.addEquivalent}</td></tr>
+
+    <tr><th>Company Base</th><td>${d.companyBase}</td></tr>
+
+    <tr><th>Annual Growth Factor (whole %)</th><td>${d.annualGrowthFactorWhole}</td></tr>
+    <tr><th>Annual Growth (decimal)</th><td>${d.annualGrowthFactorDecimal}</td></tr>
+
+    <tr><th>Monthly Template Per Company</th><td>${templateStr}</td></tr>
+
+    <tr><th>Companies Involved</th>
+        <td>${(d.companiesInvolved || []).join(', ')}</td></tr>
+
+    <tr><th>Note</th><td>${d.note}</td></tr>
   `;
 }
 
 document.getElementById('runSimBtn').addEventListener('click', runSimulation);
 </script>
+
+
+
+document.getElementById('runSimBtn').addEventListener('click', runSimulation);
+</script>
+
 
 <!-- CORRECTED - Retrieves Individual Category/Sector Compliance Status -->
 <script>

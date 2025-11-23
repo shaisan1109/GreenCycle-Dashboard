@@ -3256,39 +3256,45 @@ app.get('/control-panel/entry-statistics', async (req, res) => {
 
 app.post('/api/simulate', async (req, res) => {
   try {
-    let { horizon, filters, additions, populationInputWhole } = req.body || {};
+    let { horizon, filters, additions, annualGrowthFactorWhole } = req.body || {};
 
     horizon = Number(horizon) || 12;
     filters = filters || {};
-    additions = additions || {};
+    additions = additions || { small: 0, medium: 0, large: 0 };
+
     const safeAdditions = {
       small: Number(additions.small) || 0,
       medium: Number(additions.medium) || 0,
       large: Number(additions.large) || 0
     };
 
-    // populationInputWhole is expected as whole number (1 => 1%). Accept legacy key "populationPct" too.
-    if (populationInputWhole === undefined && req.body.populationPct !== undefined) {
-      // backward compatibility: if frontend still sends decimal/whole under populationPct, use it
-      populationInputWhole = Number(req.body.populationPct) || 0;
-    }
-    populationInputWhole = Number(populationInputWhole) || 0;
+    annualGrowthFactorWhole = Number(annualGrowthFactorWhole) || 0;
 
-    console.log('[API] /api/simulate request normalized:', { horizon, filters, safeAdditions, populationInputWhole });
+    console.log("[API] /api/simulate normalized:", {
+      horizon,
+      filters,
+      safeAdditions,
+      annualGrowthFactorWhole
+    });
 
     const result = await runSimulation(
       horizon,
       filters,
       safeAdditions,
-      populationInputWhole
+      annualGrowthFactorWhole
     );
 
     return res.json({ success: true, ...result });
+
   } catch (err) {
-    console.error('[SIM] Simulation fetch error (route):', err && err.stack ? err.stack : err);
-    return res.status(500).json({ success: false, error: err.message || String(err) });
+    console.error("[SIM] Simulation fetch error (route):", err);
+    return res.status(500).json({
+      success: false,
+      error: err.message || String(err)
+    });
   }
 });
+
 
 
 
