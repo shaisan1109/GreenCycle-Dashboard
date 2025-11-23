@@ -1131,21 +1131,18 @@ function generateDistinctColor() {
 }
 
 // Gradient (for points with multiple companies)
-function buildPointColors(allLabels, dateCompaniesMap, companyColorMap) {
-  return allLabels.map(period => {
-    const list = dateCompaniesMap[period] || [];
-    const unique = [...new Set(list.filter(x => x))];
+function buildPointColors(periodKeys, dateCompaniesMap, companyColorMap) {
+  return periodKeys.map(period => {
+    const companies = dateCompaniesMap[period] || [];
 
-    if (unique.length === 0) {
-      return '#2196F3';
+    // No companies → return a neutral fallback (but still a valid entry)
+    if (companies.length === 0) {
+      return '#000'; 
     }
 
-    if (unique.length === 1) {
-      return companyColorMap[unique[0]];
-    }
-
-    // Multiple companies → plugin draws visible dots
-    return 'rgba(0,0,0,0)'; 
+    // Use the first company
+    const company = companies[0];
+    return companyColorMap[company] || '#000';
   });
 }
 
@@ -1362,10 +1359,6 @@ function initChartsWithAggregation(aggregation) {
       aggregatedData[p] ? aggregatedData[p].complianceRate : null
     );
     
-    console.log('📈 Data points:', totalWeights.length);
-    console.log('📊 Sample weights:', totalWeights.slice(0, 3));
-    console.log('📊 Compliance rates:', complianceRates.slice(0, 3));
-    
     const xValues = Array.from({ length: totalWeights.length }, (_, i) => i);
 
     const filteredX = [];
@@ -1378,10 +1371,7 @@ function initChartsWithAggregation(aggregation) {
       }
     }
 
-    const regression = calculatePolynomialRegression(filteredX, filteredY, 3);
-
-    console.log('📐 Regression R²:', regression.rSquared);
-    
+    const regression = calculatePolynomialRegression(filteredX, filteredY, 3);    
     const trendValuesActual = xValues.map(x => evaluatePolynomial(regression.coefficients, x));
     
     const lastPeriod = sortedPeriods[sortedPeriods.length - 1];
@@ -1653,26 +1643,100 @@ function initChartsWithAggregation(aggregation) {
     
     // ========== CREATE CHART 2 ==========
     console.log('🎨 Creating Chart 2: Per Capita');
-    
+
     const perCapitaWidth = Math.max(1200, labels.length * 100);
     const perCapitaContainer = document.getElementById('trendPerCapitaContainer');
     if (perCapitaContainer) {
       perCapitaContainer.style.width = perCapitaWidth + 'px';
       perCapitaContainer.style.minWidth = perCapitaWidth + 'px';
     }
-    
+
     const perCapitaCanvas = document.getElementById('trendPerCapita');
     if (perCapitaCanvas) {
-      // Destroy previous chart instance if it exists
-      if (perCapitaCanvas.chartInstance) perCapitaCanvas.chartInstance.destroy();
 
-      perCapitaCanvas.chartInstance = new Chart(perCapitaCanvas.getContext('2d'), {
+      if (perCapitaCanvas.chartInstance) perCapitaCanvas.chartInstance.destroy();
+      const ctx2 = perCapitaCanvas.getContext('2d');
+
+      // ---------- NEW: Company color mapping ----------
+      const periodKeys = labels.map(label => {
+        const [monthName, year] = label.split(" ");
+        const month = {
+          Jan: "01", Feb: "02", Mar: "03", Apr: "04",
+          May: "05", Jun: "06", Jul: "07", Aug: "08",
+          Sep: "09", Oct: "10", Nov: "11", Dec: "12"
+        }[monthName];
+
+        return `${year}-${month}`;   // Reformatted to match dateCompaniesMap keys
+      });
+      const pointColors = buildPointColors(periodKeys, dateCompaniesMap, companyColorMap, ctx2);
+
+      const periodCompanySets = periodKeys.map(period => {
+        const list = dateCompaniesMap[period] || [];
+        const unique = [...new Set(list.filter(x => x))];
+        return unique;
+      });
+
+      // ---------- NEW: Stacked dot plugin for Chart 2 ----------
+      const MultipleCompanyPointsPlugin2 = {
+        id: 'multiCompanyPointsPC',
+        afterDatasetsDraw(chart, args, opts) {
+          const { ctx } = chart;
+
+          const datasetIndex = opts.datasetIndex ?? 0;
+          const meta = chart.getDatasetMeta(datasetIndex);
+
+          periodCompanySets.forEach((companies, i) => {
+            if (companies.length <= 1) return;
+
+            const point = meta.data[i];
+            if (!point) return;
+
+            const baseX = point.x;
+            const baseY = point.y;
+
+            const radius = 5;
+            const spacing = 12;
+            const total = companies.length;
+            const startOffset = -((total - 1) * spacing) / 2;
+
+            companies.forEach((company, idx) => {
+              const color = companyColorMap[company];
+              const offsetY = startOffset + idx * spacing;
+
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(baseX, baseY + offsetY, radius, 0, Math.PI * 2);
+              ctx.fillStyle = color;
+              ctx.fill();
+              ctx.strokeStyle = color;
+              ctx.lineWidth = 1;
+              ctx.stroke();
+              ctx.restore();
+            });
+          });
+        }
+      };
+
+      Chart.register(MultipleCompanyPointsPlugin2);
+
+      console.log("Chart 2 Labels:", labels);
+      console.log("Chart 2 PerCapita data:", perCapitaValues);
+      console.log("Chart 2 Point colors:", pointColors);
+
+      // ---------- CHART 2 CREATION ----------
+      perCapitaCanvas.chartInstance = new Chart(ctx2, {
         type: 'line',
         data: {
           labels: labels,
           datasets: [{
             label: 'Per Capita Waste',
             data: perCapitaValues,
+
+            // NEW: dynamic company colors
+            pointBackgroundColor: pointColors,
+            pointBorderColor: pointColors,
+            pointBorderWidth: 1,
+
             borderColor: '#FF9800',
             backgroundColor: 'rgba(255, 152, 0, 0.1)',
             fill: true,
@@ -1710,6 +1774,7 @@ function initChartsWithAggregation(aggregation) {
           }
         }
       });
+
       console.log('✅ Chart 2 created');
     }
     
