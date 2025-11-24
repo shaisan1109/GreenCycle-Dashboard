@@ -294,9 +294,9 @@
           type="range" 
           class="zoom-range" 
           data-target="trendByCategoryContainer"
-          min="40" 
-          max="200" 
-          value="50" 
+          min="75" 
+          max="300" 
+          value="150" 
           step="5"
           style="width: 220px; cursor: pointer;"
         >
@@ -1319,6 +1319,7 @@ function initChartsWithAggregation(aggregation) {
       return companies.length > 1 ? companies.length.toString() : '';
     });
 
+    // Multiple company dots will display a number instead (Chart 1)
     const multiCompanyPlugin = {
       id: 'multiCompanyPlugin',
       afterDatasetsDraw(chart) {
@@ -1339,7 +1340,7 @@ function initChartsWithAggregation(aggregation) {
 
             const x = point.x;
             const y = point.y;
-            const radius = 6; // same as pointRadius
+            const radius = 8; // same as pointRadius
 
             // Draw white circle
             ctx.save();
@@ -1359,6 +1360,48 @@ function initChartsWithAggregation(aggregation) {
             ctx.fillText(companies.length.toString(), x, y);
             ctx.restore();
           });
+        });
+      }
+    };
+
+    // Version for Chart 2
+    // Custom plugin for multi-company points in Chart 2
+    const multiCompanyPluginPerCapita = {
+      id: 'multiCompanyPluginPerCapita',
+      afterDatasetDraw(chart) {
+        const { ctx } = chart;
+        const datasetIndex = 0; // only the first dataset ("Total Per Capita")
+        const dataset = chart.data.datasets[datasetIndex];
+        const meta = chart.getDatasetMeta(datasetIndex);
+
+        meta.data.forEach((point, index) => {
+          const entry = aggregatedData[completePeriods[index]];
+          if (!entry) return;
+
+          const companies = Array.from(entry.companyNames || []);
+          if (companies.length <= 1) return; // only multi-company points
+
+          const x = point.x;
+          const y = point.y;
+          const radius = 8;
+
+          // Draw white circle
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, 2 * Math.PI);
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#000000';
+          ctx.stroke();
+
+          // Draw number of companies inside
+          ctx.fillStyle = '#000000';
+          ctx.font = 'bold 10px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(companies.length.toString(), x, y);
+          ctx.restore();
         });
       }
     };
@@ -1628,7 +1671,9 @@ function initChartsWithAggregation(aggregation) {
             backgroundColor: 'rgba(255, 152, 0, 0.1)',
             fill: true,
             tension: 0.4,
-            pointRadius: 5,
+            pointRadius: 6,
+            pointBackgroundColor: pointBackgroundColors,
+            pointBorderWidth: 0,
             borderWidth: 3,
             spanGaps: true
           }]
@@ -1650,21 +1695,32 @@ function initChartsWithAggregation(aggregation) {
                   if (context.parsed.y === null) return '';
                   const periodKey = completePeriods[context.dataIndex];
                   const periodData = aggregatedData[periodKey];
+
+                  // Show company or list of companies
+                  let companyInfo = '';
+                  if (periodData?.companyNames) {
+                    const companies = Array.from(periodData.companyNames);
+                    companyInfo = companies.length > 1
+                      ? `Companies: ${companies.join(', ')}`
+                      : `Company: ${companies[0]}`;
+                  }
+
                   return [
                     `Total Per Capita: ${context.parsed.y.toFixed(4)}`,
-                    periodData ? `From ${periodData.entryCount.toFixed(2)} entries` : ''
+                    periodData ? `From ${periodData.entryCount.toFixed(2)} entries` : '',
+                    companyInfo
                   ];
                 }
               }
             }
           },
           scales: {
-            y: { 
+            y: {
               title: { display: true, text: 'Total Per Capita' },
               grid: { color: 'rgba(0, 0, 0, 0.05)' }
             },
-            x: { 
-              title: { display: true, text: `Period (${aggregation})` }, 
+            x: {
+              title: { display: true, text: `Period (${aggregation})` },
               ticks: { maxRotation: 45, minRotation: 45, autoSkip: false },
               grid: { color: 'rgba(0, 0, 0, 0.05)' }
             }
@@ -1672,8 +1728,10 @@ function initChartsWithAggregation(aggregation) {
           layout: {
             padding: { left: 10, right: 30, top: 10, bottom: 10 }
           }
-        }
+        },
+        plugins: [multiCompanyPluginPerCapita]
       });
+
       console.log('✅ Chart 2 created');
     }
     
