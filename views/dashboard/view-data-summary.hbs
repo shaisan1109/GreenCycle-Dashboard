@@ -329,42 +329,49 @@
     <!-- Simulation Length -->
     <div class="sim-row">
       <label for="forecastMonths" style="font-weight:600;">Simulation Length (months)</label>
-      <input id="forecastMonths" type="number" class="form-control" value="12" min="1" max="240">
-      <small style="color:#555;display:block;margin-top:4px;">
-        Determines how many future months will be generated. For example, 12 simulates the next year, while 36 simulates the next three years.
-      </small>
+      <div>
+        <input id="forecastMonths" type="number" class="form-control" value="12" min="1" max="240">
+        <br>
+        <small style="color:#555;display:block;margin-top:4px;">
+          Determines how many future months will be generated. For example, 12 simulates the next year, while 36 simulates the next three years.
+        </small>
+      </div>
     </div>
 
     <!-- Additional Companies -->
     <div class="sim-row">
       <label style="font-weight:600;">Additional Companies (can be negative)</label>
-      <div style="display:flex;gap:14px;margin-top:6px;">
-        <div style="flex:1;">
-          <label for="addSmall" style="font-size:0.9rem;">Small</label>
-          <input id="addSmall" type="number" class="form-control" value="0" step="1">
+      <div>
+        <div style="display:flex;gap:14px;margin-top:6px;">
+          <div style="flex:1;">
+            <label for="addSmall" style="font-size:0.9rem;">Small</label>
+            <input id="addSmall" type="number" class="form-control" value="0" step="1">
+          </div>
+          <div style="flex:1;">
+            <label for="addMedium" style="font-size:0.9rem;">Medium</label>
+            <input id="addMedium" type="number" class="form-control" value="0" step="1">
+          </div>
+          <div style="flex:1;">
+            <label for="addLarge" style="font-size:0.9rem;">Large</label>
+            <input id="addLarge" type="number" class="form-control" value="0" step="1">
+          </div>
         </div>
-        <div style="flex:1;">
-          <label for="addMedium" style="font-size:0.9rem;">Medium</label>
-          <input id="addMedium" type="number" class="form-control" value="0" step="1">
-        </div>
-        <div style="flex:1;">
-          <label for="addLarge" style="font-size:0.9rem;">Large</label>
-          <input id="addLarge" type="number" class="form-control" value="0" step="1">
-        </div>
+        <small style="color:#555;display:block;margin-top:4px;">
+          Add companies to simulate increased activity, or use negative values to represent companies leaving the area or no longer participating.
+        </small>
       </div>
-      <small style="color:#555;display:block;margin-top:4px;">
-        Add companies to simulate increased activity, or use negative values to represent companies leaving the area or no longer participating.
-      </small>
     </div>
 
     <!-- Annual Growth Factor -->
     <div class="sim-row">
       <label for="annualGrowthFactorWhole" style="font-weight:600;">Annual Growth Factor (whole %)</label>
-      <input id="annualGrowthFactorWhole" type="number" class="form-control" value="0" step="1" placeholder="Example: 5 = 5% yearly increase">
-      <small style="color:#555;display:block;margin-top:4px;">
-        This growth is applied once for every full simulated year. For example, 
-        5% means: year 0 = baseline, year 1 = +5%, year 2 = +10%, and so on.
-      </small>
+      <div>
+        <input id="annualGrowthFactorWhole" type="number" class="form-control" value="0" step="1" placeholder="Example: 5 = 5% yearly increase"><br>
+        <small style="color:#555;display:block;margin-top:4px;">
+          This growth is applied once for every full simulated year. For example, 
+          5% means: year 0 = baseline, year 1 = +5%, year 2 = +10%, and so on.
+        </small>
+      </div>
     </div>
 
     <!-- Run Button -->
