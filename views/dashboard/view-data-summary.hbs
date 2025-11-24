@@ -205,6 +205,8 @@
     Use the aggregation selector to switch between monthly or yearly views. You may drag the horizontal scrollbar on each chart to view further time periods.
   </p>
 
+  <p>This data summary uses entries from multiple sources, shown with the <b>company legends</b> placed on each trend chart.</p>
+
   <!-- Trend Charts Container -->
   <div id="trend-charts-wrapper">
     <!-- Total Waste Trend with Regression -->
@@ -212,6 +214,8 @@
       <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
         <i class="fa-solid fa-trash"></i> Total Waste Generation Trend with 3rd Degree Polynomial Regression
       </h3>
+
+      <div class="companyLegend"></div>
 
       <!-- Zoom -->
       <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
@@ -247,6 +251,8 @@
         <i class="fa-solid fa-user"></i> Per Capita Waste Trend
       </h3>
 
+      <div class="companyLegend"></div>
+
       <!-- Zoom -->
       <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
         <label style="font-size: 0.85rem; margin-right: 0.5rem; color: #2d613f;">
@@ -276,6 +282,8 @@
       <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
         <i class="fa-solid fa-layer-group"></i> Waste by Category Over Time
       </h3>
+
+      <div class="companyLegend"></div>
 
       <!-- Zoom -->
       <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
@@ -1122,6 +1130,63 @@ function assignCompanyColors(companies) {
   return companyColorMap;
 }
 
+function renderCompanyLegends(companyColorMap) {
+  const legendDivs = document.querySelectorAll('.companyLegend');
+  if (!legendDivs.length) return;
+
+  const companies = Object.entries(companyColorMap);
+
+  // Sort alphabetically
+  companies.sort((a, b) => a[0].localeCompare(b[0]));
+
+  // Split into two columns
+  const half = Math.ceil(companies.length / 2);
+  const colLeft = companies.slice(0, half);
+  const colRight = companies.slice(half);
+
+  // Build legend item HTML
+  const buildColumnHTML = (column) => {
+    return column.map(([name, color]) => `
+      <div style="display:flex; align-items:center; gap:8px; margin:4px 0;">
+        <span style="
+          width:12px; 
+          height:12px; 
+          border-radius:50%; 
+          background:${color};
+          display:inline-block;
+        "></span>
+        <span style="font-size:14px;">${name}</span>
+      </div>
+    `).join('');
+  };
+
+  const leftHTML = buildColumnHTML(colLeft);
+  const rightHTML = buildColumnHTML(colRight);
+
+  // Final legend markup with header
+  const legendHTML = `
+    <div style="text-align:center; margin-bottom:8px; font-weight:bold; font-size:13px;">
+      COMPANY LEGEND
+    </div>
+
+    <div style="
+      display:flex;
+      justify-content:center;
+      gap:40px;
+      width:100%;
+      margin:0 auto;
+    ">
+      <div>${leftHTML}</div>
+      <div>${rightHTML}</div>
+    </div>
+  `;
+
+  // Render in all matching divs
+  legendDivs.forEach(div => {
+    div.innerHTML = legendHTML;
+  });
+}
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => initChartsWithAggregation('{{query.aggregation}}' || 'monthly'));
 } else {
@@ -1650,6 +1715,7 @@ function initChartsWithAggregation(aggregation) {
       console.log('✅ Chart 3 created');
     }
     
+    renderCompanyLegends(companyColorMap);
     console.log('✅ All charts initialized successfully');
     
   } catch (error) {
