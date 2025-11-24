@@ -1532,12 +1532,28 @@ function initChartsWithAggregation(aggregation) {
               callbacks: {
                 label: (context) => {
                   if (context.parsed.y === null) return '';
+
                   const periodKey = completePeriods[context.dataIndex];
                   const periodData = aggregatedData[periodKey];
-                  return [
+
+                  const lines = [
                     `${context.dataset.label}: ${context.parsed.y.toFixed(2)} kg`,
-                    periodData ? `From ${periodData.entryCount.toFixed(2)} entries` : ''
+                    //periodData ? `From ${periodData.entryCount.toFixed(2)} entries` : ''
                   ];
+
+                  // Add company or list of companies
+                  if (periodData && periodData.companyNames) {
+                    const companyList = Array.from(periodData.companyNames);
+
+                    if (companyList.length === 1) {
+                      lines.push(`Company: ${companyList[0]}`);
+                    } else if (companyList.length > 1) {
+                      lines.push(`Companies (${companyList.length}):`);
+                      companyList.forEach(name => lines.push(`- ${name}`));
+                    }
+                  }
+
+                  return lines;
                 }
               }
             }
