@@ -215,13 +215,20 @@
         <i class="fa-solid fa-trash"></i> Total Waste Generation Trend with 3rd Degree Polynomial Regression
       </h3>
 
+      <p>This chart shows the <b>total waste generated over time</b>, with a brief regression analysis of the potential growth or reduction of said total waste.</p>
+      <ul>
+        <li><b style="color:#2196F3;">Actual Data</b> - Shows the waste recorded in each period (month or year), as reported by certain companies.</li>
+        <li><b style="color:#FF5722;">Trend Lines</b> - Show the overall trend of the waste based on past data. The solid line represents the trend of actual data, and the dashed line shows how the trend is expected to continue in the future.</li>
+        <li><b style="color:rgba(255, 160, 0, 1)">Projected Values</b> <i>(shaded area)</i> - Estimates future waste based on trends, giving an idea of what might happen if things continue the same way.</li>
+      </ul>
+
+      <p>Hovering over a dot gives the exact waste amount and the companies responsible.</p>
+
       <div class="companyLegend"></div>
 
       <!-- Zoom -->
-      <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
-        <label style="font-size: 0.85rem; margin-right: 0.5rem; color: #2d613f;">
-          Zoom Width:
-        </label>
+      <div class="chart-zoom-slider">
+        Zoom Width&emsp;
         <input 
           type="range" 
           class="zoom-range" 
@@ -233,6 +240,7 @@
           style="width: 220px; cursor: pointer;"
         >
       </div>
+      <small style="color: gray;">Drag this slider to widen/shorten this chart.</small><br><br>
 
       <div class="chart-viewport">
         <div id="trendTotalWasteContainer" class="chart-content">
@@ -251,13 +259,14 @@
         <i class="fa-solid fa-user"></i> Per Capita Waste Trend
       </h3>
 
+      <p>This chart shows estimates on how much waste each person is generating over time.</p>
+      <ul><li><b style="color:#FF9800">Orange line with dots</b> - Each point represents the average waste per person for a specific period (month or year).</li></ul>
+
       <div class="companyLegend"></div>
 
       <!-- Zoom -->
-      <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
-        <label style="font-size: 0.85rem; margin-right: 0.5rem; color: #2d613f;">
-          Zoom Width:
-        </label>
+      <div class="chart-zoom-slider">
+        Zoom Width&emsp;
         <input 
           type="range" 
           class="zoom-range" 
@@ -269,6 +278,7 @@
           style="width: 220px; cursor: pointer;"
         >
       </div>
+      <small style="color: gray;">Drag this slider to widen/shorten this chart.</small><br><br>
 
       <div class="chart-viewport">
         <div id="trendPerCapitaContainer" class="chart-content">
@@ -283,13 +293,13 @@
         <i class="fa-solid fa-layer-group"></i> Waste by Category Over Time
       </h3>
 
+      <p>This chart shows how waste is divided into different categories over time.</p>
+
       <div class="companyLegend"></div>
 
       <!-- Zoom -->
-      <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
-        <label style="font-size: 0.85rem; margin-right: 0.5rem; color: #2d613f;">
-          Zoom Width:
-        </label>
+      <div class="chart-zoom-slider">
+        Zoom Width&emsp;
         <input 
           type="range" 
           class="zoom-range" 
@@ -301,6 +311,7 @@
           style="width: 220px; cursor: pointer;"
         >
       </div>
+      <small style="color: gray;">Drag this slider to widen/shorten this chart.</small><br><br>
 
       <div class="chart-viewport">
         <div id="trendByCategoryContainer" class="chart-content">
@@ -2812,6 +2823,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <style>
 
+.companyLegend {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
 .sim-row {
   display: flex;
   align-items: center;
@@ -2829,7 +2845,10 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 
 .chart-viewport {
-  overflow-x: auto; overflow-y: hidden; width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  border: 2px lightgray solid;
 }
 
 .chart-content {
@@ -2838,13 +2857,47 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 
 .zoom-range {
-  accent-color: #2d613f; 
+  -webkit-appearance: none;
+  width: 220px;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #76c893 0%, #2d613f 100%);
+  outline: none;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.zoom-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #2d613f;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.zoom-range:hover::-webkit-slider-thumb {
+  transform: scale(1.2);
+  background: #76c893;
+}
+
+.zoom-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #2d613f;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  cursor: pointer;
 }
 
 .chart-zoom-slider {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  font-size: 1.1rem;
+  color: #2d613f;
+  font-weight: bold;
 }
 
 .recommendation-box {
