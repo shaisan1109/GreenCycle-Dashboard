@@ -1238,13 +1238,65 @@ function initChartsWithAggregation(aggregation) {
       return entry ? entry.totalWasteGenerated : null;
     });
 
-    const pointColors = completePeriods.map(p => {
+    // Prepare point colors
+    const pointBackgroundColors = completePeriods.map(p => {
       const entry = aggregatedData[p];
       if (!entry) return '#2196F3';
       const companies = Array.from(entry.companyNames || []);
-      const company = companies[0]; // pick first company
-      return companyColorMap[company] || '#2196F3';
+      return companies.length <= 1 ? companyColorMap[companies[0]] || '#2196F3' : '#ffffff';
     });
+
+    // Place numbers on points with multiple companies
+    const pointLabels = completePeriods.map(p => {
+      const entry = aggregatedData[p];
+      if (!entry) return '';
+      const companies = Array.from(entry.companyNames || []);
+      return companies.length > 1 ? companies.length.toString() : '';
+    });
+
+    const multiCompanyPlugin = {
+      id: 'multiCompanyPlugin',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+
+        chart.data.datasets.forEach((dataset, datasetIndex) => {
+          // Only draw for the "Actual Data (kg)" line
+          if (dataset.label !== 'Actual Data (kg)') return;
+
+          const meta = chart.getDatasetMeta(datasetIndex);
+
+          meta.data.forEach((point, index) => {
+            const entry = aggregatedData[completePeriods[index]];
+            if (!entry) return;
+
+            const companies = Array.from(entry.companyNames || []);
+            if (companies.length <= 1) return; // skip single-company points
+
+            const x = point.x;
+            const y = point.y;
+            const radius = 6; // same as pointRadius
+
+            // Draw white circle
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#000000';
+            ctx.stroke();
+
+            // Draw number inside
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(companies.length.toString(), x, y);
+            ctx.restore();
+          });
+        });
+      }
+    };
 
     console.log("Aggregated data: ", aggregatedData)
     
@@ -1338,7 +1390,8 @@ function initChartsWithAggregation(aggregation) {
               label: 'Actual Data (kg)',
               data: actualData,
               borderColor: '#2196F3',            // line color
-              pointBackgroundColor: pointColors, // color per dot
+              pointBackgroundColor: pointBackgroundColors, // color per dot
+              //pointBorderColor: '#000', // black border for white points
               pointBorderWidth: 0,
               pointRadius: 6,
               pointHoverRadius: 8,
@@ -1463,7 +1516,8 @@ function initChartsWithAggregation(aggregation) {
               bottom: 10
             }
           }
-        }
+        },
+        plugins: [multiCompanyPlugin]
       });
       console.log('✅ Chart 1 created');
     }
