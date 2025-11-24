@@ -205,6 +205,8 @@
     Use the aggregation selector to switch between monthly or yearly views. You may drag the horizontal scrollbar on each chart to view further time periods.
   </p>
 
+  <p>This data summary uses entries from multiple sources, shown with the <b>company legends</b> placed on each trend chart.</p>
+
   <!-- Trend Charts Container -->
   <div id="trend-charts-wrapper">
     <!-- Total Waste Trend with Regression -->
@@ -212,6 +214,8 @@
       <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
         <i class="fa-solid fa-trash"></i> Total Waste Generation Trend with 3rd Degree Polynomial Regression
       </h3>
+
+      <div class="companyLegend"></div>
 
       <!-- Zoom -->
       <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
@@ -247,6 +251,8 @@
         <i class="fa-solid fa-user"></i> Per Capita Waste Trend
       </h3>
 
+      <div class="companyLegend"></div>
+
       <!-- Zoom -->
       <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
         <label style="font-size: 0.85rem; margin-right: 0.5rem; color: #2d613f;">
@@ -276,6 +282,8 @@
       <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
         <i class="fa-solid fa-layer-group"></i> Waste by Category Over Time
       </h3>
+
+      <div class="companyLegend"></div>
 
       <!-- Zoom -->
       <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
@@ -919,6 +927,11 @@ function aggregateDataWithAveraging(dataEntries, aggregationType) {
           entryCount: 0
         };
       }
+
+      if (!aggregated[periodKey].companyNames) {
+        aggregated[periodKey].companyNames = new Set();
+      }
+      aggregated[periodKey].companyNames.add(entry.company_name);
       
       const proportion = daysInThisPeriod / entryTotalDays;
       
@@ -1102,6 +1115,78 @@ function nextPeriod(period, aggregation) {
   return period;
 }
 
+function assignCompanyColors(companies) {
+  const uniqueCompanies = Array.from(new Set(companies));
+  const companyColorMap = {};
+  const saturation = 80;
+  const lightness = 50;
+  const hueStep = Math.floor(360 / uniqueCompanies.length);
+
+  uniqueCompanies.forEach((company, index) => {
+    const hue = (index * hueStep) % 360;
+    companyColorMap[company] = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  });
+
+  return companyColorMap;
+}
+
+function renderCompanyLegends(companyColorMap) {
+  const legendDivs = document.querySelectorAll('.companyLegend');
+  if (!legendDivs.length) return;
+
+  const companies = Object.entries(companyColorMap);
+
+  // Sort alphabetically
+  companies.sort((a, b) => a[0].localeCompare(b[0]));
+
+  // Split into two columns
+  const half = Math.ceil(companies.length / 2);
+  const colLeft = companies.slice(0, half);
+  const colRight = companies.slice(half);
+
+  // Build legend item HTML
+  const buildColumnHTML = (column) => {
+    return column.map(([name, color]) => `
+      <div style="display:flex; align-items:center; gap:8px; margin:4px 0;">
+        <span style="
+          width:12px; 
+          height:12px; 
+          border-radius:50%; 
+          background:${color};
+          display:inline-block;
+        "></span>
+        <span style="font-size:14px;">${name}</span>
+      </div>
+    `).join('');
+  };
+
+  const leftHTML = buildColumnHTML(colLeft);
+  const rightHTML = buildColumnHTML(colRight);
+
+  // Final legend markup with header
+  const legendHTML = `
+    <div style="text-align:center; margin-bottom:8px; font-weight:bold; font-size:13px;">
+      COMPANY LEGEND
+    </div>
+
+    <div style="
+      display:flex;
+      justify-content:center;
+      gap:40px;
+      width:100%;
+      margin:0 auto;
+    ">
+      <div>${leftHTML}</div>
+      <div>${rightHTML}</div>
+    </div>
+  `;
+
+  // Render in all matching divs
+  legendDivs.forEach(div => {
+    div.innerHTML = legendHTML;
+  });
+}
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => initChartsWithAggregation('{{query.aggregation}}' || 'monthly'));
 } else {
@@ -1207,6 +1292,78 @@ function initChartsWithAggregation(aggregation) {
     const totalPerCapita = completePeriods.map(p =>
       aggregatedData[p] ? aggregatedData[p].totalPerCapita : null
     );
+
+    // Assign company colors
+    const companyNames = dataEntries.map(d => d.company_name);
+    const companyColorMap = assignCompanyColors(companyNames);
+
+    // Then, when preparing the actualData dataset:
+    const actualData = completePeriods.map(p => {
+      const entry = aggregatedData[p];
+      return entry ? entry.totalWasteGenerated : null;
+    });
+
+    // Prepare point colors
+    const pointBackgroundColors = completePeriods.map(p => {
+      const entry = aggregatedData[p];
+      if (!entry) return '#2196F3';
+      const companies = Array.from(entry.companyNames || []);
+      return companies.length <= 1 ? companyColorMap[companies[0]] || '#2196F3' : '#ffffff';
+    });
+
+    // Place numbers on points with multiple companies
+    const pointLabels = completePeriods.map(p => {
+      const entry = aggregatedData[p];
+      if (!entry) return '';
+      const companies = Array.from(entry.companyNames || []);
+      return companies.length > 1 ? companies.length.toString() : '';
+    });
+
+    const multiCompanyPlugin = {
+      id: 'multiCompanyPlugin',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+
+        chart.data.datasets.forEach((dataset, datasetIndex) => {
+          // Only draw for the "Actual Data (kg)" line
+          if (dataset.label !== 'Actual Data (kg)') return;
+
+          const meta = chart.getDatasetMeta(datasetIndex);
+
+          meta.data.forEach((point, index) => {
+            const entry = aggregatedData[completePeriods[index]];
+            if (!entry) return;
+
+            const companies = Array.from(entry.companyNames || []);
+            if (companies.length <= 1) return; // skip single-company points
+
+            const x = point.x;
+            const y = point.y;
+            const radius = 6; // same as pointRadius
+
+            // Draw white circle
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#000000';
+            ctx.stroke();
+
+            // Draw number inside
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(companies.length.toString(), x, y);
+            ctx.restore();
+          });
+        });
+      }
+    };
+
+    console.log("Aggregated data: ", aggregatedData)
     
     console.log('📈 Chart data points:', totalWeights.length);
     console.log('📊 Sample total weights (kg):', totalWeights.slice(0, 5));
@@ -1297,8 +1454,10 @@ function initChartsWithAggregation(aggregation) {
             {
               label: 'Actual Data (kg)',
               data: actualData,
-              borderColor: '#2196F3',
-              backgroundColor: '#2196F3',
+              borderColor: '#2196F3',            // line color
+              pointBackgroundColor: pointBackgroundColors, // color per dot
+              //pointBorderColor: '#000', // black border for white points
+              pointBorderWidth: 0,
               pointRadius: 6,
               pointHoverRadius: 8,
               borderWidth: 2,
@@ -1373,12 +1532,28 @@ function initChartsWithAggregation(aggregation) {
               callbacks: {
                 label: (context) => {
                   if (context.parsed.y === null) return '';
+
                   const periodKey = completePeriods[context.dataIndex];
                   const periodData = aggregatedData[periodKey];
-                  return [
+
+                  const lines = [
                     `${context.dataset.label}: ${context.parsed.y.toFixed(2)} kg`,
-                    periodData ? `From ${periodData.entryCount.toFixed(2)} entries` : ''
+                    //periodData ? `From ${periodData.entryCount.toFixed(2)} entries` : ''
                   ];
+
+                  // Add company or list of companies
+                  if (periodData && periodData.companyNames) {
+                    const companyList = Array.from(periodData.companyNames);
+
+                    if (companyList.length === 1) {
+                      lines.push(`Company: ${companyList[0]}`);
+                    } else if (companyList.length > 1) {
+                      lines.push(`Companies (${companyList.length}):`);
+                      companyList.forEach(name => lines.push(`- ${name}`));
+                    }
+                  }
+
+                  return lines;
                 }
               }
             }
@@ -1422,7 +1597,8 @@ function initChartsWithAggregation(aggregation) {
               bottom: 10
             }
           }
-        }
+        },
+        plugins: [multiCompanyPlugin]
       });
       console.log('✅ Chart 1 created');
     }
@@ -1555,6 +1731,7 @@ function initChartsWithAggregation(aggregation) {
       console.log('✅ Chart 3 created');
     }
     
+    renderCompanyLegends(companyColorMap);
     console.log('✅ All charts initialized successfully');
     
   } catch (error) {
