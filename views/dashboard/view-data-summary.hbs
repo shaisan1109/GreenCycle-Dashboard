@@ -1579,13 +1579,11 @@ function initChartsWithAggregation(aggregation) {
                   const periodKey = completePeriods[context.dataIndex];
                   const periodData = aggregatedData[periodKey];
 
-                  const lines = [
-                    `${context.dataset.label}: ${context.parsed.y.toFixed(2)} kg`,
-                    //periodData ? `From ${periodData.entryCount.toFixed(2)} entries` : ''
-                  ];
+                  // Start with dataset value
+                  const lines = [`${context.dataset.label}: ${context.parsed.y.toFixed(2)} kg`];
 
-                  // Add company or list of companies
-                  if (periodData && periodData.companyNames) {
+                  // Only add company list for the "Actual Data" dataset
+                  if (context.dataset.label === 'Actual Data (kg)' && periodData && periodData.companyNames) {
                     const companyList = Array.from(periodData.companyNames);
 
                     if (companyList.length === 1) {
@@ -1696,20 +1694,24 @@ function initChartsWithAggregation(aggregation) {
                   const periodKey = completePeriods[context.dataIndex];
                   const periodData = aggregatedData[periodKey];
 
-                  // Show company or list of companies
-                  let companyInfo = '';
-                  if (periodData?.companyNames) {
-                    const companies = Array.from(periodData.companyNames);
-                    companyInfo = companies.length > 1
-                      ? `Companies: ${companies.join(', ')}`
-                      : `Company: ${companies[0]}`;
+                  const lines = [
+                    `Total Per Capita: ${context.parsed.y.toFixed(4)}`,
+                    //periodData ? `From ${periodData.entryCount.toFixed(2)} entries` : ''
+                  ];
+
+                  // Add company or list of companies in Chart 1 style
+                  if (periodData && periodData.companyNames) {
+                    const companyList = Array.from(periodData.companyNames);
+
+                    if (companyList.length === 1) {
+                      lines.push(`Company: ${companyList[0]}`);
+                    } else if (companyList.length > 1) {
+                      lines.push(`Companies (${companyList.length}):`);
+                      companyList.forEach(name => lines.push(`- ${name}`));
+                    }
                   }
 
-                  return [
-                    `Total Per Capita: ${context.parsed.y.toFixed(4)}`,
-                    periodData ? `From ${periodData.entryCount.toFixed(2)} entries` : '',
-                    companyInfo
-                  ];
+                  return lines;
                 }
               }
             }
