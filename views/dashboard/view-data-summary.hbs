@@ -919,6 +919,11 @@ function aggregateDataWithAveraging(dataEntries, aggregationType) {
           entryCount: 0
         };
       }
+
+      if (!aggregated[periodKey].companyNames) {
+        aggregated[periodKey].companyNames = new Set();
+      }
+      aggregated[periodKey].companyNames.add(entry.company_name);
       
       const proportion = daysInThisPeriod / entryTotalDays;
       
@@ -1102,6 +1107,21 @@ function nextPeriod(period, aggregation) {
   return period;
 }
 
+function assignCompanyColors(companies) {
+  const uniqueCompanies = Array.from(new Set(companies));
+  const companyColorMap = {};
+  const saturation = 80;
+  const lightness = 50;
+  const hueStep = Math.floor(360 / uniqueCompanies.length);
+
+  uniqueCompanies.forEach((company, index) => {
+    const hue = (index * hueStep) % 360;
+    companyColorMap[company] = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  });
+
+  return companyColorMap;
+}
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => initChartsWithAggregation('{{query.aggregation}}' || 'monthly'));
 } else {
@@ -1207,6 +1227,26 @@ function initChartsWithAggregation(aggregation) {
     const totalPerCapita = completePeriods.map(p =>
       aggregatedData[p] ? aggregatedData[p].totalPerCapita : null
     );
+
+    // Assign company colors
+    const companyNames = dataEntries.map(d => d.company_name);
+    const companyColorMap = assignCompanyColors(companyNames);
+
+    // Then, when preparing the actualData dataset:
+    const actualData = completePeriods.map(p => {
+      const entry = aggregatedData[p];
+      return entry ? entry.totalWasteGenerated : null;
+    });
+
+    const pointColors = completePeriods.map(p => {
+      const entry = aggregatedData[p];
+      if (!entry) return '#2196F3';
+      const companies = Array.from(entry.companyNames || []);
+      const company = companies[0]; // pick first company
+      return companyColorMap[company] || '#2196F3';
+    });
+
+    console.log("Aggregated data: ", aggregatedData)
     
     console.log('📈 Chart data points:', totalWeights.length);
     console.log('📊 Sample total weights (kg):', totalWeights.slice(0, 5));
@@ -1297,8 +1337,9 @@ function initChartsWithAggregation(aggregation) {
             {
               label: 'Actual Data (kg)',
               data: actualData,
-              borderColor: '#2196F3',
-              backgroundColor: '#2196F3',
+              borderColor: '#2196F3',            // line color
+              pointBackgroundColor: pointColors, // color per dot
+              pointBorderWidth: 0,
               pointRadius: 6,
               pointHoverRadius: 8,
               borderWidth: 2,
