@@ -1,3 +1,4 @@
+{{#ifNotEquals user.supertype 2}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -131,6 +132,7 @@
   </style>
 </head>
 <body class="control-panel">
+  
   <main class="dashboard-container">
     <section class="welcome-card">
       <h1>Control Panel</h1>
@@ -223,3 +225,5 @@
   </main>
 </body>
 </html>
+
+{{/ifNotEquals}}

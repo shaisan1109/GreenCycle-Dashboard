@@ -1998,7 +1998,7 @@ export async function getTopDashboardData() {
 }
 
 export async function getDeadlineTimer(userId) {
-  // First get the user role supertype
+  // Supertype check
   const [userRows] = await sql.query(`
     SELECT ur.supertype
     FROM user u
@@ -2006,38 +2006,37 @@ export async function getDeadlineTimer(userId) {
     WHERE u.user_id = ?
   `, [userId]);
 
-  if (userRows.length === 0) {
+  if (!userRows.length) {
     return { error: "User not found" };
   }
 
-  const supertype = userRows[0].supertype;
-
-  // Only clients (supertype = 2) are affected by deadline
-  if (supertype !== 2) {
+  if (userRows[0].supertype !== 2) {
     return { submitted: true, deadline: null, exempt: true };
   }
 
-  // Check if already submitted this month
+  const now = new Date();
+  const monthYear = now.toISOString().slice(0, 7);
+
+  // Use the universal function
+  const deadline = await getDeadlineForMonth(userId, monthYear);
+
+  // Check submission for this month
   const [rows] = await sql.query(`
     SELECT COUNT(*) AS count
     FROM data_entry
     WHERE user_id = ?
-      AND status = 'approved'
-      AND MONTH(date_submitted) = MONTH(CURRENT_DATE())
-      AND YEAR(date_submitted) = YEAR(CURRENT_DATE())
-  `, [userId]);
-
-  const hasSubmitted = rows[0].count > 0;
-
-  const now = new Date();
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      AND status = 'Approved'
+      AND DATE_FORMAT(date_submitted, '%Y-%m') = ?
+  `, [userId, monthYear]);
 
   return {
-    submitted: hasSubmitted,
-    deadline: endOfMonth.toISOString(),
+    submitted: rows[0].count > 0,
+    deadline: deadline.toISOString(),
     exempt: false
   };
 }
+
+
 
 export async function getMonthlySubmissionStats(userId, monthYear) {
   const [rows] = await sql.query(`
@@ -2114,6 +2113,13 @@ export async function getComplianceTable() {
   `);
   return rows;
 }
+
+export async function getDeadlineForMonth(userId, monthYear) {
+  // Simply use the last day of that month
+  const [year, month] = monthYear.split("-");
+  return new Date(year, month, 0, 23, 59, 59);
+}
+
 
 
 // Get time series data (for trend charts)
@@ -2543,15 +2549,25 @@ export async function getMonthlySubmissions() {
 
 // Create notification for user
 export async function createNotification(targetUserId, msgType, message, link) {
-    const result = await sql.query(`
-        INSERT INTO notifications (user_id, message_type, message, link)
-        VALUES (?, ?, ?, ?)
-    `, [targetUserId, msgType, message, link])
-    
-    // Return new object if successful
-    const id = result[0].insertId
-    return id
+  try {
+    const [result] = await sql.query(
+      `INSERT INTO notifications (user_id, message_type, message, link)
+       VALUES (?, ?, ?, ?)`,
+      [targetUserId, msgType, message, link]
+    );
+    console.log(`[NOTIF] insert OK id=${result.insertId} user_id=${targetUserId} type="${msgType}"`);
+    return result.insertId;
+  } catch (err) {
+    // Log full error so you can see what's wrong (ENUM, null user_id, permissions, etc.)
+    console.error('[NOTIF] createNotification failed:', {
+      user_id: targetUserId, msgType, messageSnippet: message && message.slice(0,120),
+      sqlError: err && (err.sqlMessage || err.message || err)
+    });
+    throw err; // re-throw so calling code can detect failure if needed
+  }
 }
+
+
 
 // Get notifications for user (paginated)
 export async function getNotifications(userId, limit = 10, offset = 0) {

@@ -57,10 +57,12 @@
     <div class="layout-wrapper">
         <nav id="sidebar" class="sidebar open">
             <div class="nav-btn-container">
+                
                 <button id="collapse-sidebar-btn" class="collapse-sidebar-btn">
                     <i class="fa-solid fa-angles-left"></i> Collapse Sidebar
                 </button>
-
+                
+                {{#ifNotEquals user.supertype 2}}
                 <a href="/control-panel" class="{{#if current_home}}current{{/if}}">
                     <i class="fa-solid fa-house nav-icon"></i> Home
                 </a>
@@ -68,7 +70,8 @@
                 <a href="/control-panel/entry-statistics" class="{{#if current_stats}}current{{/if}}">
                     <i class="fa-solid fa-chart-line"></i>&nbsp; Data Entry Statistics
                 </a>
-                
+                {{/ifNotEquals}}    
+
                 <!-- Only show functions if current user is NOT a client -->
                 {{#ifNotEquals user.supertype 2}}
                     <div class="nav-divider">STAFF FUNCTIONS</div>

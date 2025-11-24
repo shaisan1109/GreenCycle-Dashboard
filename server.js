@@ -103,6 +103,7 @@ runSimulation,
   saveComplianceRecord,
   getComplianceTable,
   getComplianceMonths,
+  getDeadlineForMonth,
 } from './database.js'
 
 // File Upload
@@ -546,18 +547,22 @@ app.get('/dashboard/guide', (req, res) => {
 
 app.get('/dashboard/deadline', async (req, res) => {
   try {
-    const deadline = new Date('2025-08-30T23:59:59Z'); // Example
+    const userId = req.session.user.id;
+
+    const timer = await getDeadlineTimer(userId);
 
     res.render('dashboard/deadline', {
-      layout: 'dashboard',     // uses dashboard.hbs layout
-      current_deadline: true,  // highlights nav link
-      deadline: deadline.toISOString()
+      layout: 'dashboard',
+      current_deadline: true,
+      deadline: timer.deadline
     });
+
   } catch (err) {
     console.error("Error loading deadline:", err);
     res.status(500).send("Failed to load deadline page");
   }
 });
+
 
 app.get("/api/compliance/deadlines", async (req, res) => {
   try {
@@ -583,34 +588,46 @@ app.get("/api/compliance/months", async (req, res) => {
 
 // User notifs
 app.get('/dashboard/notifications', async (req, res) => {
-  const currentUser = req.session.user.id
+  try {
+    if (!req.session.user) {
+      return res.status(401).send("Not authenticated");
+    }
 
-  // Pagination
-  const page = parseInt(req.query.page) || 1;
-  const limit = 10;
-  const offset = (page - 1) * limit;
+    const currentUser = req.session.user.id; // FIXED (correct session field)
 
-  // Initialize
-  const [notifications, total] = await Promise.all([
-    getNotifications(currentUser, limit, offset),
-    getNotificationCount(currentUser)
-  ]);
-  const totalPages = Math.ceil(total / limit);
-  const startEntry = total === 0 ? 0 : offset + 1;
-  const endEntry = Math.min(offset + limit, total);
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = 10;
+    const offset = (page - 1) * limit;
 
-  res.render('dashboard/notifications', {
-    layout: 'dashboard',
-    title: 'Notifications | GC Dashboard',
-    current_notifs: true,
-    notifications,
-    currentPage: page,
-    totalPages,
-    totalNotifs: total,
-    startEntry,
-    endEntry
-  })
-})
+    const [notifications, total] = await Promise.all([
+      getNotifications(currentUser, limit, offset),
+      getNotificationCount(currentUser)
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+    const startEntry = total === 0 ? 0 : offset + 1;
+    const endEntry = Math.min(offset + limit, total);
+
+    res.render('dashboard/notifications', {
+      layout: 'dashboard',
+      title: 'Notifications | GC Dashboard',
+      current_notifs: true,
+      notifications,
+      currentPage: page,
+      totalPages,
+      totalNotifs: total,
+      startEntry,
+      endEntry,
+      query: req.query
+    });
+
+  } catch (err) {
+    console.error("Notifications route error:", err);
+    res.status(500).send("Failed to load notifications");
+  }
+});
+
+
 
 // Toggle notif
 app.post('/notifications/toggle/:notifId', async (req, res) => {
@@ -3811,27 +3828,20 @@ cron.schedule("*/30 * * * * *", async () => {
 
     for (const user of users) {
 
-      // 1. Skip non-client roles
       const timer = await getDeadlineTimer(user.user_id);
       if (!timer || timer.exempt) continue;
 
-      // 2. Get all months this user submitted (example: ["2025-07","2025-08","2025-09"])
       const submittedMonths = await getUserSubmissionMonths(user.user_id);
 
-      // 3. Add the current month even if no submission
       const currentMonth = now.toISOString().slice(0, 7);
       if (!submittedMonths.includes(currentMonth)) {
         submittedMonths.push(currentMonth);
       }
 
-      // 4. Process each submission month independently
       for (const monthYear of submittedMonths) {
 
-        // Determine the correct deadline for that month
-        const [year, month] = monthYear.split("-");
-        const deadline = new Date(year, month, 0, 23, 59, 59); // last day of that month
+        const deadline = await getDeadlineForMonth(user.user_id, monthYear);
 
-        // 5. Count submissions + earliest submission for that month
         const stats = await getMonthlySubmissionStats(user.user_id, monthYear);
         const submission_count = stats.count;
         const earliestSubmission = stats.earliest ? new Date(stats.earliest) : null;
@@ -3839,12 +3849,9 @@ cron.schedule("*/30 * * * * *", async () => {
         let submitted_before_deadline = 0;
         let fine = 0;
 
-        // 6. Determine compliance
         if (submission_count > 0 && earliestSubmission <= deadline) {
           submitted_before_deadline = 1;
-        } 
-        else if (now > deadline) {
-          // LATE for this month → calculate fine
+        } else if (now > deadline) {
           const overdueWeeks = Math.floor((now - deadline) / (1000 * 60 * 60 * 24 * 7));
           fine = 500 * (overdueWeeks + 1);
         }
@@ -3853,9 +3860,8 @@ cron.schedule("*/30 * * * * *", async () => {
           ? "Compliant"
           : "Non-Compliant";
 
-        // 7. Save the compliance record
         await saveComplianceRecord({
-          user_id: user.user_id,
+          user_id: user.user_id,   // FIXED
           month_year: monthYear,
           submission_count,
           deadline,
@@ -3863,27 +3869,112 @@ cron.schedule("*/30 * * * * *", async () => {
           total_fine: fine,
           compliance_status
         });
-
-        // Debug log for every record
-        console.log("Compliance Record Updated:", {
-          user_id: user.user_id,
-          month_year: monthYear,
-          submission_count,
-          earliestSubmission,
-          deadline,
-          submitted_before_deadline,
-          fine,
-          compliance_status
-        });
       }
     }
 
-    console.log("[CRON] All compliance statistics updated (every 30 seconds).");
+    console.log("[CRON] Submission compliance updated.");
 
   } catch (err) {
     console.error("Compliance Cron Error:", err);
   }
 });
+
+cron.schedule("* * * * *", async () => {
+  try {
+    const users = await getUsers();
+    const now = new Date();
+
+    console.log("[CRON-NOTIF] START", now, "users=", users.length);
+
+    for (const user of users) {
+
+      const status = await getDeadlineTimer(user.user_id);
+      if (status?.exempt) continue;
+
+      const monthYear = now.toISOString().slice(0, 7);
+
+      // ---- GET REAL DEADLINE ----
+      let rawDeadline = await getDeadlineForMonth(user.user_id, monthYear);
+      let deadline = new Date(rawDeadline?.deadline || rawDeadline);
+
+      if (isNaN(deadline.getTime())) {
+        console.log("[CRON-NOTIF] INVALID DEADLINE for UID:", user.user_id);
+        continue;
+      }
+
+      // ---- TIME LEFT ----
+      const msLeft = deadline - now;
+
+      // Skip if user already submitted
+      const sub = await getMonthlySubmissionStats(user.user_id, monthYear);
+      if (sub.count > 0) continue;
+
+      console.log("[CRON-NOTIF] UID:", user.user_id, "msLeft:", msLeft);
+
+      // ----------- INTERVALS -----------
+      const intervals = [
+        { label: "28 days", ms: 28 * 86400000 },
+        { label: "21 days", ms: 21 * 86400000 },
+        { label: "14 days", ms: 14 * 86400000 },
+        { label: "7 days", ms: 7 * 86400000 },
+        { label: "6 days", ms: 6 * 86400000 },
+        { label: "5 days", ms: 5 * 86400000 },
+        { label: "4 days", ms: 4 * 86400000 },
+        { label: "3 days", ms: 3 * 86400000 },
+        { label: "2 days", ms: 2 * 86400000 },
+        { label: "1 day", ms: 1 * 86400000 },
+
+        { label: "12 hours", ms: 12 * 3600000 },
+        { label: "6 hours", ms: 6 * 3600000 },
+        { label: "5 hours", ms: 5 * 3600000 },
+        { label: "4 hours", ms: 4 * 3600000 },
+        { label: "3 hours", ms: 3 * 3600000 },
+        { label: "2 hours", ms: 2 * 3600000 },
+        { label: "1 hour", ms: 1 * 3600000 },
+
+        { label: "30 minutes", ms: 30 * 60000 },
+        { label: "15 minutes", ms: 15 * 60000 },
+        { label: "5 minutes", ms: 5 * 60000 }
+      ];
+
+      // ------- SEND REMINDERS -------
+      for (const interval of intervals) {
+
+        // This ensures NOT to spam every minute:
+        const diff = Math.abs(msLeft - interval.ms);
+
+        if (diff < 60000) {  // within 1 minute of target
+          console.log(`[CRON-NOTIF] Sending reminder (${interval.label}) for UID ${user.user_id}`);
+
+          await createNotification(
+            user.user_id,
+            "Warning",
+            `Reminder: Your submission deadline is in <b>${interval.label}</b>.<br>Deadline: ${deadline.toLocaleString()}`,
+            "/dashboard/deadline"
+          );
+        }
+      }
+
+      // ---- DEADLINE PASSED ----
+      if (msLeft <= 0) {
+        await createNotification(
+          user.user_id,
+          "Noncompliance Warning",
+          `⛔ Your submission deadline has passed (${deadline.toLocaleString()}). Penalties may apply.`,
+          "/dashboard/deadline"
+        );
+      }
+
+    }
+
+    console.log("[CRON-NOTIF] DONE");
+
+  } catch (err) {
+    console.error("Reminder Cron Error:", err);
+  }
+});
+
+
 
 /* ---------------------------------------
     APP LISTENER AND APP LOCALS FUNCTIONS
