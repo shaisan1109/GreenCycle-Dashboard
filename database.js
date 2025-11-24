@@ -2287,9 +2287,6 @@ export async function getApprovedDataEntryIds(filters) {
   }));
 }
 
-// ===============================================================
-// 2. computeWeightsHybrid — FINAL VERSION (no DB for manual mode)
-// ===============================================================
 // ---------- helper: computeWeights (manual or auto category) ----------
 export async function computeWeightsHybrid(weightMode = 'default', entryIds = [], manualWeights = null) {
   // safe defaults
@@ -2547,8 +2544,6 @@ export async function runSimulation(
 
   return { success: true, forecast, diagnostics };
 }
-
-
 
 /* ---------------------------------------
     CONTROL PANEL

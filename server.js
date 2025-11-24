@@ -3295,7 +3295,6 @@ app.get('/control-panel/entry-statistics', async (req, res) => {
 })
 
 // server.js — /api/simulate
-
 app.post('/api/simulate', async (req, res) => {
   try {
     let { horizon, filters, additions, annualGrowthFactorWhole, weightMode, manualWeights } = req.body || {};
@@ -3330,6 +3329,7 @@ app.post('/api/simulate', async (req, res) => {
     return res.status(500).json({ success: false, error: err.message || String(err) });
   }
 });
+
 
 
 
