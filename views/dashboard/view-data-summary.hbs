@@ -205,6 +205,8 @@
     Use the aggregation selector to switch between monthly or yearly views. You may drag the horizontal scrollbar on each chart to view further time periods.
   </p>
 
+  <p>This data summary uses entries from multiple sources, shown with the <b>company legends</b> placed on each trend chart.</p>
+
   <!-- Trend Charts Container -->
   <div id="trend-charts-wrapper">
     <!-- Total Waste Trend with Regression -->
@@ -213,11 +215,20 @@
         <i class="fa-solid fa-trash"></i> Total Waste Generation Trend with 3rd Degree Polynomial Regression
       </h3>
 
+      <p>This chart shows the <b>total waste generated over time</b>, with a brief regression analysis of the potential growth or reduction of said total waste.</p>
+      <ul>
+        <li><b style="color:#2196F3;">Actual Data</b> - Shows the waste recorded in each period (month or year), as reported by certain companies.</li>
+        <li><b style="color:#FF5722;">Trend Lines</b> - Show the overall trend of the waste based on past data. The solid line represents the trend of actual data, and the dashed line shows how the trend is expected to continue in the future.</li>
+        <li><b style="color:rgba(255, 160, 0, 1)">Projected Values</b> <i>(shaded area)</i> - Estimates future waste based on trends, giving an idea of what might happen if things continue the same way.</li>
+      </ul>
+
+      <p>Hovering over a dot gives the exact waste amount and the companies responsible.</p>
+
+      <div class="companyLegend"></div>
+
       <!-- Zoom -->
-      <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
-        <label style="font-size: 0.85rem; margin-right: 0.5rem; color: #2d613f;">
-          Zoom Width:
-        </label>
+      <div class="chart-zoom-slider">
+        Zoom Width&emsp;
         <input 
           type="range" 
           class="zoom-range" 
@@ -229,6 +240,7 @@
           style="width: 220px; cursor: pointer;"
         >
       </div>
+      <small style="color: gray;">Drag this slider to widen/shorten this chart.</small><br><br>
 
       <div class="chart-viewport">
         <div id="trendTotalWasteContainer" class="chart-content">
@@ -247,11 +259,14 @@
         <i class="fa-solid fa-user"></i> Per Capita Waste Trend
       </h3>
 
+      <p>This chart shows estimates on how much waste each person is generating over time.</p>
+      <ul><li><b style="color:#FF9800">Orange line with dots</b> - Each point represents the average waste per person for a specific period (month or year).</li></ul>
+
+      <div class="companyLegend"></div>
+
       <!-- Zoom -->
-      <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
-        <label style="font-size: 0.85rem; margin-right: 0.5rem; color: #2d613f;">
-          Zoom Width:
-        </label>
+      <div class="chart-zoom-slider">
+        Zoom Width&emsp;
         <input 
           type="range" 
           class="zoom-range" 
@@ -263,6 +278,7 @@
           style="width: 220px; cursor: pointer;"
         >
       </div>
+      <small style="color: gray;">Drag this slider to widen/shorten this chart.</small><br><br>
 
       <div class="chart-viewport">
         <div id="trendPerCapitaContainer" class="chart-content">
@@ -277,22 +293,25 @@
         <i class="fa-solid fa-layer-group"></i> Waste by Category Over Time
       </h3>
 
+      <p>This chart shows how waste is divided into different categories over time.</p>
+
+      <div class="companyLegend"></div>
+
       <!-- Zoom -->
-      <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
-        <label style="font-size: 0.85rem; margin-right: 0.5rem; color: #2d613f;">
-          Zoom Width:
-        </label>
+      <div class="chart-zoom-slider">
+        Zoom Width&emsp;
         <input 
           type="range" 
           class="zoom-range" 
           data-target="trendByCategoryContainer"
-          min="40" 
-          max="200" 
-          value="50" 
+          min="75" 
+          max="300" 
+          value="150" 
           step="5"
           style="width: 220px; cursor: pointer;"
         >
       </div>
+      <small style="color: gray;">Drag this slider to widen/shorten this chart.</small><br><br>
 
       <div class="chart-viewport">
         <div id="trendByCategoryContainer" class="chart-content">
@@ -323,19 +342,8 @@
     <div class="sim-row">
       <label for="forecastMonths" style="font-weight:600;">Simulation Length (months)</label>
       <input id="forecastMonths" type="number" class="form-control" value="12" min="1" max="240">
-      <small style="color:#555;">How many future months to generate (e.g. 12 = next year).</small>
-    </div>
-
-    <!-- WEIGHT MODE -->
-    <div class="sim-row">
-      <label style="font-weight:600;">Company Weight Mode</label>
-      <select id="weightMode" class="form-control">
-        <option value="auto">Automatic (data-based)</option>
-        <option value="manual">Manual (user-defined)</option>
-        <option value="default" selected>Default (0.5 / 1 / 2)</option>
-      </select>
-      <small style="color:#555;display:block;margin-top:6px;">
-        Automatic: compute weights from the summary dataset. Manual: enter multipliers. Default: small=0.5, medium=1, large=2.
+      <small style="color:#555;display:block;margin-top:4px;">
+        Determines how many future months will be generated. For example, 12 simulates the next year, while 36 simulates the next three years.
       </small>
     </div>
 
@@ -362,7 +370,7 @@
     <!-- ADDITIONAL COMPANIES -->
     <div class="sim-row">
       <label style="font-weight:600;">Additional Companies (can be negative)</label>
-      <div style="display:flex; gap:14px; margin-top:6px;">
+      <div style="display:flex;gap:14px;margin-top:6px;">
         <div style="flex:1;">
           <label for="addSmall" style="font-size:0.9rem;">Small</label>
           <input id="addSmall" type="number" class="form-control" value="0" step="1">
@@ -376,14 +384,19 @@
           <input id="addLarge" type="number" class="form-control" value="0" step="1">
         </div>
       </div>
-      <small style="color:#555;">Enter negative numbers to simulate companies leaving or no longer participating.</small>
+      <small style="color:#555;display:block;margin-top:4px;">
+        Add companies to simulate increased activity, or use negative values to represent companies leaving the area or no longer participating.
+      </small>
     </div>
 
     <!-- ANNUAL GROWTH -->
     <div class="sim-row">
-      <label style="font-weight:600;">Annual Growth Factor (whole %)</label>
-      <input id="annualGrowthFactorWhole" type="number" class="form-control" value="0" step="1">
-      <small style="color:#555;">Whole percent (e.g. 5 = 5% per completed simulated year).</small>
+      <label for="annualGrowthFactorWhole" style="font-weight:600;">Annual Growth Factor (whole %)</label>
+      <input id="annualGrowthFactorWhole" type="number" class="form-control" value="0" step="1" placeholder="Example: 5 = 5% yearly increase">
+      <small style="color:#555;display:block;margin-top:4px;">
+        This growth is applied once for every full simulated year. For example, 
+        5% means: year 0 = baseline, year 1 = +5%, year 2 = +10%, and so on.
+      </small>
     </div>
 
     <!-- RUN BUTTON -->
@@ -975,6 +988,11 @@ function aggregateDataWithAveraging(dataEntries, aggregationType) {
           entryCount: 0
         };
       }
+
+      if (!aggregated[periodKey].companyNames) {
+        aggregated[periodKey].companyNames = new Set();
+      }
+      aggregated[periodKey].companyNames.add(entry.company_name);
       
       const proportion = daysInThisPeriod / entryTotalDays;
       
@@ -1158,6 +1176,78 @@ function nextPeriod(period, aggregation) {
   return period;
 }
 
+function assignCompanyColors(companies) {
+  const uniqueCompanies = Array.from(new Set(companies));
+  const companyColorMap = {};
+  const saturation = 80;
+  const lightness = 50;
+  const hueStep = Math.floor(360 / uniqueCompanies.length);
+
+  uniqueCompanies.forEach((company, index) => {
+    const hue = (index * hueStep) % 360;
+    companyColorMap[company] = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  });
+
+  return companyColorMap;
+}
+
+function renderCompanyLegends(companyColorMap) {
+  const legendDivs = document.querySelectorAll('.companyLegend');
+  if (!legendDivs.length) return;
+
+  const companies = Object.entries(companyColorMap);
+
+  // Sort alphabetically
+  companies.sort((a, b) => a[0].localeCompare(b[0]));
+
+  // Split into two columns
+  const half = Math.ceil(companies.length / 2);
+  const colLeft = companies.slice(0, half);
+  const colRight = companies.slice(half);
+
+  // Build legend item HTML
+  const buildColumnHTML = (column) => {
+    return column.map(([name, color]) => `
+      <div style="display:flex; align-items:center; gap:8px; margin:4px 0;">
+        <span style="
+          width:12px; 
+          height:12px; 
+          border-radius:50%; 
+          background:${color};
+          display:inline-block;
+        "></span>
+        <span style="font-size:14px;">${name}</span>
+      </div>
+    `).join('');
+  };
+
+  const leftHTML = buildColumnHTML(colLeft);
+  const rightHTML = buildColumnHTML(colRight);
+
+  // Final legend markup with header
+  const legendHTML = `
+    <div style="text-align:center; margin-bottom:8px; font-weight:bold; font-size:13px;">
+      COMPANY LEGEND
+    </div>
+
+    <div style="
+      display:flex;
+      justify-content:center;
+      gap:40px;
+      width:100%;
+      margin:0 auto;
+    ">
+      <div>${leftHTML}</div>
+      <div>${rightHTML}</div>
+    </div>
+  `;
+
+  // Render in all matching divs
+  legendDivs.forEach(div => {
+    div.innerHTML = legendHTML;
+  });
+}
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => initChartsWithAggregation('{{query.aggregation}}' || 'monthly'));
 } else {
@@ -1263,6 +1353,121 @@ function initChartsWithAggregation(aggregation) {
     const totalPerCapita = completePeriods.map(p =>
       aggregatedData[p] ? aggregatedData[p].totalPerCapita : null
     );
+
+    // Assign company colors
+    const companyNames = dataEntries.map(d => d.company_name);
+    const companyColorMap = assignCompanyColors(companyNames);
+
+    // Then, when preparing the actualData dataset:
+    const actualData = completePeriods.map(p => {
+      const entry = aggregatedData[p];
+      return entry ? entry.totalWasteGenerated : null;
+    });
+
+    // Prepare point colors
+    const pointBackgroundColors = completePeriods.map(p => {
+      const entry = aggregatedData[p];
+      if (!entry) return '#2196F3';
+      const companies = Array.from(entry.companyNames || []);
+      return companies.length <= 1 ? companyColorMap[companies[0]] || '#2196F3' : '#ffffff';
+    });
+
+    // Place numbers on points with multiple companies
+    const pointLabels = completePeriods.map(p => {
+      const entry = aggregatedData[p];
+      if (!entry) return '';
+      const companies = Array.from(entry.companyNames || []);
+      return companies.length > 1 ? companies.length.toString() : '';
+    });
+
+    // Multiple company dots will display a number instead (Chart 1)
+    const multiCompanyPlugin = {
+      id: 'multiCompanyPlugin',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+
+        chart.data.datasets.forEach((dataset, datasetIndex) => {
+          // Only draw for the "Actual Data (kg)" line
+          if (dataset.label !== 'Actual Data (kg)') return;
+
+          const meta = chart.getDatasetMeta(datasetIndex);
+
+          meta.data.forEach((point, index) => {
+            const entry = aggregatedData[completePeriods[index]];
+            if (!entry) return;
+
+            const companies = Array.from(entry.companyNames || []);
+            if (companies.length <= 1) return; // skip single-company points
+
+            const x = point.x;
+            const y = point.y;
+            const radius = 8; // same as pointRadius
+
+            // Draw white circle
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#000000';
+            ctx.stroke();
+
+            // Draw number inside
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(companies.length.toString(), x, y);
+            ctx.restore();
+          });
+        });
+      }
+    };
+
+    // Version for Chart 2
+    // Custom plugin for multi-company points in Chart 2
+    const multiCompanyPluginPerCapita = {
+      id: 'multiCompanyPluginPerCapita',
+      afterDatasetDraw(chart) {
+        const { ctx } = chart;
+        const datasetIndex = 0; // only the first dataset ("Total Per Capita")
+        const dataset = chart.data.datasets[datasetIndex];
+        const meta = chart.getDatasetMeta(datasetIndex);
+
+        meta.data.forEach((point, index) => {
+          const entry = aggregatedData[completePeriods[index]];
+          if (!entry) return;
+
+          const companies = Array.from(entry.companyNames || []);
+          if (companies.length <= 1) return; // only multi-company points
+
+          const x = point.x;
+          const y = point.y;
+          const radius = 8;
+
+          // Draw white circle
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, 2 * Math.PI);
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#000000';
+          ctx.stroke();
+
+          // Draw number of companies inside
+          ctx.fillStyle = '#000000';
+          ctx.font = 'bold 10px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(companies.length.toString(), x, y);
+          ctx.restore();
+        });
+      }
+    };
+
+    console.log("Aggregated data: ", aggregatedData)
     
     console.log('📈 Chart data points:', totalWeights.length);
     console.log('📊 Sample total weights (kg):', totalWeights.slice(0, 5));
@@ -1353,8 +1558,10 @@ function initChartsWithAggregation(aggregation) {
             {
               label: 'Actual Data (kg)',
               data: actualData,
-              borderColor: '#2196F3',
-              backgroundColor: '#2196F3',
+              borderColor: '#2196F3',            // line color
+              pointBackgroundColor: pointBackgroundColors, // color per dot
+              //pointBorderColor: '#000', // black border for white points
+              pointBorderWidth: 0,
               pointRadius: 6,
               pointHoverRadius: 8,
               borderWidth: 2,
@@ -1429,12 +1636,26 @@ function initChartsWithAggregation(aggregation) {
               callbacks: {
                 label: (context) => {
                   if (context.parsed.y === null) return '';
+
                   const periodKey = completePeriods[context.dataIndex];
                   const periodData = aggregatedData[periodKey];
-                  return [
-                    `${context.dataset.label}: ${context.parsed.y.toFixed(2)} kg`,
-                    periodData ? `From ${periodData.entryCount.toFixed(2)} entries` : ''
-                  ];
+
+                  // Start with dataset value
+                  const lines = [`${context.dataset.label}: ${context.parsed.y.toFixed(2)} kg`];
+
+                  // Only add company list for the "Actual Data" dataset
+                  if (context.dataset.label === 'Actual Data (kg)' && periodData && periodData.companyNames) {
+                    const companyList = Array.from(periodData.companyNames);
+
+                    if (companyList.length === 1) {
+                      lines.push(`Company: ${companyList[0]}`);
+                    } else if (companyList.length > 1) {
+                      lines.push(`Companies (${companyList.length}):`);
+                      companyList.forEach(name => lines.push(`- ${name}`));
+                    }
+                  }
+
+                  return lines;
                 }
               }
             }
@@ -1478,7 +1699,8 @@ function initChartsWithAggregation(aggregation) {
               bottom: 10
             }
           }
-        }
+        },
+        plugins: [multiCompanyPlugin]
       });
       console.log('✅ Chart 1 created');
     }
@@ -1508,7 +1730,9 @@ function initChartsWithAggregation(aggregation) {
             backgroundColor: 'rgba(255, 152, 0, 0.1)',
             fill: true,
             tension: 0.4,
-            pointRadius: 5,
+            pointRadius: 6,
+            pointBackgroundColor: pointBackgroundColors,
+            pointBorderWidth: 0,
             borderWidth: 3,
             spanGaps: true
           }]
@@ -1516,6 +1740,10 @@ function initChartsWithAggregation(aggregation) {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
           plugins: {
             legend: { position: 'top' },
             title: {
@@ -1530,21 +1758,36 @@ function initChartsWithAggregation(aggregation) {
                   if (context.parsed.y === null) return '';
                   const periodKey = completePeriods[context.dataIndex];
                   const periodData = aggregatedData[periodKey];
-                  return [
-                    `Total Per Capita: ${context.parsed.y.toFixed(4)}`,
-                    periodData ? `From ${periodData.entryCount.toFixed(2)} entries` : ''
+
+                  const lines = [
+                    `Total Per Capita: ${context.parsed.y.toFixed(2)}`,
+                    //periodData ? `From ${periodData.entryCount.toFixed(2)} entries` : ''
                   ];
+
+                  // Add company or list of companies in Chart 1 style
+                  if (periodData && periodData.companyNames) {
+                    const companyList = Array.from(periodData.companyNames);
+
+                    if (companyList.length === 1) {
+                      lines.push(`Company: ${companyList[0]}`);
+                    } else if (companyList.length > 1) {
+                      lines.push(`Companies (${companyList.length}):`);
+                      companyList.forEach(name => lines.push(`- ${name}`));
+                    }
+                  }
+
+                  return lines;
                 }
               }
             }
           },
           scales: {
-            y: { 
+            y: {
               title: { display: true, text: 'Total Per Capita' },
               grid: { color: 'rgba(0, 0, 0, 0.05)' }
             },
-            x: { 
-              title: { display: true, text: `Period (${aggregation})` }, 
+            x: {
+              title: { display: true, text: `Period (${aggregation})` },
               ticks: { maxRotation: 45, minRotation: 45, autoSkip: false },
               grid: { color: 'rgba(0, 0, 0, 0.05)' }
             }
@@ -1552,8 +1795,10 @@ function initChartsWithAggregation(aggregation) {
           layout: {
             padding: { left: 10, right: 30, top: 10, bottom: 10 }
           }
-        }
+        },
+        plugins: [multiCompanyPluginPerCapita]
       });
+
       console.log('✅ Chart 2 created');
     }
     
@@ -1593,6 +1838,10 @@ function initChartsWithAggregation(aggregation) {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
           plugins: {
             legend: { position: 'top' },
             title: {
@@ -1611,6 +1860,7 @@ function initChartsWithAggregation(aggregation) {
       console.log('✅ Chart 3 created');
     }
     
+    renderCompanyLegends(companyColorMap);
     console.log('✅ All charts initialized successfully');
     
   } catch (error) {
@@ -2616,6 +2866,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <style>
 
+.companyLegend {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
 .sim-row {
   display: flex;
   align-items: center;
@@ -2633,7 +2888,10 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 
 .chart-viewport {
-  overflow-x: auto; overflow-y: hidden; width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  border: 2px lightgray solid;
 }
 
 .chart-content {
@@ -2642,13 +2900,47 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 
 .zoom-range {
-  accent-color: #2d613f; 
+  -webkit-appearance: none;
+  width: 220px;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #76c893 0%, #2d613f 100%);
+  outline: none;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.zoom-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #2d613f;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.zoom-range:hover::-webkit-slider-thumb {
+  transform: scale(1.2);
+  background: #76c893;
+}
+
+.zoom-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #2d613f;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  cursor: pointer;
 }
 
 .chart-zoom-slider {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  font-size: 1.1rem;
+  color: #2d613f;
+  font-weight: bold;
 }
 
 .recommendation-box {
