@@ -2134,6 +2134,7 @@ export async function getTimeSeriesData(title, locationCode, author, company, st
       dat.annual,
       dat.per_capita AS avg_per_capita,
       dat.population,
+      ANY_VALUE(u.company_name) AS company_name,
       COALESCE(SUM(CASE WHEN ws.name = 'Biodegradable' THEN dwc.waste_amount ELSE 0 END), 0) AS biodegradable_weight,
       COALESCE(SUM(CASE WHEN ws.name = 'Recyclable' THEN dwc.waste_amount ELSE 0 END), 0) AS recyclable_weight,
       COALESCE(SUM(CASE WHEN ws.name = 'Residual' THEN dwc.waste_amount ELSE 0 END), 0) AS residual_weight,
@@ -2213,6 +2214,7 @@ export async function getTimeSeriesData(title, locationCode, author, company, st
     throw error;
   }
 }
+
 // Helpers
 function makePlaceholders(arr) {
   if (!Array.isArray(arr) || arr.length === 0) return 'NULL';
