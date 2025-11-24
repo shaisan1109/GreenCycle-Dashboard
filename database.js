@@ -2116,32 +2116,33 @@ export async function getComplianceTable() {
 }
 
 
-// Get time series data (for trend charts)
-export async function getTimeSeriesData(title, locationCode, author, company, startDate, endDate, aggregation = 'daily') {
-  let dateExpr = '';
-  if (aggregation === 'weekly') {
-    dateExpr = `YEARWEEK(dat.collection_start, 1)`; // week number
-  } else if (aggregation === 'monthly') {
-    dateExpr = `DATE_FORMAT(dat.collection_start, '%Y-%m')`; // month string
-  } else {
-    dateExpr = `DATE(dat.collection_start)`; // default daily
-  }
+// ============================================================================
+// FIXED getTimeSeriesData - Returns RAW data entries with proper category handling
+// ============================================================================
 
+// Replace your existing getTimeSeriesData function with this one
+export async function getTimeSeriesData(title, locationCode, author, company, startDate, endDate, aggregation = 'monthly') {
+  
+  console.log('📊 getTimeSeriesData called with filters:', { title, locationCode, author, company, startDate, endDate });
+
+  // Build query to get RAW data entries (not aggregated)
   let query = `
     SELECT
-      ${dateExpr} AS date,
-      SUM(dwc.waste_amount) AS total_weight,
-      AVG(dat.per_capita) AS avg_per_capita,
-      ws.name AS waste_type,
-      CASE
-        WHEN SUM(dwc.waste_amount) > 0 THEN 'Compliant'
-        ELSE 'Non-Compliant'
-      END AS compliance_status
+      dat.data_entry_id,
+      dat.collection_start,
+      dat.collection_end,
+      dat.annual,
+      dat.per_capita AS avg_per_capita,
+      dat.population,
+      COALESCE(SUM(CASE WHEN ws.name = 'Biodegradable' THEN dwc.waste_amount ELSE 0 END), 0) AS biodegradable_weight,
+      COALESCE(SUM(CASE WHEN ws.name = 'Recyclable' THEN dwc.waste_amount ELSE 0 END), 0) AS recyclable_weight,
+      COALESCE(SUM(CASE WHEN ws.name = 'Residual' THEN dwc.waste_amount ELSE 0 END), 0) AS residual_weight,
+      COALESCE(SUM(CASE WHEN ws.name = 'Special/Hazardous' THEN dwc.waste_amount ELSE 0 END), 0) AS special_hazardous_weight
     FROM data_entry dat
-    JOIN data_waste_composition dwc ON dat.data_entry_id = dwc.data_entry_id
-    JOIN waste_type wt ON dwc.type_id = wt.id
-    JOIN waste_supertype ws ON wt.supertype_id = ws.id
     JOIN user u ON dat.user_id = u.user_id
+    LEFT JOIN data_waste_composition dwc ON dat.data_entry_id = dwc.data_entry_id
+    LEFT JOIN waste_type wt ON dwc.type_id = wt.id
+    LEFT JOIN waste_supertype ws ON wt.supertype_id = ws.id
     WHERE dat.status = 'Approved'`;
 
   const conditions = [];
@@ -2178,15 +2179,39 @@ export async function getTimeSeriesData(title, locationCode, author, company, st
     params.push(endDate);
   }
 
-  if (conditions.length > 0) query += ` AND ` + conditions.join(' AND ');
+  if (conditions.length > 0) {
+    query += ` AND ` + conditions.join(' AND ');
+  }
 
+  // Group by data_entry_id to get one row per entry with all category weights
   query += `
-    GROUP BY date, ws.name
-    ORDER BY date ASC;
+    GROUP BY dat.data_entry_id, dat.collection_start, dat.collection_end, 
+             dat.annual, dat.per_capita, dat.population
+    ORDER BY dat.collection_start ASC
   `;
 
-  const [rows] = await sql.query(query, params);
-  return rows;
+  try {
+    const [rows] = await sql.query(query, params);
+    
+    console.log(`✅ getTimeSeriesData: Retrieved ${rows.length} raw data entries`);
+    
+    if (rows.length > 0) {
+      console.log('📋 First entry sample:', {
+        data_entry_id: rows[0].data_entry_id,
+        collection_start: rows[0].collection_start,
+        collection_end: rows[0].collection_end,
+        annual: rows[0].annual,
+        avg_per_capita: rows[0].avg_per_capita,
+        biodegradable: rows[0].biodegradable_weight,
+        recyclable: rows[0].recyclable_weight
+      });
+    }
+    
+    return rows;
+  } catch (error) {
+    console.error('❌ Error in getTimeSeriesData:', error);
+    throw error;
+  }
 }
 // Helpers
 function makePlaceholders(arr) {

@@ -301,38 +301,6 @@
       </div>
     </div>
 
-    <!-- Compliance Trend -->
-    <div class="trend-chart-box" data-section="trends-compliance">
-      <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
-        <i class="fa-solid fa-check-double"></i> Compliance Rate Trend
-      </h3>
-
-      <!-- Zoom -->
-      <div class="chart-zoom-slider" style="margin-bottom: 0.75rem;">
-        <label style="font-size: 0.85rem; margin-right: 0.5rem; color: #2d613f;">
-          Zoom Width:
-        </label>
-        <input 
-          type="range" 
-          class="zoom-range" 
-          data-target="trendComplianceContainer"
-          min="40" 
-          max="200" 
-          value="50" 
-          step="5"
-          style="width: 220px; cursor: pointer;"
-        >
-      </div>
-
-      <div class="chart-viewport">
-        <div id="trendComplianceContainer" class="chart-content">
-          <canvas id="trendCompliance"></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Simulation UI (FINAL UPDATED VERSION) -->
 <div class="form-section" style="background-color:#f4fff6;padding:1.5rem;border-radius:10px;border-left:6px solid #43a047;">
   <h2 style="color:#2e7d32;display:flex;align-items:center;">
@@ -770,11 +738,12 @@ document.getElementById('runSimBtn').addEventListener('click', runSimulation);
 </script>
 
 
-<!-- CORRECTED - Retrieves Individual Category/Sector Compliance Status -->
+<!-- FINAL CORRECTED TRENDS CHART SCRIPT - Total Values (No Daily Averaging) -->
 <script>
 
 // ============================================================================
-// TREND CHARTS - PROPER COMPLIANCE RETRIEVAL PER ENTRY
+// TREND CHARTS - DATA ENTRY BASED PROPORTIONAL DISTRIBUTION
+// Shows TOTAL values per period (not daily averages)
 // ============================================================================
 
 function parseFlexibleDate(input) {
@@ -809,135 +778,148 @@ function getTimeSpanInDays(startDate, endDate) {
   return Math.round((endDate - startDate) / msPerDay) + 1;
 }
 
-// Expected category and sector names
 const CATEGORY_NAMES = ['Biodegradable', 'Recyclable', 'Residual', 'Special/Hazardous'];
-const SECTOR_NAMES = ['Residential', 'Commercial', 'Institutional', 'Industrial', 'Health', 'Agriculture and Livestock'];
 
-function aggregateDataWithAveraging(dataPoints, aggregationType) {
+/**
+ * Aggregates data entries by distributing ALL values proportionally
+ * Returns TOTAL values per period (not daily averages)
+ */
+function aggregateDataWithAveraging(dataEntries, aggregationType) {
   const aggregated = {};
   
-  dataPoints.forEach(point => {
-    const date = parseFlexibleDate(point.date);
-    if (!date || isNaN(date)) return;
+  console.log(`📊 Processing ${dataEntries.length} data entries for ${aggregationType} aggregation`);
+  
+  dataEntries.forEach((entry, entryIndex) => {
     
-    let key, periodStart, periodEnd;
+    const collectionStart = parseFlexibleDate(
+      entry.collection_start || entry.start_date || entry.date
+    );
+    const collectionEnd = parseFlexibleDate(
+      entry.collection_end || entry.end_date || entry.date
+    );
     
-    if (aggregationType === 'monthly') {
-      key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      periodStart = new Date(date.getFullYear(), date.getMonth(), 1);
-      periodEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-    } else if (aggregationType === 'yearly') {
-      key = `${date.getFullYear()}`;
-      periodStart = new Date(date.getFullYear(), 0, 1);
-      periodEnd = new Date(date.getFullYear(), 11, 31);
+    if (!collectionStart || isNaN(collectionStart)) {
+      console.warn(`⚠️ Data Entry ${entryIndex + 1}: Invalid collection start date`, entry);
+      return;
     }
     
-    if (!aggregated[key]) {
-      aggregated[key] = {
-        totalWeight: 0,
-        perCapita: 0,
-        periodStart: periodStart,
-        periodEnd: periodEnd,
-        wasteByCategory: {},
-        wasteBySector: {},
-        // Track compliance per entry
-        totalComplianceItems: 0,
-        compliantItems: 0
-      };
-    }
+    const actualEndDate = collectionEnd && !isNaN(collectionEnd) ? collectionEnd : collectionStart;
+    const entryTotalDays = getTimeSpanInDays(collectionStart, actualEndDate);
     
-    aggregated[key].totalWeight += parseFloat(point.total_weight) || 0;
-    aggregated[key].perCapita += parseFloat(point.avg_per_capita) || 0;
+    const wasteGenerated = parseFloat(entry.annual || entry.total_weight || entry.total_generated || 0);
+    const wastePerCapita = parseFloat(entry.avg_per_capita || entry.per_capita || 0);
     
-    const category = point.waste_type || 'Unknown';
-    if (!aggregated[key].wasteByCategory[category]) {
-      aggregated[key].wasteByCategory[category] = 0;
-    }
-    aggregated[key].wasteByCategory[category] += parseFloat(point.total_weight) || 0;
+    const wasteByCategory = {};
     
-    // ========== NEW: CHECK INDIVIDUAL COMPLIANCE FOR EACH ENTRY ==========
-    
-    // Check 4 categories
-    CATEGORY_NAMES.forEach(catName => {
-      // Try different possible field names for category compliance
-      const catKey = catName.replace(/[\/\s]/g, '_').toLowerCase();
-      const complianceField = 
-        point[`${catKey}_compliance`] || 
-        point[`${catKey}_status`] ||
-        point[`compliance_${catKey}`] ||
-        point[`status_${catKey}`];
+    CATEGORY_NAMES.forEach(categoryName => {
+      const categoryKey = categoryName.replace(/[\/\s]/g, '_').toLowerCase();
+      const categoryWeight = parseFloat(
+        entry[`${categoryKey}_weight`] ||
+        entry[`${categoryKey}_generated`] ||
+        0
+      );
       
-      aggregated[key].totalComplianceItems += 1;
-      
-      if (complianceField === 'Compliant' || complianceField === 'compliant') {
-        aggregated[key].compliantItems += 1;
-      }
-      
-      // Log for debugging (first entry only)
-      if (aggregated[key].totalComplianceItems === 1) {
-        console.log(`🔍 Checking category "${catName}":`, complianceField);
+      if (categoryWeight > 0) {
+        wasteByCategory[categoryName] = categoryWeight;
       }
     });
     
-    // Check 6 sectors
-    SECTOR_NAMES.forEach(secName => {
-      // Try different possible field names for sector compliance
-      const secKey = secName.replace(/[\/\s]/g, '_').toLowerCase();
-      const complianceField = 
-        point[`${secKey}_compliance`] || 
-        point[`${secKey}_status`] ||
-        point[`compliance_${secKey}`] ||
-        point[`status_${secKey}`] ||
-        point[`sector_${secKey}_compliance`] ||
-        point[`sector_${secKey}_status`];
+    if (Object.keys(wasteByCategory).length === 0 && wasteGenerated > 0) {
+      const defaultCategory = entry.waste_type || 'Unknown';
+      wasteByCategory[defaultCategory] = wasteGenerated;
+    }
+    
+    if (entryIndex === 0) {
+      console.log('🔍 First Data Entry:', {
+        id: entry.data_entry_id || entryIndex + 1,
+        collectionPeriod: `${collectionStart.toISOString().split('T')[0]} to ${actualEndDate.toISOString().split('T')[0]}`,
+        days: entryTotalDays,
+        wasteGenerated: wasteGenerated,
+        wastePerCapita: wastePerCapita,
+        categories: Object.keys(wasteByCategory)
+      });
+    }
+    
+    const periodsSpanned = [];
+    let currentDate = new Date(collectionStart);
+    
+    while (currentDate <= actualEndDate) {
+      let periodKey, periodStart, periodEnd;
       
-      aggregated[key].totalComplianceItems += 1;
-      
-      if (complianceField === 'Compliant' || complianceField === 'compliant') {
-        aggregated[key].compliantItems += 1;
+      if (aggregationType === 'monthly') {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        periodKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+        periodStart = new Date(year, month, 1);
+        periodEnd = new Date(year, month + 1, 0);
+      } else if (aggregationType === 'yearly') {
+        const year = currentDate.getFullYear();
+        periodKey = `${year}`;
+        periodStart = new Date(year, 0, 1);
+        periodEnd = new Date(year, 11, 31);
       }
       
-      // Log for debugging (first entry only)
-      if (aggregated[key].totalComplianceItems === 5) {
-        console.log(`🔍 Checking sector "${secName}":`, complianceField);
+      const overlapStart = collectionStart > periodStart ? collectionStart : periodStart;
+      const overlapEnd = actualEndDate < periodEnd ? actualEndDate : periodEnd;
+      const daysInThisPeriod = getTimeSpanInDays(overlapStart, overlapEnd);
+      
+      periodsSpanned.push({
+        periodKey,
+        periodStart,
+        periodEnd,
+        daysInThisPeriod,
+        overlapStart,
+        overlapEnd
+      });
+      
+      if (aggregationType === 'monthly') {
+        currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+      } else if (aggregationType === 'yearly') {
+        currentDate = new Date(currentDate.getFullYear() + 1, 0, 1);
+      }
+    }
+    
+    periodsSpanned.forEach(period => {
+      const { periodKey, periodStart, periodEnd, daysInThisPeriod } = period;
+      
+      if (!aggregated[periodKey]) {
+        aggregated[periodKey] = {
+          totalWasteGenerated: 0,
+          totalPerCapita: 0,
+          periodStart: periodStart,
+          periodEnd: periodEnd,
+          categoryTotals: {},
+          entryCount: 0
+        };
+      }
+      
+      const proportion = daysInThisPeriod / entryTotalDays;
+      
+      // Distribute ALL values proportionally
+      aggregated[periodKey].totalWasteGenerated += wasteGenerated * proportion;
+      aggregated[periodKey].totalPerCapita += wastePerCapita * proportion;
+      aggregated[periodKey].entryCount += proportion;
+      
+      Object.entries(wasteByCategory).forEach(([category, categoryWeight]) => {
+        if (!aggregated[periodKey].categoryTotals[category]) {
+          aggregated[periodKey].categoryTotals[category] = 0;
+        }
+        aggregated[periodKey].categoryTotals[category] += categoryWeight * proportion;
+      });
+      
+      if (entryIndex < 3) {
+        console.log(`📅 Entry ${entryIndex + 1} → ${periodKey}: ${(proportion * 100).toFixed(1)}% (${daysInThisPeriod}/${entryTotalDays} days) = ${(wasteGenerated * proportion).toFixed(2)} kg waste, ${(wastePerCapita * proportion).toFixed(4)} per capita`);
       }
     });
-    
-    // Alternative: If compliance data is stored in nested objects
-    if (point.category_compliance) {
-      CATEGORY_NAMES.forEach(catName => {
-        const status = point.category_compliance[catName];
-        if (status === 'Compliant' || status === 'compliant') {
-          // Already counted above, just for reference
-        }
-      });
-    }
-    
-    if (point.sector_compliance) {
-      SECTOR_NAMES.forEach(secName => {
-        const status = point.sector_compliance[secName];
-        if (status === 'Compliant' || status === 'compliant') {
-          // Already counted above, just for reference
-        }
-      });
-    }
   });
   
-  Object.keys(aggregated).forEach(key => {
-    const data = aggregated[key];
-    const timeSpan = getTimeSpanInDays(data.periodStart, data.periodEnd);
+  // Just store totals - NO division by period days
+  Object.keys(aggregated).forEach(periodKey => {
+    const period = aggregated[periodKey];
+    const periodDays = getTimeSpanInDays(period.periodStart, period.periodEnd);
+    period.periodDays = periodDays;
     
-    data.avgTotalWeight = data.totalWeight / timeSpan;
-    data.avgPerCapita = data.perCapita / timeSpan;
-    data.timeSpan = timeSpan;
-    
-    // Calculate compliance rate
-    data.complianceRate = data.totalComplianceItems > 0 
-      ? (data.compliantItems / data.totalComplianceItems) * 100 
-      : 0;
-    
-    const numEntries = data.totalComplianceItems / 10;
-    console.log(`📊 ${key}: ${data.compliantItems}/${data.totalComplianceItems} compliant = ${data.complianceRate.toFixed(1)}% (${numEntries} entries)`);
+    console.log(`📊 ${periodKey}: Total Waste=${period.totalWasteGenerated.toFixed(2)} kg | Total Per Capita=${period.totalPerCapita.toFixed(4)} | Entries=${period.entryCount.toFixed(2)}`);
   });
   
   return aggregated;
@@ -1085,33 +1067,22 @@ function nextPeriod(period, aggregation) {
     return `${nextY}-${String(nextM).padStart(2, '0')}`;
   }
 
-  if (aggregation === 'weekly') {
-    const year = Number(period.slice(0, 4));
-    const week = Number(period.slice(4)); // YEARWEEK gives YYYYWW
-    return week === 53
-      ? `${year + 1}01`
-      : `${year}${String(week + 1).padStart(2, '0')}`;
-  }
-
   if (aggregation === 'yearly') {
-    // For yearly we simply increment year
     const y = Number(period);
     return String(y + 1);
   }
 
-  // default daily (rarely used here)
   return period;
 }
 
-// Wait for both DOM and Chart.js to be ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initChartsWithAggregation('{{query.aggregation}}' || 'monthly'));
+  document.addEventListener('DOMContentLoaded', () => initChartsWithAggregation('{{query.aggregation}}' || 'monthly'));
 } else {
   initChartsWithAggregation('{{query.aggregation}}' || 'monthly');
 }
 
 function initChartsWithAggregation(aggregation) {
-  console.log('🚀 Initializing charts...');
+  console.log('🚀 Initializing charts with TOTAL values (no daily averaging)...');
   
   if (typeof Chart === 'undefined') {
     console.error('❌ Chart.js not loaded');
@@ -1125,24 +1096,19 @@ function initChartsWithAggregation(aggregation) {
   console.log('✅ Chart.js loaded');
 
   try {
-    const rawData = {{{timeSeriesData}}};
-    console.log('📊 Raw data length:', rawData ? rawData.length : 0);
+    const dataEntries = {{{timeSeriesData}}};
+    console.log(`📊 Received ${dataEntries ? dataEntries.length : 0} filtered data entries`);
     
-    if (!rawData || rawData.length === 0) {
-      console.warn('⚠️ No data available');
+    if (!dataEntries || dataEntries.length === 0) {
+      console.warn('⚠️ No data entries available');
       const wrapper = document.getElementById('trend-charts-wrapper');
       if (wrapper) {
-        wrapper.innerHTML = '<div style="padding:2rem;text-align:center;color:#999;">No time-series data available.</div>';
+        wrapper.innerHTML = '<div style="padding:2rem;text-align:center;color:#999;">No data entries available for the selected filters.</div>';
       }
       return;
     }
 
-    // Log first data point structure to help debug field names
-    console.log('📋 Sample data point structure:', Object.keys(rawData[0]));
-    console.log('📋 Sample data point:', rawData[0]);
-
-    //const aggregation = '{{query.aggregation}}' || 'monthly';
-    //console.log('📅 Aggregation:', aggregation);
+    console.log('📋 Sample data entry:', dataEntries[0]);
     
     const regionName = '{{regionName}}';
     const provinceName = '{{provinceName}}';
@@ -1150,16 +1116,10 @@ function initChartsWithAggregation(aggregation) {
     const startDate = '{{query.startDate}}' || '';
     const endDate = '{{query.endDate}}' || '';
 
-    // Helper: skip blanks and "ALL"
     const sanitize = v => v && v !== 'ALL';
-
-    // Build location text
-    const locationParts = [municipalityName, provinceName, regionName]
-      .filter(sanitize);
-
+    const locationParts = [municipalityName, provinceName, regionName].filter(sanitize);
     const locationText = locationParts.join(', ');
 
-    // Build period text
     let periodText = '';
     if (startDate && endDate) {
       periodText = `from ${startDate} to ${endDate}`;
@@ -1169,8 +1129,6 @@ function initChartsWithAggregation(aggregation) {
       periodText = `until ${endDate}`;
     }
 
-    // Build chart title
-    // "for" only appears if locationText is not empty
     const chartTitleText =
       `Waste Trends${locationText ? ' for ' + locationText : ''}` +
       `${periodText ? ' ' + periodText : ''}`;
@@ -1182,7 +1140,7 @@ function initChartsWithAggregation(aggregation) {
         <i class="fa-solid fa-chart-line" style="margin-right: 10px; color: #2196F3;"></i>
         ${chartTitleText}
         <span style="font-size: 0.9rem; color: #666; font-weight: 400; margin-left: 10px;">
-          (${aggregationLabel} Averaging Aggregation)
+          (${aggregationLabel} Totals - Proportional Distribution)
         </span>
         <select id="select-aggregation" style="margin-left: auto; width: 200px;">
           <option value="monthly" ${aggregation === 'monthly' ? 'selected' : ''}>Monthly Summary</option>
@@ -1197,17 +1155,16 @@ function initChartsWithAggregation(aggregation) {
       if (applyBtn2) {
         applyBtn2.onclick = () => {
           const newAggregation = document.getElementById('select-aggregation').value;
-          // Re-initialize charts with the new aggregation without reloading
           initChartsWithAggregation(newAggregation);
         };
       }
     }
     
-    const aggregatedData = aggregateDataWithAveraging(rawData, aggregation);
+    const aggregatedData = aggregateDataWithAveraging(dataEntries, aggregation);
     const sortedPeriods = Object.keys(aggregatedData).sort();
     const completePeriods = generateCompletePeriods(sortedPeriods, aggregation);
 
-    console.log('📊 Sorted periods:', sortedPeriods.length);
+    console.log(`📊 Generated ${sortedPeriods.length} periods from ${dataEntries.length} data entries`);
     
     if (sortedPeriods.length === 0) {
       console.warn('⚠️ No periods after aggregation');
@@ -1215,19 +1172,18 @@ function initChartsWithAggregation(aggregation) {
     }
     
     const labels = completePeriods.map(p => formatPeriodLabel(p, aggregation));
+    
+    // Use TOTAL values (not divided by days)
     const totalWeights = completePeriods.map(p =>
-      aggregatedData[p] ? aggregatedData[p].avgTotalWeight : null
+      aggregatedData[p] ? aggregatedData[p].totalWasteGenerated : null
     );
-    const perCapitaValues = completePeriods.map(p =>
-      aggregatedData[p] ? aggregatedData[p].avgPerCapita : null
-    );
-    const complianceRates = completePeriods.map(p =>
-      aggregatedData[p] ? aggregatedData[p].complianceRate : null
+    const totalPerCapita = completePeriods.map(p =>
+      aggregatedData[p] ? aggregatedData[p].totalPerCapita : null
     );
     
-    console.log('📈 Data points:', totalWeights.length);
-    console.log('📊 Sample weights:', totalWeights.slice(0, 3));
-    console.log('📊 Compliance rates:', complianceRates.slice(0, 3));
+    console.log('📈 Chart data points:', totalWeights.length);
+    console.log('📊 Sample total weights (kg):', totalWeights.slice(0, 5));
+    console.log('📊 Sample total per capita:', totalPerCapita.slice(0, 5));
     
     const xValues = Array.from({ length: totalWeights.length }, (_, i) => i);
 
@@ -1242,7 +1198,6 @@ function initChartsWithAggregation(aggregation) {
     }
 
     const regression = calculatePolynomialRegression(filteredX, filteredY, 3);
-
     console.log('📐 Regression R²:', regression.rSquared);
     
     const trendValuesActual = xValues.map(x => evaluatePolynomial(regression.coefficients, x));
@@ -1266,12 +1221,11 @@ function initChartsWithAggregation(aggregation) {
       regressionStatsEl.innerHTML =
         `${derivative > 0 ? '📈 Increasing' : '📉 Decreasing'} trend (${regression.degree}° polynomial) | 
          R² = ${(regression.rSquared * 100).toFixed(1)}% | 
-         Formula: y(fc) = 1/(T2-T1) × Σy(i) | 
-         Projected at ${futureLabels[2]}: ${futureY[2].toFixed(4)} kg/day`;
+         Projected at ${futureLabels[2]}: ${futureY[2].toFixed(2)} kg`;
     }
     
-    // ========== CREATE CHART 1 ==========
-    console.log('🎨 Creating Chart 1: Total Waste');
+    // ========== CREATE CHART 1: TOTAL WASTE GENERATION ==========
+    console.log('🎨 Creating Chart 1: Total Waste Generation');
     
     const minWidth = 1400;
     const pixelsPerLabel = 50;
@@ -1285,7 +1239,6 @@ function initChartsWithAggregation(aggregation) {
     
     const totalWasteCanvas = document.getElementById('trendTotalWaste');
     if (totalWasteCanvas) {
-      // Destroy previous chart instance if it exists
       if (totalWasteCanvas.chartInstance) totalWasteCanvas.chartInstance.destroy();
 
       const ctx = totalWasteCanvas.getContext('2d');
@@ -1315,7 +1268,7 @@ function initChartsWithAggregation(aggregation) {
           labels: allLabels,
           datasets: [
             {
-              label: 'Actual Data (kg/day)',
+              label: 'Actual Data (kg)',
               data: actualData,
               borderColor: '#2196F3',
               backgroundColor: '#2196F3',
@@ -1384,7 +1337,7 @@ function initChartsWithAggregation(aggregation) {
             },
             title: {
               display: true,
-              text: 'Total Waste Generation with Polynomial Regression',
+              text: `Total Waste Generation (${aggregation === 'monthly' ? 'Monthly' : 'Yearly'} Totals)`,
               font: { size: 14, weight: 'bold' },
               color: '#2d613f',
               padding: { top: 10, bottom: 20 }
@@ -1393,7 +1346,12 @@ function initChartsWithAggregation(aggregation) {
               callbacks: {
                 label: (context) => {
                   if (context.parsed.y === null) return '';
-                  return `${context.dataset.label}: ${context.parsed.y.toFixed(4)} kg/day`;
+                  const periodKey = completePeriods[context.dataIndex];
+                  const periodData = aggregatedData[periodKey];
+                  return [
+                    `${context.dataset.label}: ${context.parsed.y.toFixed(2)} kg`,
+                    periodData ? `From ${periodData.entryCount.toFixed(2)} entries` : ''
+                  ];
                 }
               }
             }
@@ -1405,7 +1363,7 @@ function initChartsWithAggregation(aggregation) {
               },
               title: { 
                 display: true, 
-                text: 'Weight (kg/day)',
+                text: 'Total Weight (kg)',
                 font: { weight: 'bold', size: 12 }
               },
               grid: {
@@ -1442,8 +1400,8 @@ function initChartsWithAggregation(aggregation) {
       console.log('✅ Chart 1 created');
     }
     
-    // ========== CREATE CHART 2 ==========
-    console.log('🎨 Creating Chart 2: Per Capita');
+    // ========== CREATE CHART 2: TOTAL PER CAPITA ==========
+    console.log('🎨 Creating Chart 2: Total Per Capita');
     
     const perCapitaWidth = Math.max(1200, labels.length * 100);
     const perCapitaContainer = document.getElementById('trendPerCapitaContainer');
@@ -1454,7 +1412,6 @@ function initChartsWithAggregation(aggregation) {
     
     const perCapitaCanvas = document.getElementById('trendPerCapita');
     if (perCapitaCanvas) {
-      // Destroy previous chart instance if it exists
       if (perCapitaCanvas.chartInstance) perCapitaCanvas.chartInstance.destroy();
 
       perCapitaCanvas.chartInstance = new Chart(perCapitaCanvas.getContext('2d'), {
@@ -1462,8 +1419,8 @@ function initChartsWithAggregation(aggregation) {
         data: {
           labels: labels,
           datasets: [{
-            label: 'Per Capita Waste',
-            data: perCapitaValues,
+            label: 'Total Per Capita',
+            data: totalPerCapita,
             borderColor: '#FF9800',
             backgroundColor: 'rgba(255, 152, 0, 0.1)',
             fill: true,
@@ -1480,14 +1437,27 @@ function initChartsWithAggregation(aggregation) {
             legend: { position: 'top' },
             title: {
               display: true,
-              text: 'Per Capita Waste Trend',
+              text: `Total Per Capita (${aggregation === 'monthly' ? 'Monthly' : 'Yearly'} Totals)`,
               font: { size: 14, weight: 'bold' },
               color: '#2d613f'
+            },
+            tooltip: {
+              callbacks: {
+                label: (context) => {
+                  if (context.parsed.y === null) return '';
+                  const periodKey = completePeriods[context.dataIndex];
+                  const periodData = aggregatedData[periodKey];
+                  return [
+                    `Total Per Capita: ${context.parsed.y.toFixed(4)}`,
+                    periodData ? `From ${periodData.entryCount.toFixed(2)} entries` : ''
+                  ];
+                }
+              }
             }
           },
           scales: {
             y: { 
-              title: { display: true, text: 'kg/cap-day²' },
+              title: { display: true, text: 'Total Per Capita' },
               grid: { color: 'rgba(0, 0, 0, 0.05)' }
             },
             x: { 
@@ -1504,8 +1474,8 @@ function initChartsWithAggregation(aggregation) {
       console.log('✅ Chart 2 created');
     }
     
-    // ========== CREATE/UPDATE CHART 3 ==========
-    console.log('🎨 Creating Chart 3: By Category');
+    // ========== CREATE CHART 3: WASTE BY CATEGORY ==========
+    console.log('🎨 Creating Chart 3: Waste by Category');
 
     const categoryCanvas = document.getElementById('trendByCategory');
     if (categoryCanvas) {
@@ -1520,7 +1490,10 @@ function initChartsWithAggregation(aggregation) {
       const categoryDatasets = categories.map(cat => {
         return {
           label: cat,
-          data: sortedPeriods.map(p => (aggregatedData[p]?.wasteByCategory[cat] || 0) / aggregatedData[p].timeSpan),
+          data: sortedPeriods.map(p => {
+            const periodData = aggregatedData[p];
+            return periodData.categoryTotals[cat] || 0;  // Total, not divided
+          }),
           backgroundColor: categoryColors[cat],
           borderColor: categoryColors[cat].replace('0.8', '1'),
           borderWidth: 2,
@@ -1529,7 +1502,6 @@ function initChartsWithAggregation(aggregation) {
         };
       });
 
-      // Destroy previous chart instance if exists
       if (categoryCanvas.chartInstance) categoryCanvas.chartInstance.destroy();
 
       categoryCanvas.chartInstance = new Chart(categoryCanvas.getContext('2d'), {
@@ -1542,98 +1514,18 @@ function initChartsWithAggregation(aggregation) {
             legend: { position: 'top' },
             title: {
               display: true,
-              text: 'Waste by Category',
+              text: `Waste by Category (${aggregation === 'monthly' ? 'Monthly' : 'Yearly'} Totals)`,
               font: { size: 14, weight: 'bold' },
               color: '#2d613f'
             }
           },
           scales: {
-            y: { stacked: true, title: { display: true, text: 'Weight (kg/day)' } },
+            y: { stacked: true, title: { display: true, text: 'Total Weight (kg)' } },
             x: { stacked: true, title: { display: true, text: `Period (${aggregation})` } }
           }
         }
       });
       console.log('✅ Chart 3 created');
-    }
-    
-    // ========== CREATE CHART 4 - WITH RETRIEVAL ==========
-    console.log('🎨 Creating Chart 4: Compliance');
-    
-    const complianceWidth = Math.max(1200, labels.length * 100);
-    const complianceContainer = document.getElementById('trendComplianceContainer');
-    if (complianceContainer) {
-      complianceContainer.style.width = complianceWidth + 'px';
-      complianceContainer.style.minWidth = complianceWidth + 'px';
-    }
-    
-    const complianceCanvas = document.getElementById('trendCompliance');
-    if (complianceCanvas) {
-      // Destroy previous chart instance if it exists
-      if (complianceCanvas.chartInstance) complianceCanvas.chartInstance.destroy();
-
-      complianceCanvas.chartInstance = new Chart(complianceCanvas.getContext('2d'), {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Compliance Rate (%)',
-            data: complianceRates,
-            borderColor: '#2196F3',
-            backgroundColor: 'rgba(33, 150, 243, 0.1)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 5,
-            borderWidth: 3,
-            spanGaps: true
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'top' },
-            title: {
-              display: true,
-              text: 'Compliance Rate Trend (4 Categories + 6 Sectors per Entry)',
-              font: { size: 14, weight: 'bold' },
-              color: '#2d613f'
-            },
-            tooltip: {
-              callbacks: {
-                label: (context) => {
-                  const periodKey = sortedPeriods[context.dataIndex];
-                  const data = aggregatedData[periodKey];
-                  const numEntries = data.totalComplianceItems / 10;
-                  
-                  return [
-                    `Compliance: ${context.parsed.y.toFixed(1)}%`,
-                    `Data Entries: ${numEntries}`,
-                    `Total Items: ${data.totalComplianceItems} (10 per entry)`,
-                    `Compliant: ${data.compliantItems}`
-                  ];
-                }
-              }
-            }
-          },
-          scales: {
-            y: { 
-              min: 0,
-              max: 100,
-              title: { display: true, text: 'Compliance Rate (%)' },
-              grid: { color: 'rgba(0, 0, 0, 0.05)' }
-            },
-            x: { 
-              title: { display: true, text: `Period (${aggregation})` }, 
-              ticks: { maxRotation: 45, minRotation: 45, autoSkip: false },
-              grid: { color: 'rgba(0, 0, 0, 0.05)' }
-            }
-          },
-          layout: {
-            padding: { left: 10, right: 30, top: 10, bottom: 10 }
-          }
-        }
-      });
-      console.log('✅ Chart 4 created');
     }
     
     console.log('✅ All charts initialized successfully');
