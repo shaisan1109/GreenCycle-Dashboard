@@ -301,7 +301,7 @@
       </div>
     </div>
 
-<!-- Simulation UI (FINAL UPDATED VERSION) -->
+<!-- SIMULATION PANEL (FULL - paste over existing simulation block) -->
 <div class="form-section" style="background:#f4fff6;padding:1.5rem;border-radius:12px;border-left:6px solid #2e7d32;">
 
   <h2 style="color:#2e7d32;font-weight:700;margin-bottom:0.5rem;display:flex;align-items:center;">
@@ -310,27 +310,59 @@
   </h2>
 
   <p style="color:#444;line-height:1.5;margin-top:0.2rem;">
-    This tool creates a forward-looking simulation of waste generation based on 
-    historical <strong>Average Annual Waste Generation (kg/year)</strong> records. The model follows each 
-    month’s past behavior, adjusts for changes in the number and size of companies, 
-    and applies an annual growth rate whenever a full simulated year passes.
+    This module simulates future waste generation based on:
+    <br><br>
+    <strong>1)</strong> A monthly pattern built from historical records.<br>
+    <strong>2)</strong> Company impact (automatic/manual/default weights).<br>
+    <strong>3)</strong> An annual growth factor applied once per completed simulated year.
   </p>
 
   <div style="background:#e8f5e9;padding:16px;border-radius:10px;margin-top:1rem;display:flex;flex-direction:column;gap:16px;">
 
-    <!-- Simulation Length -->
+    <!-- SIM LENGTH -->
     <div class="sim-row">
       <label for="forecastMonths" style="font-weight:600;">Simulation Length (months)</label>
       <input id="forecastMonths" type="number" class="form-control" value="12" min="1" max="240">
-      <small style="color:#555;display:block;margin-top:4px;">
-        Determines how many future months will be generated. For example, 12 simulates the next year, while 36 simulates the next three years.
+      <small style="color:#555;">How many future months to generate (e.g. 12 = next year).</small>
+    </div>
+
+    <!-- WEIGHT MODE -->
+    <div class="sim-row">
+      <label style="font-weight:600;">Company Weight Mode</label>
+      <select id="weightMode" class="form-control">
+        <option value="auto">Automatic (data-based)</option>
+        <option value="manual">Manual (user-defined)</option>
+        <option value="default" selected>Default (0.5 / 1 / 2)</option>
+      </select>
+      <small style="color:#555;display:block;margin-top:6px;">
+        Automatic: compute weights from the summary dataset. Manual: enter multipliers. Default: small=0.5, medium=1, large=2.
       </small>
     </div>
 
-    <!-- Additional Companies -->
+    <!-- MANUAL WEIGHTS (hidden unless manual selected) -->
+    <div id="manualWeightInputs" style="display:none;margin-top:12px;">
+      <label style="font-weight:600;">Manual Company Weights</label>
+      <div style="display:flex; gap:14px; margin-top:6px;">
+        <div style="flex:1;">
+          <label style="font-size:0.9rem;">Small</label>
+          <input id="manualSmall" type="number" class="form-control" step="0.1" value="0.5">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:0.9rem;">Medium</label>
+          <input id="manualMedium" type="number" class="form-control" step="0.1" value="1">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:0.9rem;">Large</label>
+          <input id="manualLarge" type="number" class="form-control" step="0.1" value="2">
+        </div>
+      </div>
+      <small style="color:#555;">These values override other weight modes while 'Manual' is selected.</small>
+    </div>
+
+    <!-- ADDITIONAL COMPANIES -->
     <div class="sim-row">
       <label style="font-weight:600;">Additional Companies (can be negative)</label>
-      <div style="display:flex;gap:14px;margin-top:6px;">
+      <div style="display:flex; gap:14px; margin-top:6px;">
         <div style="flex:1;">
           <label for="addSmall" style="font-size:0.9rem;">Small</label>
           <input id="addSmall" type="number" class="form-control" value="0" step="1">
@@ -344,56 +376,215 @@
           <input id="addLarge" type="number" class="form-control" value="0" step="1">
         </div>
       </div>
-      <small style="color:#555;display:block;margin-top:4px;">
-        Add companies to simulate increased activity, or use negative values to represent companies leaving the area or no longer participating.
-      </small>
+      <small style="color:#555;">Enter negative numbers to simulate companies leaving or no longer participating.</small>
     </div>
 
-    <!-- Annual Growth Factor -->
+    <!-- ANNUAL GROWTH -->
     <div class="sim-row">
-      <label for="annualGrowthFactorWhole" style="font-weight:600;">Annual Growth Factor (whole %)</label>
-      <input id="annualGrowthFactorWhole" type="number" class="form-control" value="0" step="1" placeholder="Example: 5 = 5% yearly increase">
-      <small style="color:#555;display:block;margin-top:4px;">
-        This growth is applied once for every full simulated year. For example, 
-        5% means: year 0 = baseline, year 1 = +5%, year 2 = +10%, and so on.
-      </small>
+      <label style="font-weight:600;">Annual Growth Factor (whole %)</label>
+      <input id="annualGrowthFactorWhole" type="number" class="form-control" value="0" step="1">
+      <small style="color:#555;">Whole percent (e.g. 5 = 5% per completed simulated year).</small>
     </div>
 
-    <!-- Run Button -->
-    <button id="runSimBtn" class="btn btn-success" style="margin-top:8px;">
+    <!-- RUN BUTTON -->
+    <button id="runSimBtn" class="btn btn-success" style="margin-top:6px;">
       <i class="fa-solid fa-play"></i> Run Simulation
     </button>
-
   </div>
 
+  <!-- CHART -->
   <div style="margin-top:20px;background:#fff;padding:14px;border-radius:10px;">
-    <!-- Scrollable + Zoomable Chart Container -->
-<div id="chartWrapper" 
-     style="overflow-x: auto; overflow-y: hidden; white-space: nowrap; width: 100%; border-radius: 8px; background:#fff; padding:12px;">
+    <div id="chartWrapper" style="overflow-x:auto;white-space:nowrap;width:100%;padding:12px;">
+      <div id="chartZoomContainer" style="display:inline-block;min-width:100%;">
+        <canvas id="simulationChart" height="380"></canvas>
+      </div>
+    </div>
 
-  <div id="chartZoomContainer" style="display:inline-block; min-width:100%;">
-    <canvas id="simulationChart" height="380"></canvas>
-  </div>
-</div>
-
-<!-- Zoom Slider -->
-<div style="margin-top:10px;">
-  <label style="font-weight:600;">Zoom</label>
-  <input type="range" class="zoom-range" data-target="chartZoomContainer" min="25" max="200" value="100" step="5">
-  <small style="color:#555;">Zoom in/out to view more or fewer months at once.</small>
-</div>
-
+    <div style="margin-top:10px;">
+      <label style="font-weight:600;">Zoom</label>
+      <input type="range" class="zoom-range" data-target="chartZoomContainer" min="25" max="200" value="100" step="5">
+      <small style="color:#555;display:block;margin-top:4px;">Zoom in/out to view more or fewer months.</small>
+    </div>
   </div>
 
+  <!-- DIAGNOSTICS -->
   <div style="margin-top:18px;">
     <h3 id="simHeader" style="margin-bottom:8px;color:#2e7d32;font-weight:600;">Simulation Diagnostics</h3>
-    <table style="width:100%;border:1px solid #e0e0e0;border-radius:6px;background:white;">
+    <table style="width:100%;border:1px solid #ccc;border-radius:6px;background:white;">
       <tbody id="simDiagnostics" style="font-size:0.95rem;"></tbody>
     </table>
   </div>
-
 </div>
 
+<!-- SCRIPT: attach handlers safely on DOMContentLoaded -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Elements
+  const weightModeEl = document.getElementById('weightMode');
+  const manualBox = document.getElementById('manualWeightInputs');
+  const runBtn = document.getElementById('runSimBtn');
+  const zoomSliders = document.querySelectorAll('.zoom-range');
+
+  // Show/hide manual box
+  if (weightModeEl) {
+    weightModeEl.addEventListener('change', () => {
+      manualBox.style.display = weightModeEl.value === 'manual' ? 'block' : 'none';
+    });
+    // initialize visibility
+    manualBox.style.display = weightModeEl.value === 'manual' ? 'block' : 'none';
+  }
+
+  // Zoom initialization
+  zoomSliders.forEach(slider => {
+    const target = document.getElementById(slider.getAttribute('data-target'));
+    if (!target) return;
+    let baseWidth = target.getBoundingClientRect().width || 800;
+    function applyZoom(v) {
+      const newWidth = Math.max(300, baseWidth * (v / 100));
+      target.style.width = `${newWidth}px`;
+      target.style.minWidth = `${newWidth}px`;
+    }
+    applyZoom(slider.value);
+    slider.addEventListener('input', e => applyZoom(e.target.value));
+    window.addEventListener('resize', () => {
+      baseWidth = target.getBoundingClientRect().width || baseWidth;
+      applyZoom(slider.value);
+    });
+  });
+
+  // Attach click handler to Run Simulation button (safe)
+  if (runBtn) {
+    runBtn.addEventListener('click', async function runSimulationHandler() {
+      const btn = runBtn;
+      // read inputs
+      const horizon = Number(document.getElementById('forecastMonths').value) || 12;
+      const weightMode = document.getElementById('weightMode').value || 'default';
+
+      const additions = {
+        small: Number(document.getElementById('addSmall').value) || 0,
+        medium: Number(document.getElementById('addMedium').value) || 0,
+        large: Number(document.getElementById('addLarge').value) || 0
+      };
+
+      const annualGrowthFactorWhole = Number(document.getElementById('annualGrowthFactorWhole').value) || 0;
+
+      // manual weights only if manual mode
+      let manualWeights = null;
+      if (weightMode === 'manual') {
+        manualWeights = {
+          small: Number(document.getElementById('manualSmall').value) || 0,
+          medium: Number(document.getElementById('manualMedium').value) || 0,
+          large: Number(document.getElementById('manualLarge').value) || 0
+        };
+      }
+
+      const payload = {
+        horizon,
+        filters: window.currentFilters || {},
+        additions,
+        annualGrowthFactorWhole,
+        weightMode,
+        manualWeights
+      };
+
+      console.log('[UI] Payload:', payload);
+
+      // UI feedback
+      btn.disabled = true;
+      const origHtml = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Running...';
+
+      try {
+        const res = await fetch('/api/simulate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        console.log('[UI] Simulation Response:', json);
+
+        if (!json.success) {
+          alert('Simulation error — check console.');
+          console.error('Simulation error response:', json);
+          if (json.diagnostics) renderDiagnostics(json.diagnostics);
+          return;
+        }
+
+        if (!json.forecast || !json.forecast.length) {
+          alert('No forecast returned. Ensure filtered entries include annual values.');
+          if (json.diagnostics) renderDiagnostics(json.diagnostics);
+          return;
+        }
+
+        renderSimulationChart(json.forecast);
+        renderDiagnostics(json.diagnostics);
+      } catch (err) {
+        console.error('[UI] Simulation fetch error:', err);
+        alert('Simulation fetch error — check console.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
+    });
+  } else {
+    console.error('runSimBtn not found on page.');
+  }
+
+  // Chart helper & diagnostics (can be called from above)
+  window.renderSimulationChart = function(forecast) {
+    const canvas = document.getElementById('simulationChart');
+    if (!canvas) { console.error('Chart canvas missing'); return; }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { console.error('getContext returned null'); return; }
+    if (window.simChart && typeof window.simChart.destroy === 'function') window.simChart.destroy();
+
+    const labels = forecast.map(f => f.period);
+    const data = forecast.map(f => Number(f.mean));
+
+    window.simChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Simulated Monthly Waste (kg)',
+          data,
+          borderColor: 'rgb(75,192,192)',
+          borderWidth: 2.5,
+          tension: 0.25
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+    });
+  };
+
+  window.renderDiagnostics = function(d) {
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const template = Array.isArray(d.monthTemplatePerCompany) ? d.monthTemplatePerCompany : (d.monthTemplatePerCompany || []);
+    const templateStr = template.length === 12
+      ? template.map((v,i) => `${monthNames[i]}: ${Number(v).toLocaleString()}`).join(', ')
+      : '-';
+
+    const weights = d.weightsUsed || {};
+    const weightsStr = `Small: ${weights.small ?? '-'}, Medium: ${weights.medium ?? '-'}, Large: ${weights.large ?? '-'}`;
+
+    document.getElementById('simDiagnostics').innerHTML = `
+      <tr><th>Simulation Length</th><td>${d.horizon} months</td></tr>
+      <tr><th>Starting Month</th><td>${d.anchorMonth}</td></tr>
+      <tr><th>Weight Mode Used</th><td>${d.weightModeUsed ?? d.weightMode ?? '—'}</td></tr>
+      <tr><th>Weights Applied</th><td>${weightsStr}</td></tr>
+      <tr><th>Detected Companies</th><td>${d.distinctCompanies ?? '-'}</td></tr>
+      <tr><th>Company Contribution Level</th><td>${d.actualCompanyEquivalent ?? '-'}</td></tr>
+      <tr><th>Added Companies (S/M/L)</th><td>${(d.additions?.small ?? 0)}/${(d.additions?.medium ?? 0)}/${(d.additions?.large ?? 0)}</td></tr>
+      <tr><th>Added Contribution</th><td>${d.addEquivalent ?? '-'}</td></tr>
+      <tr><th>Final Company Base</th><td>${d.companyBase ?? '-'}</td></tr>
+      <tr><th>Annual Growth</th><td>${d.annualGrowthFactorWhole ?? 0}%</td></tr>
+      <tr><th>Monthly Pattern (per company)</th><td>${templateStr}</td></tr>
+      <tr><th>Companies Involved</th><td>${(d.companiesInvolved || []).join(', ')}</td></tr>
+      <tr><th>Note</th><td style="white-space:normal;">${(d.note || '').replace(/\n/g,'<br>')}</td></tr>
+    `;
+  };
+});
+</script>
 
 
 
@@ -629,141 +820,6 @@ applyBtn.onclick = async () => {
 };
 
 </script>
-
-<!-- Simulation script -->
-<script>
-async function runSimulation() {
-  const btn = document.getElementById('runSimBtn');
-
-  const horizon = Number(document.getElementById('forecastMonths').value) || 12;
-
-  const additions = {
-    small: Number(document.getElementById('addSmall').value) || 0,
-    medium: Number(document.getElementById('addMedium').value) || 0,
-    large: Number(document.getElementById('addLarge').value) || 0
-  };
-
-  const annualGrowthFactorWhole =
-    Number(document.getElementById('annualGrowthFactorWhole').value) || 0;
-
-  const filters = window.currentFilters || {};
-
-  const payload = {
-    horizon,
-    filters,
-    additions,
-    annualGrowthFactorWhole
-  };
-
-  console.log('[UI] payload:', payload);
-
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Running...';
-
-  try {
-    const res = await fetch('/api/simulate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    const json = await res.json();
-    console.log('[UI] Simulation Response:', json);
-
-    if (!json.success || !json.forecast || json.forecast.length === 0) {
-      alert('No forecast returned. Check if your filters include annual data.');
-      if (json.diagnostics) renderDiagnostics(json.diagnostics);
-      return;
-    }
-
-    renderSimulationChart(json.forecast);
-    renderDiagnostics(json.diagnostics);
-
-  } catch (err) {
-    console.error('[UI] Simulation fetch error:', err);
-    alert('Simulation fetch error — check console.');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-play"></i> Run Simulation';
-  }
-}
-
-
-function renderSimulationChart(forecast) {
-  const canvas = document.getElementById('simulationChart');
-  if (!canvas) { console.error('Chart canvas missing'); return; }
-
-  const ctx = canvas.getContext('2d');
-  if (!ctx) { console.error('getContext() returned null'); return; }
-
-  if (window.simChart && typeof window.simChart.destroy === 'function')
-    window.simChart.destroy();
-
-  const labels = forecast.map(f => f.period);
-  const data = forecast.map(f => Number(f.mean));
-
-  window.simChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Simulated Monthly Waste (kg)',
-        data,
-        borderColor: 'rgb(75,192,192)',
-        borderWidth: 2.5,
-        tension: 0.25
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom' } }
-    }
-  });
-}
-
-
-function renderDiagnostics(d) {
-  document.getElementById('simHeader').innerText = 'Simulation Diagnostics';
-
-  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const template = Array.isArray(d.monthTemplatePerCompany) ? d.monthTemplatePerCompany : [];
-const templateStr = template.length === 12
-  ? template.map((v,i) =>
-      `${monthNames[i]}: ${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    ).join(', ')
-  : '-';
-
-
-  document.getElementById('simDiagnostics').innerHTML = `
-    <tr><th>Forecast Horizon</th><td>${d.horizon}</td></tr>
-    <tr><th>Anchor Month</th><td>${d.anchorMonth}</td></tr>
-
-    <tr><th>Distinct Companies</th><td>${d.distinctCompanies}</td></tr>
-    <tr><th>Actual Company Equivalent</th><td>${d.actualCompanyEquivalent}</td></tr>
-
-    <tr><th>Additions (S/M/L)</th>
-        <td>${d.additions.small}/${d.additions.medium}/${d.additions.large}</td></tr>
-
-    <tr><th>Added Equivalent</th><td>${d.addEquivalent}</td></tr>
-
-    <tr><th>Company Base</th><td>${d.companyBase}</td></tr>
-
-    <tr><th>Annual Growth Factor (whole %)</th><td>${d.annualGrowthFactorWhole}</td></tr>
-    <tr><th>Annual Growth (decimal)</th><td>${d.annualGrowthFactorDecimal}</td></tr>
-
-    <tr><th>Monthly Template Per Company</th><td>${templateStr}</td></tr>
-
-    <tr><th>Companies Involved</th>
-        <td>${(d.companiesInvolved || []).join(', ')}</td></tr>
-
-    <tr><th>Note</th><td>${d.note}</td></tr>
-  `;
-}
-
-document.getElementById('runSimBtn').addEventListener('click', runSimulation);
-</script>
-
 
 <!-- FINAL CORRECTED TRENDS CHART SCRIPT - Total Values (No Daily Averaging) -->
 <script>
