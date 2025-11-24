@@ -302,27 +302,35 @@
     </div>
 
 <!-- Simulation UI (FINAL UPDATED VERSION) -->
-<div class="form-section" style="background-color:#f4fff6;padding:1.5rem;border-radius:10px;border-left:6px solid #43a047;">
-  <h2 style="color:#2e7d32;display:flex;align-items:center;">
-    <i class="fa-solid fa-flask" style="margin-right:8px;color:#43a047"></i>
-    Waste Simulation Forecast
+<div class="form-section" style="background:#f4fff6;padding:1.5rem;border-radius:12px;border-left:6px solid #2e7d32;">
+
+  <h2 style="color:#2e7d32;font-weight:700;margin-bottom:0.5rem;display:flex;align-items:center;">
+    <i class="fa-solid fa-flask" style="margin-right:10px;color:#43a047"></i>
+    Waste Generation Simulation
   </h2>
 
-  <p style="color:#555;margin-bottom:1rem;">
-    Uses historical <strong>data_entry.annual</strong> values.  
-    Annual growth factor is a <b>whole-number percentage</b> (example: 5 = 5% per year).
+  <p style="color:#444;line-height:1.5;margin-top:0.2rem;">
+    This tool creates a forward-looking simulation of waste generation based on 
+    historical <strong>data_entry.annual</strong> records. The model follows each 
+    month’s past behavior, adjusts for changes in the number and size of companies, 
+    and applies an annual growth rate whenever a full simulated year passes.
   </p>
 
-  <div style="background:#e8f5e9;padding:14px;border-radius:10px;display:flex;flex-direction:column;gap:12px;">
+  <div style="background:#e8f5e9;padding:16px;border-radius:10px;margin-top:1rem;display:flex;flex-direction:column;gap:16px;">
 
+    <!-- Simulation Length -->
     <div class="sim-row">
-      <label for="forecastMonths" style="font-weight:600;">Forecast Horizon (months)</label>
+      <label for="forecastMonths" style="font-weight:600;">Simulation Length (months)</label>
       <input id="forecastMonths" type="number" class="form-control" value="12" min="1" max="240">
+      <small style="color:#555;display:block;margin-top:4px;">
+        Determines how many future months will be generated. For example, 12 simulates the next year, while 36 simulates the next three years.
+      </small>
     </div>
 
+    <!-- Additional Companies -->
     <div class="sim-row">
       <label style="font-weight:600;">Additional Companies (can be negative)</label>
-      <div style="display:flex;gap:12px;margin-top:6px;">
+      <div style="display:flex;gap:14px;margin-top:6px;">
         <div style="flex:1;">
           <label for="addSmall" style="font-size:0.9rem;">Small</label>
           <input id="addSmall" type="number" class="form-control" value="0" step="1">
@@ -336,35 +344,56 @@
           <input id="addLarge" type="number" class="form-control" value="0" step="1">
         </div>
       </div>
-      <small style="color:#555;">
-        Enter negative numbers to indicate companies that left the system or are no longer part of the simulation (e.g. -1).
+      <small style="color:#555;display:block;margin-top:4px;">
+        Add companies to simulate increased activity, or use negative values to represent companies leaving the area or no longer participating.
       </small>
     </div>
 
+    <!-- Annual Growth Factor -->
     <div class="sim-row">
       <label for="annualGrowthFactorWhole" style="font-weight:600;">Annual Growth Factor (whole %)</label>
-      <input id="annualGrowthFactorWhole" type="number" class="form-control" value="0" step="1" placeholder="Example: 5 = 5% per year">
-      <small style="color:#555;">
-        This percentage is applied <b>once per year</b> of the forecast horizon.
+      <input id="annualGrowthFactorWhole" type="number" class="form-control" value="0" step="1" placeholder="Example: 5 = 5% yearly increase">
+      <small style="color:#555;display:block;margin-top:4px;">
+        This growth is applied once for every full simulated year. For example, 
+        5% means: year 0 = baseline, year 1 = +5%, year 2 = +10%, and so on.
       </small>
     </div>
 
-    <button id="runSimBtn" class="btn btn-success" style="margin-top:6px;">
+    <!-- Run Button -->
+    <button id="runSimBtn" class="btn btn-success" style="margin-top:8px;">
       <i class="fa-solid fa-play"></i> Run Simulation
     </button>
+
   </div>
 
-  <div style="margin-top:12px;background:#fff;padding:12px;border-radius:8px;">
-    <canvas id="simulationChart" height="340"></canvas>
+  <div style="margin-top:20px;background:#fff;padding:14px;border-radius:10px;">
+    <!-- Scrollable + Zoomable Chart Container -->
+<div id="chartWrapper" 
+     style="overflow-x: auto; overflow-y: hidden; white-space: nowrap; width: 100%; border-radius: 8px; background:#fff; padding:12px;">
+
+  <div id="chartZoomContainer" style="display:inline-block; min-width:100%;">
+    <canvas id="simulationChart" height="380"></canvas>
+  </div>
+</div>
+
+<!-- Zoom Slider -->
+<div style="margin-top:10px;">
+  <label style="font-weight:600;">Zoom</label>
+  <input type="range" class="zoom-range" data-target="chartZoomContainer" min="25" max="200" value="100" step="5">
+  <small style="color:#555;">Zoom in/out to view more or fewer months at once.</small>
+</div>
+
   </div>
 
-  <div style="margin-top:12px;">
-    <h3 id="simHeader"></h3>
-    <table style="width:100%;border:1px solid #eee;border-radius:6px;">
+  <div style="margin-top:18px;">
+    <h3 id="simHeader" style="margin-bottom:8px;color:#2e7d32;font-weight:600;">Simulation Diagnostics</h3>
+    <table style="width:100%;border:1px solid #e0e0e0;border-radius:6px;background:white;">
       <tbody id="simDiagnostics" style="font-size:0.95rem;"></tbody>
     </table>
   </div>
+
 </div>
+
 
 
 
@@ -699,9 +728,12 @@ function renderDiagnostics(d) {
 
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const template = Array.isArray(d.monthTemplatePerCompany) ? d.monthTemplatePerCompany : [];
-  const templateStr = template.length === 12
-    ? template.map((v,i) => `${monthNames[i]}: ${v.toFixed(2)}`).join(', ')
-    : '-';
+const templateStr = template.length === 12
+  ? template.map((v,i) =>
+      `${monthNames[i]}: ${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    ).join(', ')
+  : '-';
+
 
   document.getElementById('simDiagnostics').innerHTML = `
     <tr><th>Forecast Horizon</th><td>${d.horizon}</td></tr>
@@ -2458,49 +2490,42 @@ insertSectorOverviewInsight();
 
 <!-- Trend zoom script -->
 <script>
-
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.zoom-range').forEach(slider => {
     const targetId = slider.getAttribute('data-target');
     const container = document.getElementById(targetId);
 
     if (!container) {
-      console.error(`[Zoom] no element found for data-target="${targetId}"`);
+      console.error(`[Zoom] No container for data-target="${targetId}"`);
       return;
     }
 
-    // This is the width you see on screen when page loads.
-    const initialWidth = container.getBoundingClientRect().width;
+    // Set initial base width as visible width
+    let baseWidth = container.offsetWidth;
 
-    // Store the initial width as our 100% reference.
-    let baseWidth = initialWidth;
+    function applyZoom(v) {
+      const percent = Number(v);
+      if (!percent || percent <= 0) return;
 
-    function applyZoom(rawValue) {
-      const percent = Number(rawValue);
-      if (isNaN(percent)) return;
-
-      // Convert 25–200% slider into pixel width
-      const newWidth = Math.max(200, baseWidth * (percent / 100));
+      // Convert zoom % to pixel width
+      const newWidth = Math.max(400, baseWidth * (percent / 100));
 
       container.style.width = `${newWidth}px`;
       container.style.minWidth = `${newWidth}px`;
     }
 
-    // Initialize the zoom according to current slider value
+    // Initialize
     applyZoom(slider.value);
 
-    // Update continuously as user drags
     slider.addEventListener('input', e => applyZoom(e.target.value));
-
-    // If the viewport changes size, recalibrate the base width
     window.addEventListener('resize', () => {
-      baseWidth = container.getBoundingClientRect().width;
+      baseWidth = container.offsetWidth;
       applyZoom(slider.value);
     });
   });
 });
-
 </script>
+
 
 <!-- Map view script -->
 <script>

@@ -2426,8 +2426,9 @@ export async function runSimulation(
 
     companiesInvolved: distinctCompanyNames,
 
-    note:
-      "Linear annual growth = (1 + annualGrowthFactor × yearsElapsed). No separate yearly increment rate is used."
+note:
+  "Forecast uses a historical monthly pattern (waste per month ÷ effective companies), a size-weighted company level, and yearly growth applied as (growth% × years). Future waste = pattern × company level × growth.",
+
   };
 
   return { forecast, diagnostics };
