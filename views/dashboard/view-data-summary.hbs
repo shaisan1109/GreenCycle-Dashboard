@@ -1686,6 +1686,10 @@ function initChartsWithAggregation(aggregation) {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
           plugins: {
             legend: { position: 'top' },
             title: {
@@ -1702,7 +1706,7 @@ function initChartsWithAggregation(aggregation) {
                   const periodData = aggregatedData[periodKey];
 
                   const lines = [
-                    `Total Per Capita: ${context.parsed.y.toFixed(4)}`,
+                    `Total Per Capita: ${context.parsed.y.toFixed(2)}`,
                     //periodData ? `From ${periodData.entryCount.toFixed(2)} entries` : ''
                   ];
 
@@ -1780,6 +1784,10 @@ function initChartsWithAggregation(aggregation) {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
           plugins: {
             legend: { position: 'top' },
             title: {
