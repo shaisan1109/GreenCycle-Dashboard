@@ -2222,20 +2222,19 @@ export async function getTimeSeriesData(title, locationCode, author, company, st
 }
 
 // Helpers
+/* ========================================================================
+   HELPER: convert params to (?, ?, ?, ...)
+========================================================================= */
 function makePlaceholders(arr) {
-  if (!Array.isArray(arr) || arr.length === 0) return 'NULL';
   return arr.map(() => '?').join(',');
 }
 
-// Get data_entry_ids matching provided summary filters
-// ===============================================
-// 1. getApprovedDataEntryIds (unchanged)
-// ===============================================
+/* ========================================================================
+   GET APPROVED DATA ENTRY IDs BASED ON FILTERS
+========================================================================= */
 export async function getApprovedDataEntryIds(filters) {
   const { title, barangay, municipality, province, region, author, company, startDate, endDate } = filters;
   const locationCode = barangay || municipality || province || region || null;
-
-  console.log('getApprovedDataEntryIds filters: ', filters)
 
   let query = `
     SELECT dat.data_entry_id, dat.user_id, dat.collection_end
@@ -2248,7 +2247,10 @@ export async function getApprovedDataEntryIds(filters) {
   const conditions = [];
   const params = [];
 
-  if (title) { conditions.push(`dat.title LIKE ?`); params.push(`%${title}%`); }
+  if (title) {
+    conditions.push(`dat.title LIKE ?`);
+    params.push(`%${title}%`);
+  }
 
   if (locationCode) {
     conditions.push(`(dat.region_id = ? OR dat.province_id = ? OR dat.municipality_id = ? OR dat.barangay_id = ?)`);
@@ -2276,270 +2278,250 @@ export async function getApprovedDataEntryIds(filters) {
     params.push(endDate);
   }
 
-  if (conditions.length) query += ' AND ' + conditions.join(' AND ');
+  if (conditions.length) query += " AND " + conditions.join(" AND ");
 
   const [rows] = await sql.query(query, params);
-
-  return (rows || []).map(r => ({
+  return rows.map(r => ({
     data_entry_id: Number(r.data_entry_id),
     user_id: Number(r.user_id),
     collection_end: r.collection_end
   }));
 }
 
-// ---------- helper: computeWeights (manual or auto category) ----------
-export async function computeWeightsHybrid(weightMode = 'default', entryIds = [], manualWeights = null) {
-  // safe defaults
-  const defaults = { small: 0.5, medium: 1.0, large: 2.0 };
+/* ========================================================================
+   AUTO WEIGHT CALCULATOR (automatic mode)
+========================================================================= */
+export async function computeWeightsHybrid(weightMode = "default", entryIds = []) {
+  const defaults = { small: 0.5, medium: 1, large: 2 };
 
-  // ---------- MANUAL MODE ----------
-  if (weightMode === 'manual') {
-    // 1) If frontend provided manualWeights, validate and use them
-    if (manualWeights && typeof manualWeights === 'object') {
-      const trySmall = Number(manualWeights.small);
-      const tryMed   = Number(manualWeights.medium);
-      const tryLarge = Number(manualWeights.large);
-
-      const valid =
-        Number.isFinite(trySmall) && Number.isFinite(tryMed) && Number.isFinite(tryLarge) &&
-        trySmall > 0 && tryMed > 0 && tryLarge > 0;
-
-      if (valid) {
-        return {
-          modeUsed: 'manual_user',
-          sizeWeight: { small: trySmall, medium: tryMed, large: tryLarge },
-          details: { source: 'manual_user_input' }
-        };
-      }
-      // else fallthrough to DB/manual-table attempt (below) or default
-    }
-
-    // 2) Try reading admin/manual table (backward compat). If missing/error -> fallback.
-    try {
-      const [rows] = await sql.query(
-        `SELECT small_weight, medium_weight, large_weight, use_manual_weights
-         FROM manual_company_weights
-         WHERE id = 1
-         LIMIT 1`
-      );
-      if (rows && rows.length) {
-        const r = rows[0];
-        const useManual = Number(r.use_manual_weights) === 1;
-        const s = Number(r.small_weight);
-        const m = Number(r.medium_weight);
-        const l = Number(r.large_weight);
-        if (useManual && Number.isFinite(s) && Number.isFinite(m) && Number.isFinite(l) && s > 0 && m > 0 && l > 0) {
-          return {
-            modeUsed: 'manual_db',
-            sizeWeight: { small: s, medium: m, large: l },
-            details: { source: 'manual_company_weights_table' }
-          };
-        } else {
-          return {
-            modeUsed: 'manual_invalid_db',
-            sizeWeight: defaults,
-            details: { source: 'manual_table_invalid_or_disabled' }
-          };
-        }
-      } else {
-        return {
-          modeUsed: 'manual_missing_db',
-          sizeWeight: defaults,
-          details: { source: 'manual_table_missing_fallback' }
-        };
-      }
-    } catch (err) {
-      console.error('[WEIGHTS] manual read error:', err);
-      return {
-        modeUsed: 'manual_error',
-        sizeWeight: defaults,
-        details: { source: 'manual_read_error_fallback', error: String(err) }
-      };
-    }
+  if (weightMode !== "auto") {
+    return {
+      modeUsed: "not_auto",
+      sizeWeight: defaults,
+      details: { note: "Auto mode not selected." }
+    };
   }
 
-  // ---------- AUTO MODE ----------
-  if (weightMode === 'auto') {
-    try {
-      if (!Array.isArray(entryIds) || entryIds.length === 0) {
-        return { modeUsed: 'auto_no_entries', sizeWeight: defaults, details: { source: 'no_entries_fallback' } };
-      }
-
-      const placeholders = makePlaceholders(entryIds);
-      const sqlText = `
-        SELECT COALESCE(c.company_size, 'medium') AS company_size,
-               AVG(CAST(de.annual AS DECIMAL(20,6))) AS avg_annual,
-               COUNT(DISTINCT COALESCE(c.company_name, u.company_name)) AS n_companies
-        FROM data_entry de
-        JOIN \`user\` u ON u.user_id = de.user_id
-        LEFT JOIN companies c ON c.user_id = u.user_id
-        WHERE de.data_entry_id IN (${placeholders})
-        GROUP BY company_size
-      `;
-      const [rows] = await sql.query(sqlText, entryIds);
-
-      const avgMap = {};
-      (rows || []).forEach(r => {
-        const k = String(r.company_size || 'medium').toLowerCase();
-        avgMap[k] = Number(r.avg_annual) || 0;
-      });
-
-      if (!avgMap.small && !avgMap.medium && !avgMap.large) {
-        return { modeUsed: 'auto_no_size_data', sizeWeight: defaults, details: { source: 'no_size_data_fallback' } };
-      }
-
-      const reference = (avgMap.medium && avgMap.medium > 0) ? avgMap.medium : Math.max(avgMap.small || 0, avgMap.large || 0, 1);
-
-      const sizeWeight = {
-        small: (avgMap.small && reference > 0) ? (avgMap.small / reference) : defaults.small,
-        medium: (avgMap.medium && reference > 0) ? (avgMap.medium / reference) : defaults.medium,
-        large: (avgMap.large && reference > 0) ? (avgMap.large / reference) : defaults.large
-      };
-
-      Object.keys(sizeWeight).forEach(k => {
-        if (!Number.isFinite(sizeWeight[k]) || sizeWeight[k] <= 0) sizeWeight[k] = defaults[k];
-      });
-
-      return { modeUsed: 'auto', sizeWeight, details: { source: 'computed_from_entries', avgMap } };
-    } catch (err) {
-      console.error('[WEIGHTS] auto compute error:', err);
-      return { modeUsed: 'auto_error', sizeWeight: defaults, details: { source: 'auto_error_fallback', error: String(err) } };
-    }
+  if (!entryIds.length) {
+    return {
+      modeUsed: "auto_no_data",
+      sizeWeight: defaults,
+      details: { note: "No entryIds detected." }
+    };
   }
 
-  // ---------- DEFAULT ----------
-  return { modeUsed: 'default', sizeWeight: defaults, details: { source: 'default' } };
+  try {
+    const placeholders = makePlaceholders(entryIds);
+    const sqlText = `
+      SELECT COALESCE(c.company_size, 'medium') AS company_size,
+             AVG(CAST(de.annual AS DECIMAL(20,6))) AS avg_annual
+      FROM data_entry de
+      JOIN user u ON u.user_id = de.user_id
+      LEFT JOIN companies c ON c.user_id = u.user_id
+      WHERE de.data_entry_id IN (${placeholders})
+      GROUP BY company_size
+    `;
+
+    const [rows] = await sql.query(sqlText, entryIds);
+
+    const avgMap = {};
+    rows.forEach(r => {
+      avgMap[r.company_size] = Number(r.avg_annual) || 0;
+    });
+
+    const ref = avgMap.medium || Math.max(avgMap.small || 0, avgMap.large || 0, 1);
+
+    const sizeWeight = {
+      small: avgMap.small ? avgMap.small / ref : defaults.small,
+      medium: avgMap.medium ? avgMap.medium / ref : defaults.medium,
+      large: avgMap.large ? avgMap.large / ref : defaults.large
+    };
+
+    return {
+      modeUsed: "auto",
+      sizeWeight,
+      details: { avgMap }
+    };
+
+  } catch (err) {
+    console.error("[AUTO WEIGHT ERROR]", err);
+    return {
+      modeUsed: "auto_error",
+      sizeWeight: defaults,
+      details: { error: String(err) }
+    };
+  }
 }
 
-// ---------- FULL runSimulation (hybrid weight mode) ----------
+/* ========================================================================
+   FULL SIMULATION ENGINE — UPDATED TO MATCH FRONTEND EXACTLY
+========================================================================= */
 export async function runSimulation(
   horizon = 12,
   filters = {},
   additions = { small: 0, medium: 0, large: 0 },
-  annualGrowthFactorWhole = 0,
-  weightMode = 'default',   // 'default' | 'manual' | 'auto'
-  manualWeights = null      // optional object { small, medium, large } from frontend
+  growthPercent = 0,
+  growthInterval = 12,
+  weightMode = "default",
+  manualWeights = { small: 0.5, medium: 1, large: 2 }
 ) {
-  // Normalize inputs
   const horizonN = Number(horizon) || 12;
-  const addSmall = Number(additions?.small) || 0;
-  const addMedium = Number(additions?.medium) || 0;
-  const addLarge = Number(additions?.large) || 0;
-  const annualGrowthDecimal = (Number(annualGrowthFactorWhole) || 0) / 100;
+  const growPct = Number(growthPercent) || 0;
+  const growInt = Number(growthInterval) || 12;
 
-  // 1) collect filtered entries
   const entryRows = await getApprovedDataEntryIds(filters);
-  if (!entryRows || entryRows.length === 0) {
-    return { success: true, forecast: [], diagnostics: { error: 'No approved entries for filters', horizon: horizonN } };
+  if (!entryRows.length) {
+    return { success: false, forecast: [], diagnostics: { error: "No approved entries found." }};
   }
 
-  const dataEntryIds = Array.from(new Set(entryRows.map(r => Number(r.data_entry_id))));
-  const userIds = Array.from(new Set(entryRows.map(r => Number(r.user_id))));
+  const dataEntryIds = [...new Set(entryRows.map(r => r.data_entry_id))];
+  const userIds = [...new Set(entryRows.map(r => r.user_id))];
 
-  // 2) entry details
-  const entryPlaceholders = makePlaceholders(dataEntryIds);
-  const [entryDetailRows] = await sql.query(
-    `SELECT data_entry_id, user_id, collection_end, CAST(annual AS DECIMAL(20,6)) AS annual_value
-     FROM data_entry
-     WHERE data_entry_id IN (${entryPlaceholders})`,
-    dataEntryIds
-  );
+  /* ----------------------------------------------------------
+     FETCH ENTRY DETAILS (monthly distribution)
+  ----------------------------------------------------------- */
+  const entrySQL = `
+    SELECT data_entry_id, user_id, collection_end,
+           CAST(annual AS DECIMAL(20,6)) AS annual_value
+    FROM data_entry
+    WHERE data_entry_id IN (${makePlaceholders(dataEntryIds)})
+  `;
+  const [entryDetailRows] = await sql.query(entrySQL, dataEntryIds);
 
-  // 3) companies info per user
-  const userPlaceholders = makePlaceholders(userIds);
-  const [companyRows] = await sql.query(
-    `SELECT DISTINCT COALESCE(c.company_name, u.company_name) AS company_name,
-                     COALESCE(c.company_size, 'medium') AS company_size,
-                     u.user_id
-     FROM \`user\` u
-     LEFT JOIN companies c ON c.user_id = u.user_id
-     WHERE u.user_id IN (${userPlaceholders})`,
-    userIds
-  );
+  /* ----------------------------------------------------------
+     FETCH COMPANY SIZES FOR USERS
+  ----------------------------------------------------------- */
+  const compSQL = `
+    SELECT DISTINCT COALESCE(c.company_name, u.company_name) AS company_name,
+                     COALESCE(c.company_size, 'medium') AS company_size
+    FROM user u
+    LEFT JOIN companies c ON c.user_id = u.user_id
+    WHERE u.user_id IN (${makePlaceholders(userIds)})
+  `;
+  const [companyRows] = await sql.query(compSQL, userIds);
 
-  // Build maps
   const uniqCompanyMap = {};
-  const companyUserMap = {};
-  (companyRows || []).forEach(r => {
-    const name = r.company_name || 'Unknown';
-    uniqCompanyMap[name] = (r.company_size || 'medium').toLowerCase();
-    companyUserMap[name] = companyUserMap[name] || new Set();
-    companyUserMap[name].add(Number(r.user_id));
+  companyRows.forEach(r => {
+    uniqCompanyMap[r.company_name || "Unknown"] = r.company_size.toLowerCase();
   });
   const distinctCompanyNames = Object.keys(uniqCompanyMap);
 
-  // 4) compute weights according to weightMode (pass manualWeights)
-  const weightResult = await computeWeightsHybrid(weightMode, dataEntryIds, manualWeights);
-  const sizeWeight = weightResult.sizeWeight || { small: 0.5, medium: 1.0, large: 2.0 };
+  /* ----------------------------------------------------------
+     DETERMINE WEIGHTS (manual, auto, default)
+  ----------------------------------------------------------- */
+  let sizeWeight = { small: 0.5, medium: 1, large: 2 };
+  let weightModeUsed = "default";
 
-  // 5) compute actual company equivalent (size-weighted)
-  const actualCompanyEquivalent = distinctCompanyNames.reduce((s, name) => {
-    const sz = uniqCompanyMap[name] || 'medium';
-    const w = sizeWeight[sz] || 1.0;
-    return s + w;
+  if (weightMode === "manual") {
+    sizeWeight = {
+      small: Number(manualWeights.small) || 0,
+      medium: Number(manualWeights.medium) || 0,
+      large: Number(manualWeights.large) || 0
+    };
+    weightModeUsed = "manual";
+
+  } else if (weightMode === "auto") {
+    const auto = await computeWeightsHybrid("auto", dataEntryIds);
+    sizeWeight = auto.sizeWeight;
+    weightModeUsed = auto.modeUsed;
+
+  } else {
+    weightModeUsed = "default";
+  }
+
+  /* ----------------------------------------------------------
+     COMPANY BASE = Σ weights of each detected company
+  ----------------------------------------------------------- */
+  const actualCompanyEquivalent = distinctCompanyNames.reduce((sum, n) => {
+    const sz = uniqCompanyMap[n] || "medium";
+    return sum + (sizeWeight[sz] || 1);
   }, 0);
 
-  // 6) month sums (seasonal template)
+  const addEquivalent =
+    (additions.small * sizeWeight.small) +
+    (additions.medium * sizeWeight.medium) +
+    (additions.large * sizeWeight.large);
+
+  const companyBase = Math.max(0, actualCompanyEquivalent + addEquivalent);
+
+  /* ----------------------------------------------------------
+     SCALED BASE = companyBase / number_of_companies
+  ----------------------------------------------------------- */
+  const scaledBase = distinctCompanyNames.length > 0
+    ? companyBase / distinctCompanyNames.length
+    : 0;
+
+  /* ----------------------------------------------------------
+     SEASONAL TEMPLATE (like before)
+  ----------------------------------------------------------- */
   const monthSums = Array(12).fill(0);
-  (entryDetailRows || []).forEach(r => {
-    if (!r.collection_end) return;
+  entryDetailRows.forEach(r => {
     const d = new Date(r.collection_end);
-    if (isNaN(d)) return;
-    const m = d.getMonth(); // 0..11
-    monthSums[m] += Number(r.annual_value) || 0;
+    if (!isNaN(d)) {
+      const m = d.getMonth();
+      monthSums[m] += Number(r.annual_value) || 0;
+    }
   });
 
-  const templatePerCompany = actualCompanyEquivalent > 0
-    ? monthSums.map(total => total / actualCompanyEquivalent)
-    : Array(12).fill(0);
+  const templatePerCompany =
+    actualCompanyEquivalent > 0
+      ? monthSums.map(v => v / actualCompanyEquivalent)
+      : Array(12).fill(0);
 
-  // 7) additions -> addEquivalent
-  const addEquivalent = (addSmall * sizeWeight.small) + (addMedium * sizeWeight.medium) + (addLarge * sizeWeight.large);
-
-  // 8) companyBase
-  let companyBase = actualCompanyEquivalent + addEquivalent;
-  if (companyBase < 0) companyBase = 0;
-
-  // 9) anchor (start month = current month)
+  /* ----------------------------------------------------------
+     SIMULATE MONTH BY MONTH
+  ----------------------------------------------------------- */
+  const forecast = [];
   const now = new Date();
   const anchor = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  // 10) build forecast
-  const forecast = [];
   for (let step = 1; step <= horizonN; step++) {
-    const monthIndex = (anchor.getMonth() + (step - 1)) % 12;
-    const perCompany = templatePerCompany[monthIndex] || 0;
-    const yearsElapsed = Math.floor((step - 1) / 12);
-    const scaleFinal = companyBase * (1 + annualGrowthDecimal * yearsElapsed);
-    let raw = perCompany * scaleFinal;
-    if (!Number.isFinite(raw) || raw < 0) raw = 0;
+    const mIdx = (anchor.getMonth() + (step - 1)) % 12;
+
+    const nPeriods = Math.floor((step - 1) / growInt);
+    const growthMultiplier = Math.pow(1 + growPct / 100, nPeriods);
+
+    const base = scaledBase * (growthMultiplier || 1);
+    const val = templatePerCompany[mIdx] * base;
 
     const future = new Date(anchor);
     future.setMonth(anchor.getMonth() + step);
-    const period = future.toISOString().slice(0, 7);
 
-    forecast.push({ step, period, mean: Number(raw.toFixed(2)), upper: Number(raw.toFixed(2)), lower: Number(raw.toFixed(2)) });
+    forecast.push({
+      step,
+      period: future.toISOString().slice(0, 7),
+      mean: Number(val.toFixed(2)),
+      upper: Number(val.toFixed(2)),
+      lower: Number(val.toFixed(2))
+    });
   }
 
-  // 11) diagnostics
+  /* ----------------------------------------------------------
+     DIAGNOSTICS OUTPUT
+  ----------------------------------------------------------- */
   const diagnostics = {
-    success: true,
     horizon: horizonN,
-    anchorMonth: anchor.toISOString().slice(0,7),
-    weightModeUsed: weightResult.modeUsed,
-    weightDetails: weightResult.details || {},
+    anchorMonth: anchor.toISOString().slice(0, 7),
+
+    weightModeUsed,
     weightsUsed: sizeWeight,
+
     distinctCompanies: distinctCompanyNames.length,
     companiesInvolved: distinctCompanyNames,
-    actualCompanyEquivalent: Number(actualCompanyEquivalent.toFixed(6)),
-    additions: { small: addSmall, medium: addMedium, large: addLarge },
-    addEquivalent: Number(addEquivalent.toFixed(6)),
-    companyBase: Number(companyBase.toFixed(6)),
-    annualGrowthFactorWhole,
-    annualGrowthFactorDecimal: annualGrowthDecimal,
-    monthSums: monthSums.map(n => Number(n.toFixed(4))),
+
+    companyBase: Number(companyBase.toFixed(4)),
+    scaledCompanyBase: Number(scaledBase.toFixed(4)),
+
+    growthPercent: growPct,
+    growthInterval: growInt,
+
+    monthSums,
     monthTemplatePerCompany: templatePerCompany.map(n => Number(n.toFixed(4))),
-    note: `Simulation = monthly template × company-equivalent × (1 + annualGrowth × yearsElapsed). Weight mode: ${weightMode}.`
+
+    note:
+      "Simulation: monthly_template × scaled_base × (1 + growth)^(n_intervals). " +
+      "scaled_base = companyBase / distinctCompanies. " +
+      `Growth applied every ${growInt} months.`
   };
 
   return { success: true, forecast, diagnostics };

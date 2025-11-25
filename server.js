@@ -3297,36 +3297,62 @@ app.get('/control-panel/entry-statistics', async (req, res) => {
 // server.js — /api/simulate
 app.post('/api/simulate', async (req, res) => {
   try {
-    let { horizon, filters, additions, annualGrowthFactorWhole, weightMode, manualWeights } = req.body || {};
+    let {
+      horizon,
+      filters,
+      additions,
+      growthPercent,
+      growthInterval,
+      weightMode,
+      manualWeights
+    } = req.body || {};
 
+    // Normalize inputs
     horizon = Number(horizon) || 12;
     filters = filters || {};
-    additions = additions || { small: 0, medium: 0, large: 0 };
-    weightMode = weightMode || 'default';
-    annualGrowthFactorWhole = Number(annualGrowthFactorWhole) || 0;
 
-    // Normalize additions
+    additions = additions || {};
     const safeAdditions = {
       small: Number(additions.small) || 0,
       medium: Number(additions.medium) || 0,
       large: Number(additions.large) || 0
     };
 
-    console.log('[API] /api/simulate request normalized:', { horizon, filters, safeAdditions, annualGrowthFactorWhole, weightMode, manualWeights });
+    growthPercent = Number(growthPercent) || 0;
+    growthInterval = Number(growthInterval) || 12;
 
+    weightMode = weightMode || "default";
+    manualWeights = manualWeights || { small: 0.5, medium: 1, large: 2 };
+
+    console.log("[API] /api/simulate request normalized:", {
+      horizon,
+      filters,
+      safeAdditions,
+      growthPercent,
+      growthInterval,
+      weightMode,
+      manualWeights
+    });
+
+    // IMPORTANT: matches backend signature EXACTLY
     const result = await runSimulation(
       horizon,
       filters,
       safeAdditions,
-      annualGrowthFactorWhole,
+      growthPercent,
+      growthInterval,
       weightMode,
-      manualWeights || null
+      manualWeights
     );
 
     return res.json(result);
+
   } catch (err) {
-    console.error('[SIM] Simulation fetch error (route):', err && err.stack ? err.stack : err);
-    return res.status(500).json({ success: false, error: err.message || String(err) });
+    console.error("[SIM] Simulation fetch error (route):", err.stack || err);
+    return res.status(500).json({
+      success: false,
+      error: err.message || String(err)
+    });
   }
 });
 
