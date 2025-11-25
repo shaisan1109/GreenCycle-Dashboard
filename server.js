@@ -2088,6 +2088,65 @@ app.post("/api/data/summary/pdf", async (req, res) => {
       await new Promise(r => setTimeout(r, 1000));
     });
 
+    // Force PDF-safe width for trend zoom containers and canvases
+    await page.evaluate(() => {
+      document.querySelectorAll('.zoom-range').forEach(slider => {
+        slider.value = 100;
+        slider.disabled = true;
+      });
+    });
+
+    await page.evaluate(async () => {
+      const TREND_CONTAINERS = [
+        "trendTotalWasteContainer",
+        "trendPerCapitaContainer",
+        "trendByCategoryContainer"
+      ];
+
+      // PDF-safe width (fits on Legal @ scale=0.8)
+      const PDF_WIDTH = 1100;
+
+      TREND_CONTAINERS.forEach(id => {
+        const container = document.getElementById(id);
+        if (!container) return;
+
+        // Disable zoom sizing completely
+        container.style.width = PDF_WIDTH + "px";
+        container.style.minWidth = PDF_WIDTH + "px";
+        container.style.maxWidth = PDF_WIDTH + "px";
+        container.style.overflow = "visible";
+      });
+
+      // Resize canvases inside the trend sections
+      const TREND_SECTIONS = [
+        "trends-wastegen",
+        "trends-percapita",
+        "trends-category"
+      ];
+
+      TREND_SECTIONS.forEach(id => {
+        const section = document.querySelector(`[data-section='${id}']`);
+        if (!section) return;
+
+        section.querySelectorAll("canvas").forEach(canvas => {
+          canvas.style.width = PDF_WIDTH + "px";
+          canvas.style.minWidth = PDF_WIDTH + "px";
+          canvas.style.maxWidth = PDF_WIDTH + "px";
+          canvas.style.height = "auto";
+        });
+      });
+
+      // Ask Chart.js to recompute layout
+      if (window.Chart && window.Chart.instances) {
+        Object.values(window.Chart.instances).forEach(chart => {
+          try { chart.resize(); } catch (_) {}
+        });
+      }
+
+      // Give the browser time to reflow
+      await new Promise(r => setTimeout(r, 500));
+    });
+
     // Convert canvases to images
     await page.evaluate(() => {
       document.querySelectorAll("canvas").forEach(canvas => {
@@ -2107,7 +2166,7 @@ app.post("/api/data/summary/pdf", async (req, res) => {
     const sectionGroups = [
       ["filters", "data-title", "data-info", "participants"],
       ["compliance-category", "compliance-sector"],
-      ["trends-wastegen", "trends-percapita", "trends-category", "trends-compliance"],
+      ["trends-wastegen"], ["trends-percapita"], ["trends-category"],
       ["insights", "top-categories"],
       ["top-cats", "types-biodegradable"],
       ["types-recyclable"],
