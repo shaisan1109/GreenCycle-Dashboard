@@ -143,9 +143,11 @@ data-prefill-region="{{prefill.region}}" data-prefill-province="{{prefill.provin
     <!-- If current page is data search AND entries aren't zero -->
     {{#if current_all}}
       {{#ifNotEquals totalCount 0}}
-      <button class="summary-btn" id="summaryBtn">
-        <i class="fa-solid fa-chart-simple"></i> View Data Summary
-      </button>
+        {{#ifNotEquals totalCount 1}}
+        <button class="summary-btn" id="summaryBtn">
+          <i class="fa-solid fa-chart-simple"></i> View Data Summary
+        </button>
+        {{/ifNotEquals}}
       {{/ifNotEquals}}
     {{/if}}
   </div>
