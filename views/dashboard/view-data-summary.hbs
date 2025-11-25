@@ -244,7 +244,7 @@
 
       <!-- Actual chart -->
       <div class="chart-viewport">
-        <div id="trendTotalWasteContainer" class="chart-content">
+        <div id="trendTotalWasteContainer" class="chart-content" style="height: 500px">
           <canvas id="trendTotalWaste"></canvas>
         </div>
       </div>
@@ -285,7 +285,7 @@
 
       <!-- Actual chart -->
       <div class="chart-viewport">
-        <div id="trendPerCapitaContainer" class="chart-content">
+        <div id="trendPerCapitaContainer" class="chart-content" style="height: 500px">
           <canvas id="trendPerCapita"></canvas>
         </div>
       </div>
@@ -324,7 +324,7 @@
       <small style="color: gray;">Drag this slider to widen/shorten this chart.</small><br><br>
 
       <div class="chart-viewport">
-        <div id="trendByCategoryContainer" class="chart-content">
+        <div id="trendByCategoryContainer" class="chart-content" style="height: 500px">
           <canvas id="trendByCategory"></canvas>
         </div>
       </div>
@@ -1895,7 +1895,7 @@ function initChartsWithAggregation(aggregation) {
               },
               title: { 
                 display: true, 
-                text: 'Total Weight (kg)',
+                text: 'Total Waste Generation (kg)',
                 font: { weight: 'bold', size: 12 }
               },
               grid: {
