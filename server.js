@@ -3295,48 +3295,40 @@ app.get('/control-panel/entry-statistics', async (req, res) => {
 })
 
 // server.js — /api/simulate
-
 app.post('/api/simulate', async (req, res) => {
   try {
-    let { horizon, filters, additions, annualGrowthFactorWhole } = req.body || {};
+    let { horizon, filters, additions, annualGrowthFactorWhole, weightMode, manualWeights } = req.body || {};
 
     horizon = Number(horizon) || 12;
     filters = filters || {};
     additions = additions || { small: 0, medium: 0, large: 0 };
+    weightMode = weightMode || 'default';
+    annualGrowthFactorWhole = Number(annualGrowthFactorWhole) || 0;
 
+    // Normalize additions
     const safeAdditions = {
       small: Number(additions.small) || 0,
       medium: Number(additions.medium) || 0,
       large: Number(additions.large) || 0
     };
 
-    annualGrowthFactorWhole = Number(annualGrowthFactorWhole) || 0;
-
-    console.log("[API] /api/simulate normalized:", {
-      horizon,
-      filters,
-      safeAdditions,
-      annualGrowthFactorWhole
-    });
+    console.log('[API] /api/simulate request normalized:', { horizon, filters, safeAdditions, annualGrowthFactorWhole, weightMode, manualWeights });
 
     const result = await runSimulation(
       horizon,
       filters,
       safeAdditions,
-      annualGrowthFactorWhole
+      annualGrowthFactorWhole,
+      weightMode,
+      manualWeights || null
     );
 
-    return res.json({ success: true, ...result });
-
+    return res.json(result);
   } catch (err) {
-    console.error("[SIM] Simulation fetch error (route):", err);
-    return res.status(500).json({
-      success: false,
-      error: err.message || String(err)
-    });
+    console.error('[SIM] Simulation fetch error (route):', err && err.stack ? err.stack : err);
+    return res.status(500).json({ success: false, error: err.message || String(err) });
   }
 });
-
 
 
 
