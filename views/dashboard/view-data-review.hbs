@@ -2,8 +2,10 @@
 <!-- Approval window -->
 <div class="form-section" style="background-color: #f5fff9;">
     <center>
+        <!-- If task exists and is claimed by user -->
         {{#if taskStatus.isClaimedByUser}}
-            <!-- Approve buttons (for review) -->
+
+            <!-- Show approval menu if status is NOT 'Needs Revision' -->
             {{#ifNotEquals wasteGen.status 'Needs Revision'}}
                 <!-- Unclaim button -->
                 <div class="form-section" style="background-color: #fff;">
@@ -25,14 +27,6 @@
                 </button><br><br>
             {{/ifNotEquals}}
 
-            <!-- Show if entry is on 'Needs Revision' status -->
-            {{#ifEquals wasteGen.status 'Needs Revision'}}
-                <div class="form-section waiting-card">
-                    This entry was <b>marked for revision</b>.<br>
-                    Waiting for changes on submitter's end.
-                </div>
-            {{/ifEquals}}
-
             <!-- If revision entry counts exist, then show revision log -->
             {{#if (gt revisionEntryCount 0)}}
             <h3>EDIT HISTORY</h3>
@@ -50,13 +44,25 @@
                 </div>
             {{/if}}
         {{else}}
-            <!-- Show claim button -->
-            <h3>Claim this task?</h3>
-            <form method="POST" action="/api/task/{{taskStatus.id}}/claim">
-                <button type="submit" class="review-approve">
-                <i class="fa-solid fa-hand"></i>&nbsp; Claim Task
-                </button>
-            </form>
+
+            <!-- If task is unclaimed AND status is not 'Needs Revision', show claim menu -->
+            {{#ifNotEquals wasteGen.status 'Needs Revision'}}
+                <!-- Show claim button -->
+                <h3>Claim this task?</h3>
+                <form method="POST" action="/api/task/{{taskStatus.id}}/claim">
+                    <button type="submit" class="review-approve">
+                    <i class="fa-solid fa-hand"></i>&nbsp; Claim Task
+                    </button>
+                </form>
+            {{/ifNotEquals}}
+
+            <!-- Show if entry is on 'Needs Revision' status -->
+            {{#ifEquals wasteGen.status 'Needs Revision'}}
+                <div class="form-section waiting-card">
+                    This entry was <b>marked for revision</b>.<br>
+                    Waiting for changes on submitter's end.
+                </div>
+            {{/ifEquals}}
         {{/if}}
     </center>
 </div>

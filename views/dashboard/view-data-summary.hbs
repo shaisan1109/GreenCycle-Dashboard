@@ -242,11 +242,14 @@
       </div>
       <small style="color: gray;">Drag this slider to widen/shorten this chart.</small><br><br>
 
+      <!-- Actual chart -->
       <div class="chart-viewport">
         <div id="trendTotalWasteContainer" class="chart-content">
           <canvas id="trendTotalWaste"></canvas>
         </div>
       </div>
+
+      <!-- Regression text blurb -->
       <div style="margin-top: 1rem; padding: 1rem; background: #e8f5e9; border-radius: 6px; font-size: 0.9rem;">
         <strong style="color: #2d613f;">📊 Trend Analysis:</strong>
         <span id="regressionStats" style="color: #555;"></span>
@@ -259,7 +262,7 @@
         <i class="fa-solid fa-user"></i> Per Capita Waste Trend
       </h3>
 
-      <p>This chart shows estimates on how much waste each person is generating over time.</p>
+      <p>This chart shows estimates on <b>how much waste each person is generating</b> over time.</p>
       <ul><li><b style="color:#FF9800">Orange line with dots</b> - Each point represents the average waste per person for a specific period (month or year).</li></ul>
 
       <div class="companyLegend"></div>
@@ -280,10 +283,17 @@
       </div>
       <small style="color: gray;">Drag this slider to widen/shorten this chart.</small><br><br>
 
+      <!-- Actual chart -->
       <div class="chart-viewport">
         <div id="trendPerCapitaContainer" class="chart-content">
           <canvas id="trendPerCapita"></canvas>
         </div>
+      </div>
+
+      <!-- Per capita blurb -->
+      <div style="margin-top: 1rem; padding: 1rem; background: #e8f5e9; border-radius: 6px; font-size: 0.9rem;">
+        <strong style="color: #2d613f;">📊 Trend Analysis:</strong>
+        <span id="perCapitaStats" style="color: #555;"></span>
       </div>
     </div>
 
@@ -293,7 +303,7 @@
         <i class="fa-solid fa-layer-group"></i> Waste by Category Over Time
       </h3>
 
-      <p>This chart shows how waste is divided into different categories over time.</p>
+      <p>This chart shows the <b>total amount of waste per category</b> over time.</p>
 
       <div class="companyLegend"></div>
 
@@ -1598,12 +1608,81 @@ function initChartsWithAggregation(aggregation) {
       derivative += i * regression.coefficients[i] * Math.pow(lastX, i - 1);
     }
     
+    // ========== TREND ANALYSIS FOR CHART 1: TOTAL WASTE GEN TREND ==========
+
     const regressionStatsEl = document.getElementById('regressionStats');
     if (regressionStatsEl) {
-      regressionStatsEl.innerHTML =
-        `${derivative > 0 ? '📈 Increasing' : '📉 Decreasing'} trend (${regression.degree}° polynomial) | 
-         R² = ${(regression.rSquared * 100).toFixed(1)}% | 
-         Projected at ${futureLabels[2]}: ${futureY[2].toFixed(2)} kg`;
+      const directionText = derivative > 0
+        ? 'an overall <b>upward (increasing) trend</b>'
+        : 'an overall <b>downward (decreasing) trend</b>';
+
+      let fitText;
+      const r2 = regression.rSquared * 100;
+
+      if (r2 >= 70) {
+        fitText = `The data follows the trend line well, with about <b>${r2.toFixed(1)}%</b> consistency.`;
+      } else if (r2 >= 40) {
+        fitText = `The data shows a moderate amount of variation, with the trend line explaining about <b>${r2.toFixed(1)}%</b> of the pattern.`;
+      } else {
+        fitText = `The data is quite variable, so the trend line captures only part of the overall pattern (about <b>${r2.toFixed(1)}%</b>).`;
+      }
+
+      const projectedValue = futureY[2].toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+
+      const projectionText = `If this pattern continues, the expected value by <b>${futureLabels[2]}</b> is approximately <b>${projectedValue} kg</b>.`;
+
+      regressionStatsEl.innerHTML = `
+        The analysis indicates ${directionText} over the observed periods. 
+        ${fitText} 
+        ${projectionText}
+      `;
+    }
+
+    // ======== PER CAPITA ANALYSIS (NO REGRESSION) =========
+    const perCapitaStatsEl = document.getElementById('perCapitaStats');
+
+    if (perCapitaStatsEl && totalPerCapita.length > 0) {
+      const values = totalPerCapita;
+      const periods = labels;
+
+      // Filter out nulls but keep original index mapping
+      const validPoints = values
+        .map((val, idx) => val !== null ? { value: val, index: idx } : null)
+        .filter(Boolean);
+
+      // If no valid data, show message
+      if (validPoints.length === 0) {
+        perCapitaStatsEl.innerHTML = "No valid per capita data available for analysis.";
+        return;
+      }
+
+      const first = validPoints[0].value;
+      const last = validPoints[validPoints.length - 1].value;
+
+      const minPoint = validPoints.reduce((a, b) => (a.value < b.value ? a : b));
+      const maxPoint = validPoints.reduce((a, b) => (a.value > b.value ? a : b));
+
+      let directionText = '';
+
+      if (last > first) {
+        directionText = 'an overall <b>upward (increasing)</b> pattern';
+      } else if (last < first) {
+        directionText = 'an overall <b>downward (decreasing)</b> pattern';
+      } else {
+        directionText = 'a <b>generally stable</b> trend';
+      }
+
+      const paragraph = `
+        The per capita values show ${directionText} across the observed periods.
+        The highest recorded value is <b>${maxPoint.value.toFixed(2)}</b> during <b>${periods[maxPoint.index]}</b>,
+        while the lowest is <b>${minPoint.value.toFixed(2)}</b> during <b>${periods[minPoint.index]}</b>.
+        The most recent recorded value is in <b>${periods[validPoints[validPoints.length - 1].index]}</b> (<b>${last.toFixed(2)}</b>).
+      `;
+
+      perCapitaStatsEl.innerHTML = paragraph;
     }
     
     // ========== CREATE CHART 1: TOTAL WASTE GENERATION ==========
@@ -1903,54 +1982,148 @@ function initChartsWithAggregation(aggregation) {
     if (categoryCanvas) {
       const categories = ['Biodegradable', 'Recyclable', 'Residual', 'Special/Hazardous'];
       const categoryColors = {
-        'Biodegradable': 'rgba(76, 175, 80, 0.8)',
-        'Recyclable': 'rgba(33, 150, 243, 0.8)',
-        'Residual': 'rgba(158, 158, 158, 0.8)',
-        'Special/Hazardous': 'rgba(244, 67, 54, 0.8)'
+        'Biodegradable': 'rgba(76, 175, 80, 0.6)',
+        'Recyclable': 'rgba(33, 150, 243, 0.6)',
+        'Residual': 'rgba(158, 158, 158, 0.6)',
+        'Special/Hazardous': 'rgba(244, 67, 54, 0.6)'
       };
-      
-      const categoryDatasets = categories.map(cat => {
-        return {
-          label: cat,
-          data: sortedPeriods.map(p => {
-            const periodData = aggregatedData[p];
-            return periodData.categoryTotals[cat] || 0;  // Total, not divided
-          }),
-          backgroundColor: categoryColors[cat],
-          borderColor: categoryColors[cat].replace('0.8', '1'),
-          borderWidth: 2,
-          fill: true,
-          tension: 0.4
-        };
-      });
 
       if (categoryCanvas.chartInstance) categoryCanvas.chartInstance.destroy();
 
+      // Plugin for multi-company periods
+      const multiCompanyPlugin = {
+        id: 'multiCompanyPlugin',
+        afterDatasetDraw(chart) {
+          const { ctx, data } = chart;
+
+          data.datasets.forEach((dataset, datasetIndex) => {
+            const meta = chart.getDatasetMeta(datasetIndex);
+
+            meta.data.forEach((point, index) => {
+              const entry = aggregatedData[completePeriods[index]];
+              if (!entry) return;
+
+              const companies = Array.from(entry.companyNames || []);
+              if (companies.length <= 1) return; // only multi-company points
+
+              const x = point.x;
+              const y = point.y;
+              const radius = 6;
+
+              // Draw white circle
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(x, y, radius, 0, 2 * Math.PI);
+              ctx.fillStyle = '#ffffff';
+              ctx.fill();
+              ctx.lineWidth = 2;
+              ctx.strokeStyle = '#000000';
+              ctx.stroke();
+
+              // Draw number of companies inside
+              ctx.fillStyle = '#000000';
+              ctx.font = 'bold 10px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(companies.length.toString(), x, y);
+              ctx.restore();
+            });
+          });
+        }
+      };
+
+      // Build dataset for chart
+      const categoryDatasets = categories.map(cat => {
+        const data = completePeriods.map(p => {
+          const periodData = aggregatedData[p];
+          return periodData?.categoryTotals?.[cat] ?? null;
+        });
+
+        return {
+          label: cat,
+          data,
+          // Keep border fully opaque
+          borderColor: categoryColors[cat].replace(/0\.\d+/, '1'), 
+          borderWidth: 2,
+          fill: false,
+          tension: 0.3,
+          pointBackgroundColor: pointBackgroundColors,
+          pointBorderWidth: 0,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          spanGaps: true
+        };
+      });
+
+      // Build chart 3
       categoryCanvas.chartInstance = new Chart(categoryCanvas.getContext('2d'), {
         type: 'line',
         data: { labels: labels, datasets: categoryDatasets },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          interaction: {
-            mode: 'index',
-            intersect: false
-          },
+          interaction: { mode: 'index', intersect: false },
           plugins: {
-            legend: { position: 'top' },
+            legend: {
+              position: 'top',
+              labels: {
+                generateLabels: chart => {
+                  return chart.data.datasets.map((dataset, i) => ({
+                    text: dataset.label,
+                    fillStyle: dataset.borderColor,   // use border color
+                    strokeStyle: dataset.borderColor, // optional, same as border
+                    lineWidth: dataset.borderWidth,
+                    hidden: !chart.isDatasetVisible(i),
+                    datasetIndex: i
+                  }));
+                }
+              }
+            },
             title: {
               display: true,
               text: `Waste by Category (${aggregation === 'monthly' ? 'Monthly' : 'Yearly'} Totals)`,
               font: { size: 14, weight: 'bold' },
               color: '#2d613f'
+            },
+            tooltip: {
+              callbacks: {
+                title: ctx => `Period: ${ctx[0].label}`,
+                label: ctx => {
+                  const dataset = ctx.dataset;
+                  const value = ctx.parsed.y ?? 0;
+                  return `${dataset.label}: ${value.toFixed(2)} kg`;
+                },
+                afterBody: ctx => {
+                  const period = completePeriods[ctx[0].dataIndex];
+                  const periodData = aggregatedData[period];
+                  if (!periodData) return '';
+
+                  const companies = Array.from(periodData.companyNames || []);
+                  if (companies.length === 1) {
+                    return [`Company: ${companies[0]}`];
+                  } else if (companies.length > 1) {
+                    return [`Companies (${companies.length}):`, ...companies.map(c => `- ${c}`)];
+                  }
+                  return '';
+                },
+                labelColor: ctx => {
+                  // Use the dataset's border color instead of backgroundColor
+                  return {
+                    borderColor: ctx.dataset.borderColor,
+                    backgroundColor: ctx.dataset.borderColor
+                  };
+                }
+              }
             }
           },
           scales: {
-            y: { stacked: true, title: { display: true, text: 'Total Weight (kg)' } },
-            x: { stacked: true, title: { display: true, text: `Period (${aggregation})` } }
+            y: { stacked: false, title: { display: true, text: 'Total Weight (kg)' } },
+            x: { stacked: false, title: { display: true, text: `Period (${aggregation})` } }
           }
-        }
+        },
+        plugins: [multiCompanyPlugin]
       });
+
       console.log('✅ Chart 3 created');
     }
     
