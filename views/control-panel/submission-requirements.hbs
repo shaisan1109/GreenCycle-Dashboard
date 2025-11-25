@@ -1,0 +1,152 @@
+<h2 style="margin-bottom: 20px;">Submission Requirements</h2>
+
+<div class="form-section">
+  <h3><i class="fa-solid fa-list-ol"></i> Monthly Submission Requirements per Client</h3>
+
+  <table class="user-profile">
+    <thead>
+      <tr>
+        <th class="label">Client Name</th>
+        <th class="label">Organization</th>
+        <th class="label">Required Submissions</th>
+        <th class="label">Action</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {{#if clientList.length}}
+        {{#each clientList}}
+        <tr>
+          <td>{{this.lastname}}, {{this.firstname}}</td>
+          <td>{{this.company_name}}</td>
+
+          <td>
+            <form method="POST"
+                  action="/control-panel/submission-requirements/update"
+                  class="inline-form"
+                  onsubmit="return confirmUpdateRequirement('{{this.lastname}}, {{this.firstname}}')">
+
+              <input type="hidden" name="user_id" value="{{this.user_id}}">
+              
+              <input type="number"
+                     name="required"
+                     value="{{this.required_submissions}}"
+                     min="1"
+                     class="req-input"
+                     required>
+          </td>
+
+          <td>
+            <button type="submit" class="btn-submit">Update</button>
+            </form>
+          </td>
+
+        </tr>
+        {{/each}}
+      {{else}}
+        <tr>
+          <td colspan="4" style="text-align:center; color:#777;">
+            No client users found.
+          </td>
+        </tr>
+      {{/if}}
+    </tbody>
+  </table>
+
+  <p style="font-size:0.9rem; color:#555;">
+    Adjust how many submissions each client must complete every month to be marked compliant.
+  </p>
+</div>
+
+<script>
+function confirmUpdateRequirement(name) {
+  return confirm(`Are you sure you want to update the submission requirement for ${name}?`);
+}
+</script>
+
+<style>
+/* SAME FULL STYLE AS QUOTAS PAGE */
+
+.user-profile {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 0.95rem;
+}
+
+.user-profile th, .user-profile td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e0e0e0;
+  text-align: left;
+}
+
+.user-profile thead {
+  background-color: #e9f7ef;
+}
+
+.user-profile th.label {
+  font-weight: bold;
+  color: #145a32;
+}
+
+.req-input {
+  width: 100px;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #bbb;
+  font-size: 0.95rem;
+}
+
+.req-input:focus {
+  border-color: #28a745;
+  outline: none;
+  box-shadow: 0 0 5px rgba(40,167,69,0.4);
+}
+
+.form-section {
+  background-color: #fdfdfd;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  margin: 2rem auto;
+  max-width: 900px;
+  color: #333;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.form-section h3 {
+  font-size: 1.4rem;
+  margin-bottom: 1.2rem;
+  color: #127009;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.inline-form {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.btn-submit {
+  background-color: #28a745;
+  border: none;
+  padding: 0.5rem 1rem;
+  color: white;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-submit:hover {
+  background-color: #23963b;
+  transform: translateY(-1px);
+}
+
+.user-profile tbody tr:hover {
+  background-color: #f6fdf8;
+}
+</style>
