@@ -643,9 +643,14 @@ export async function getDataWithFilters(limit, offset, title, locationCode, nam
         params.push(`%${name}%`, `%${name}%`);
     }
 
+    // if (companyName) {
+    //     conditions.push(`u.company_name LIKE ?`);
+    //     params.push(`%${companyName}%`);
+    // }
+
     if (companyName) {
-        conditions.push(`u.company_name LIKE ?`);
-        params.push(`%${companyName}%`);
+      conditions.push(`BINARY u.company_name LIKE ?`);
+      params.push(`%${companyName}%`);
     }
 
     // Optional date range logic
@@ -701,8 +706,13 @@ export async function getFilteredDataCount(title, locationCode, name, companyNam
     params.push(`%${name}%`, `%${name}%`);
   }
 
+  // if (companyName) {
+  //   conditions.push(`u.company_name LIKE ?`);
+  //   params.push(`%${companyName}%`);
+  // }
+
   if (companyName) {
-    conditions.push(`u.company_name LIKE ?`);
+    conditions.push(`BINARY u.company_name LIKE ?`);
     params.push(`%${companyName}%`);
   }
 
@@ -753,9 +763,14 @@ export async function getFilteredDataCoords(title, locationCode, name, companyNa
         params.push(`%${name}%`, `%${name}%`);
     }
 
+    // if (companyName) {
+    //     conditions.push(`u.company_name LIKE ?`);
+    //     params.push(`%${companyName}%`);
+    // }
+
     if (companyName) {
-        conditions.push(`u.company_name LIKE ?`);
-        params.push(`%${companyName}%`);
+      conditions.push(`BINARY u.company_name LIKE ?`);
+      params.push(`%${companyName}%`);
     }
 
     if (startDate && endDate) {
@@ -1250,9 +1265,14 @@ export async function getAvgInfoWithFilters(title, locationCode, name, companyNa
         params.push(`%${name}%`, `%${name}%`);
     }
 
+    // if (companyName) {
+    //     conditions.push(`u.company_name LIKE ?`);
+    //     params.push(`%${companyName}%`);
+    // }
+
     if (companyName) {
-        conditions.push(`u.company_name LIKE ?`);
-        params.push(`%${companyName}%`);
+      conditions.push(`BINARY u.company_name LIKE ?`);
+      params.push(`%${companyName}%`);
     }
 
     if (startDate && endDate) {
@@ -1303,9 +1323,14 @@ export async function getAvgWasteCompositionWithFilters(title, locationCode, nam
         params.push(`%${name}%`, `%${name}%`);
     }
 
+    // if (companyName) {
+    //     conditions.push(`u.company_name LIKE ?`);
+    //     params.push(`%${companyName}%`);
+    // }
+
     if (companyName) {
-        conditions.push(`u.company_name LIKE ?`);
-        params.push(`%${companyName}%`);
+      conditions.push(`BINARY u.company_name LIKE ?`);
+      params.push(`%${companyName}%`);
     }
 
     if (startDate && endDate) {
@@ -2184,8 +2209,13 @@ export async function getTimeSeriesData(title, locationCode, author, company, st
     params.push(`%${author}%`, `%${author}%`);
   }
 
+  // if (company) {
+  //   conditions.push(`u.company_name LIKE ?`);
+  //   params.push(`%${company}%`);
+  // }
+
   if (company) {
-    conditions.push(`u.company_name LIKE ?`);
+    conditions.push(`BINARY u.company_name LIKE ?`);
     params.push(`%${company}%`);
   }
 

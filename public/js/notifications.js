@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
           // Show empty message if all gone
           const list = document.querySelector('.notif-list');
           if (list && list.children.length === 0) {
-            list.outerHTML = `<p class="notif-empty">You have no notifications.</p>`;
+            list.outerHTML = `<p class="notif-empty">You have no status updates.</p>`;
           }
         }
       } catch (err) {
@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show empty message if list is now empty
         const list = document.querySelector('.notif-list');
         if (list && list.children.length === 0) {
-          list.outerHTML = `<p class="notif-empty">You have no notifications.</p>`;
+          list.outerHTML = `<p class="notif-empty">You have no status updates.</p>`;
         }
 
       } catch (err) {
