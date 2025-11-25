@@ -610,7 +610,7 @@ app.get('/dashboard/notifications', async (req, res) => {
 
     res.render('dashboard/notifications', {
       layout: 'dashboard',
-      title: 'Notifications | GC Dashboard',
+      title: 'Status Updates | GC Dashboard',
       current_notifs: true,
       notifications,
       currentPage: page,

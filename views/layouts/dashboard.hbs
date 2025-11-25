@@ -73,7 +73,7 @@
                 </a>
 
                 <a href="/dashboard/notifications" class="{{#if current_notifs}}current{{/if}}">
-                    <i class="fa-solid fa-bell {{#ifNotEquals notifCount 0}}fa-shake{{/ifNotEquals}} nav-icon"></i> Notifications&nbsp;
+                    <i class="fa-solid fa-bell {{#ifNotEquals notifCount 0}}fa-shake{{/ifNotEquals}} nav-icon"></i> Status Updates&nbsp;
                     <span class="notif-badge" id="notif-badge" style="{{#ifEquals notifCount 0}}display:none;{{/ifEquals}}">
                         {{notifCount}}
                     </span>
@@ -217,7 +217,7 @@
       {{#ifNotEquals data_entry true}}
       <li>
         <label>
-          <input type="checkbox" class="super-item" data-group="trends" value="trends" checked>
+          <input type="checkbox" class="super-item" data-group="trends" value="trends" checked id="pdf-trends-toggle">
           <span><i class="fa-solid fa-chart-line"></i> Trends Over Time</span>
         </label>
         <ul>
@@ -225,6 +225,27 @@
           <li><label><input type="checkbox" class="sub-item" data-group="trends" value="trends-percapita" checked><span>Per Capita Waste Trend</span></label></li>
           <li><label><input type="checkbox" class="sub-item" data-group="trends" value="trends-category" checked><span>Waste by Category Over Time</span></label></li>
         </ul>
+
+        <!-- Mini trend aggregation form inside PDF modal -->
+        <div id="pdf-trends-mini-aggregation" style="display:none; margin: 10px 0 10px 25px;">
+
+          <div style="display: flex; width:fit-content">
+            <label style="font-size: 0.9rem; color:#444;">Aggregation:</label>
+
+            <select 
+              id="pdf-select-aggregation" 
+              style="font-size: 0.85rem; padding: 3px 6px; width: fit-content; margin-left: 5px;"
+            >
+              <option value="monthly">Monthly Summary</option>
+              <option value="yearly">Yearly Summary</option>
+            </select>
+          </div>
+
+          <div style="margin-top:4px; font-size:0.80rem; color:#555;">
+            (This will apply to all trend charts in the generated PDF)
+          </div>
+
+        </div>
       </li>
       {{/ifNotEquals}}
 
@@ -683,6 +704,20 @@ async function startDeadlineTimer(userId) {
 <!-- Modal script -->
 <script>
 
+// Toggle trend chart settings visibility
+const pdfTrendsToggle = document.getElementById('pdf-trends-toggle');
+const pdfMiniAgg = document.getElementById('pdf-trends-mini-aggregation');
+
+if (pdfTrendsToggle && pdfMiniAgg) {
+  const updateVisibility = () => {
+    pdfMiniAgg.style.display = pdfTrendsToggle.checked ? 'block' : 'none';
+  };
+
+  pdfTrendsToggle.addEventListener('change', updateVisibility);
+  updateVisibility();
+}
+
+
 // Toggle Simulation Settings visibility
 const simCheckbox = document.querySelector('#pdfModal input.super-item[value="simulation"]');
 const pdfSimSettings = document.getElementById("pdfSimSettings");
@@ -799,6 +834,24 @@ pdfConfirmBtn.addEventListener("click", async () => {
     selected.unshift("filters");
     selected.unshift("data-title");
     selected.unshift("data-info");
+
+    // Inject trend aggregation into query BEFORE sending
+    const trendsEnabled = selected.includes("trends");
+
+    if (trendsEnabled) {
+      const pdfAggSelect = document.getElementById("pdf-select-aggregation");
+      if (pdfAggSelect) {
+        const aggValue = pdfAggSelect.value;
+        if (aggValue) {
+          // Ensure query is an object WITHOUT reassigning it.
+          if (typeof query !== "object" || query === null) {
+            // Create temp object instead of touching const query.
+            query = {}; // <-- Only allowed if query is *not* const.
+          }
+          query.aggregation = aggValue;
+        }
+      }
+    }
 
     // Collect simulation settings if visible
     let simSettings = null;

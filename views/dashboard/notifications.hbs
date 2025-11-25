@@ -1,4 +1,4 @@
-<h1 class="notif-title">{{totalNotifs}} Notifications</h1>
+<h1 class="notif-title">{{totalNotifs}} Status Updates</h1>
 
 <!-- Bulk actions toolbar -->
 <div id="notif-toolbar" class="notif-toolbar">
@@ -19,7 +19,7 @@
 
   <!-- Entry count -->
   <p class="entry-count-text" style="margin-left: auto; color: darkgreen;">
-    Showing <b>{{startEntry}} – {{endEntry}}</b> of <b>{{totalNotifs}}</b> notifications
+    Showing <b>{{startEntry}} – {{endEntry}}</b> of <b>{{totalNotifs}}</b> status updates
   </p>
 </div>
 
@@ -32,7 +32,7 @@
         <li class="notif-item {{#unless is_read}}unread{{/unless}}" data-notif-id="{{id}}">
 
           <!-- Delete button -->
-          <button class="delete-notif-btn" title="Delete Notification">&times;</button>
+          <button class="delete-notif-btn" title="Delete Status Update">&times;</button>
 
           <!-- Main content -->
           <div class="notif-main-content">
@@ -70,7 +70,7 @@
 
           <!-- Delete confirmation -->
           <div class="notif-delete-confirm hidden">
-            <p>Delete this notification?</p>
+            <p>Delete this status update?</p>
             <form class="delete-notif-form" action="/notifications/delete/{{id}}" method="POST">
               <button type="submit" class="confirm-delete-btn">Yes</button>
               <button type="button" class="cancel-delete-btn">Cancel</button>
@@ -80,7 +80,7 @@
         {{/each}}
     </ul>
 {{else}}
-    <p class="notif-empty">You have no notifications.</p>
+    <p class="notif-empty">You have no status updates.</p>
 {{/if}}
 
 <!-- Page counter -->
@@ -122,7 +122,7 @@
 <div id="delete-confirm-modal" class="delete-modal hidden">
   <div class="delete-modal-content">
     <h3>Confirm Deletion</h3>
-    <p>Are you sure you want to delete the selected notifications?</p>
+    <p>Are you sure you want to delete the selected status updates?</p>
     <div class="delete-modal-actions">
       <button id="confirm-delete-yes" class="btn btn-danger">
         <i class="fa-solid fa-trash"></i> Yes

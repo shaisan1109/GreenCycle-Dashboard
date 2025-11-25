@@ -164,22 +164,7 @@
 <!-- NEW: Trends Over Time Section -->
 <div class="form-section" style="background-color: #f8f9ff; padding: 2rem; border-radius: 12px; border-left: 6px solid #2196F3;" data-section="trends">
   <h2 id="trends-main-title" style="color: #1565C0; font-weight: 600; margin-bottom: 1rem; display: flex">
-    <i class="fa-solid fa-chart-line" style="margin-right: 10px; color: #2196F3;"></i>
-    Trends Over Time
-
-    <span id="aggregation-view-label" style="font-size: 0.9rem; color: #666; font-weight: 400; margin-left: 10px;">
-      ({{#ifEquals query.aggregation "monthly"}}Monthly{{/ifEquals}}{{#ifEquals query.aggregation "yearly"}}Yearly{{/ifEquals}} Averaging Aggregation)
-    </span>
-
-    <!-- Aggregation settings -->
-    <select id="select-aggregation" style="margin-left: auto; width: 200px;">
-      <option value="monthly" {{#ifEquals query.aggregation "monthly"}}selected{{/ifEquals}}>Monthly Summary</option>
-      <option value="yearly" {{#ifEquals query.aggregation "yearly"}}selected{{/ifEquals}}>Yearly Summary</option>
-    </select>&nbsp;
-
-    <button class="btn-primary" id="applyBtn">
-      <i class="fa-solid fa-check"></i> Apply Filters
-    </button>
+    <!-- Populated by JS -->
   </h2>
   
   <p style="color: #555; margin-bottom: 1.5rem;">
@@ -908,52 +893,6 @@ function toggleCategory(header) {
     const content = category.querySelector('.participants-list');
     content.style.display = content.style.display === 'block' ? 'none' : 'block';
 }
-</script>
-
-<!-- Aggregation Selection Script -->
-<script>
-
-window.currentFilters = {{{json query}}};
-
-const applyBtn = document.getElementById('applyBtn');
-
-applyBtn.onclick = async () => {
-    const aggregation = document.getElementById('select-aggregation').value;
-
-    // Section toggle logic stays the same
-    const selectedSections = Array.from(document.querySelectorAll('input[name="section"]:checked'))
-        .map(cb => cb.value);
-
-    document.querySelectorAll('[data-section]').forEach(el => {
-        if (el.getAttribute('data-section') !== 'filters' && el.getAttribute('data-section') !== 'data-title') {
-            el.style.display = 'none';
-        }
-    });
-
-    selectedSections.forEach(section => {
-        document.querySelectorAll(`[data-section="${section}"]`).forEach(el => el.style.display = '');
-    });
-
-    // Build query params from current filters
-    const url = new URL('/dashboard/data/summary/timeseries', window.location.origin);
-    const params = new URLSearchParams(window.location.search);
-
-    params.set('aggregation', aggregation);
-    url.search = params.toString();
-
-    // Fetch updated time-series without reloading page
-    const response = await fetch(url.toString());
-    const data = await response.json();
-
-    // Update chart (example)
-    updateTimeSeriesChart(data.timeSeriesData);
-
-    // Optional: update query param in URL without reload
-    const newPageUrl = new URL(window.location.href);
-    newPageUrl.searchParams.set('aggregation', aggregation);
-    window.history.replaceState({}, '', newPageUrl.toString());
-};
-
 </script>
 
 <!-- FINAL CORRECTED TRENDS CHART SCRIPT - Total Values (No Daily Averaging) -->
