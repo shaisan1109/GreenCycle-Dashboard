@@ -328,6 +328,12 @@
           <canvas id="trendByCategory"></canvas>
         </div>
       </div>
+
+      <div style="margin-top: 1rem; padding: 1rem; background: #e8f5e9; border-radius: 6px; font-size: 0.9rem;">
+        <strong style="color: #2d613f;">📊 Category Breakdown Analysis:</strong><br><br>
+        <span id="categoryStats" style="color: #555;"></span>
+      </div>
+
     </div>
 
 <!-- SIMULATION PANEL (FULL - paste over existing simulation block) -->
@@ -1594,6 +1600,55 @@ function initChartsWithAggregation(aggregation) {
       `;
 
       perCapitaStatsEl.innerHTML = paragraph;
+    }
+
+    // ======== CATEGORY ANALYSIS (NO REGRESSION) =========
+    const categoryStatsEl = document.getElementById('categoryStats');
+
+    if (categoryStatsEl) {
+      const categories = ['Biodegradable', 'Recyclable', 'Residual', 'Special/Hazardous'];
+
+      const summaries = categories.map(cat => {
+        // Extract values for this category
+        const values = completePeriods.map(p => {
+          const periodData = aggregatedData[p];
+          return periodData?.categoryTotals?.[cat] ?? null;
+        });
+
+        // Remove nulls but keep index mapping
+        const validPoints = values
+          .map((val, idx) => val !== null ? { value: val, index: idx } : null)
+          .filter(Boolean);
+
+        if (validPoints.length === 0) {
+          return `${cat}: No recorded data.`;
+        }
+
+        const first = validPoints[0].value;
+        const last = validPoints[validPoints.length - 1].value;
+
+        const minPoint = validPoints.reduce((a, b) => a.value < b.value ? a : b);
+        const maxPoint = validPoints.reduce((a, b) => a.value > b.value ? a : b);
+
+        let direction;
+        if (last > first) direction = 'an increasing pattern';
+        else if (last < first) direction = 'a decreasing pattern';
+        else direction = 'a generally stable trend';
+
+        return `
+          <b>${cat}</b> shows ${direction}. 
+          Its highest recorded value is <b>${
+            maxPoint.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          } kg</b> during <b>${labels[maxPoint.index]}</b>, 
+          and its lowest is <b>${
+            minPoint.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          } kg</b> during <b>${labels[minPoint.index]}</b>.
+        `;
+      });
+
+      categoryStatsEl.innerHTML = `
+        ${summaries.join('<br><br>')}
+      `;
     }
     
     // ========== CREATE CHART 1: TOTAL WASTE GENERATION ==========
