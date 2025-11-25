@@ -647,59 +647,62 @@ document.addEventListener('DOMContentLoaded', function () {
 <script>
 async function startDeadlineTimer(userId) {
   const el = document.getElementById("deadline-timer");
-  if (!el) {
-    console.log("⏳ No timer element found (probably not a client).");
-    return;
-  }
+  if (!el) return;
 
   try {
-    const res = await fetch(`/api/deadline/${userId}`);
-    if (!res.ok) {
-      throw new Error("API returned " + res.status);
-    }
-
+    const res = await fetch(`/api/deadline/full/${userId}`);
     const data = await res.json();
-    console.log("Deadline API response:", data); // 👀 debug
 
-    if (data.exempt) {
-      el.style.display = "none"; 
+    console.log("Header Deadline API:", data);
+
+    if (!data.deadline) {
+      el.style.display = "none";
       return;
     }
 
-    if (data.submitted) {
-      el.textContent = "✅ You’ve already submitted this month!";
+    const required = data.required_submissions;
+    const submitted = data.submission_count;
+    const compliant = data.compliant;
+
+    // ✔ If compliant → stop timer & show message
+    if (compliant) {
+      el.textContent = `✅ Compliant (${submitted}/${required})`;
       return;
     }
 
     const deadline = new Date(data.deadline);
+
     function updateDisplay() {
       const now = new Date();
-      const msRemaining = deadline - now;
+      const diff = deadline - now;
 
-      if (msRemaining <= 0) {
-        el.textContent = "⚠️ Deadline passed!";
+      if (diff <= 0) {
+        el.textContent = "⚠️ Deadline Passed!";
         return;
       }
 
-      const days = Math.floor(msRemaining / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((msRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((msRemaining % (1000 * 60)) / 1000);
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-      el.textContent = `⏳ Deadline: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+      el.textContent =
+        `⏳ Deadline: ${days}d ${hours}h ${minutes}m ${seconds}s`;
     }
 
     updateDisplay();
     setInterval(updateDisplay, 1000);
+
   } catch (err) {
-    console.error("Failed to load deadline:", err);
+    console.error("Header Deadline Error:", err);
     el.textContent = "⚠️ Error loading deadline.";
   }
 }
 
-    // Inject the logged-in user ID from the server
-    startDeadlineTimer({{#if user}}{{user.id}}{{else}}0{{/if}});
+startDeadlineTimer({{user.id}});
 </script>
+
+
 
 <!-- Modal script -->
 <script>

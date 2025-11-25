@@ -104,9 +104,10 @@ runSimulation,
   getComplianceTable,
   getComplianceMonths,
   getDeadlineForMonth,
-   getRequiredSubmissionsForUser,
   updateRequiredSubmissions,
   getAllClientRequirements,
+  getMonthlySubmissionCount,
+getRequiredSubmissionsForUser,
 } from './database.js'
 
 // File Upload
@@ -448,18 +449,64 @@ app.post('/api/user', async (req, res) => {
 // server.js
 
 // API route for deadline timer
-app.get("/api/deadline/:userId", async (req, res) => {
+app.get("/api/deadline/full/:userId", async (req, res) => {
   try {
     const userId = req.params.userId;
-    const timer = await getDeadlineTimer(userId);
-    res.json(timer);
+    const now = new Date();
+    const monthYear = now.toISOString().slice(0, 7);
+
+    // 1. Deadline
+    const deadline = await getDeadlineForMonth(userId, monthYear);
+
+    // 2. Required submissions
+    const required = await getRequiredSubmissionsForUser(userId);
+
+    // 3. Submission stats
+    const stats = await getMonthlySubmissionStats(userId, monthYear);
+    const submissionCount = stats.count || 0;
+    const earliestSubmission = stats.earliest ? new Date(stats.earliest) : null;
+
+    // 4. Compliance check
+    const compliant =
+      submissionCount >= required &&
+      earliestSubmission &&
+      earliestSubmission <= deadline;
+
+    // 5. Fine calculation
+    let totalFine = 0;
+    if (!compliant && now > deadline) {
+      const overdueWeeks = Math.floor((now - deadline) / (1000 * 60 * 60 * 24 * 7));
+      totalFine = 500 * (overdueWeeks + 1);
+    }
+
+    return res.json({
+      deadline,
+      required_submissions: required,
+      submission_count: submissionCount,
+      compliant,
+      total_fine: totalFine
+    });
+
   } catch (err) {
-    console.error("Error fetching deadline:", err);
-    res.status(500).json({ error: "Failed to fetch deadline" });
+    console.error("FULL DEADLINE ERROR:", err);
+    res.status(500).json({ error: "Failed to load deadline data" });
   }
 });
 
 
+
+app.get("/api/submissions/count/:userId", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const count = await getMonthlySubmissionCount(userId);
+
+    res.json({ count });
+
+  } catch (err) {
+    console.error("Error fetching submission count:", err);
+    res.status(500).json({ error: "Failed to fetch submission count" });
+  }
+});
 app.get('/register', (req, res) => {
   res.render('register', {
     title: 'Register | GreenCycle'
@@ -556,6 +603,7 @@ app.get('/dashboard/deadline', async (req, res) => {
 
     res.render('dashboard/deadline', {
       layout: 'dashboard',
+      title: 'Deadline | GC Dashboard',
       current_deadline: true,
       deadline: timer.deadline
     });
@@ -566,7 +614,29 @@ app.get('/dashboard/deadline', async (req, res) => {
   }
 });
 
+app.get("/api/deadline/:userId", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const timer = await getDeadlineTimer(userId);
+    res.json(timer);
+  } catch (err) {
+    console.error("Error fetching deadline:", err);
+    res.status(500).json({ error: "Failed to fetch deadline" });
+  }
+});
 
+app.get("/api/submissions/count/:userId", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const count = await getMonthlySubmissionCount(userId);
+
+    res.json({ count });
+
+  } catch (err) {
+    console.error("Error fetching submission count:", err);
+    res.status(500).json({ error: "Failed to fetch submission count" });
+  }
+});
 app.get("/api/compliance/deadlines", async (req, res) => {
   try {
     const data = await getComplianceTable();
