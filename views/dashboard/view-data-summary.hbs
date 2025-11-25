@@ -262,7 +262,7 @@
         <i class="fa-solid fa-user"></i> Per Capita Waste Trend
       </h3>
 
-      <p>This chart shows estimates on how much waste each person is generating over time.</p>
+      <p>This chart shows estimates on <b>how much waste each person is generating</b> over time.</p>
       <ul><li><b style="color:#FF9800">Orange line with dots</b> - Each point represents the average waste per person for a specific period (month or year).</li></ul>
 
       <div class="companyLegend"></div>
@@ -303,7 +303,7 @@
         <i class="fa-solid fa-layer-group"></i> Waste by Category Over Time
       </h3>
 
-      <p>This chart shows how waste is divided into different categories over time.</p>
+      <p>This chart shows the <b>total amount of waste per category</b> over time.</p>
 
       <div class="companyLegend"></div>
 
@@ -1893,54 +1893,148 @@ function initChartsWithAggregation(aggregation) {
     if (categoryCanvas) {
       const categories = ['Biodegradable', 'Recyclable', 'Residual', 'Special/Hazardous'];
       const categoryColors = {
-        'Biodegradable': 'rgba(76, 175, 80, 0.8)',
-        'Recyclable': 'rgba(33, 150, 243, 0.8)',
-        'Residual': 'rgba(158, 158, 158, 0.8)',
-        'Special/Hazardous': 'rgba(244, 67, 54, 0.8)'
+        'Biodegradable': 'rgba(76, 175, 80, 0.6)',
+        'Recyclable': 'rgba(33, 150, 243, 0.6)',
+        'Residual': 'rgba(158, 158, 158, 0.6)',
+        'Special/Hazardous': 'rgba(244, 67, 54, 0.6)'
       };
-      
-      const categoryDatasets = categories.map(cat => {
-        return {
-          label: cat,
-          data: sortedPeriods.map(p => {
-            const periodData = aggregatedData[p];
-            return periodData.categoryTotals[cat] || 0;  // Total, not divided
-          }),
-          backgroundColor: categoryColors[cat],
-          borderColor: categoryColors[cat].replace('0.8', '1'),
-          borderWidth: 2,
-          fill: true,
-          tension: 0.4
-        };
-      });
 
       if (categoryCanvas.chartInstance) categoryCanvas.chartInstance.destroy();
 
+      // Plugin for multi-company periods
+      const multiCompanyPlugin = {
+        id: 'multiCompanyPlugin',
+        afterDatasetDraw(chart) {
+          const { ctx, data } = chart;
+
+          data.datasets.forEach((dataset, datasetIndex) => {
+            const meta = chart.getDatasetMeta(datasetIndex);
+
+            meta.data.forEach((point, index) => {
+              const entry = aggregatedData[completePeriods[index]];
+              if (!entry) return;
+
+              const companies = Array.from(entry.companyNames || []);
+              if (companies.length <= 1) return; // only multi-company points
+
+              const x = point.x;
+              const y = point.y;
+              const radius = 6;
+
+              // Draw white circle
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(x, y, radius, 0, 2 * Math.PI);
+              ctx.fillStyle = '#ffffff';
+              ctx.fill();
+              ctx.lineWidth = 2;
+              ctx.strokeStyle = '#000000';
+              ctx.stroke();
+
+              // Draw number of companies inside
+              ctx.fillStyle = '#000000';
+              ctx.font = 'bold 10px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(companies.length.toString(), x, y);
+              ctx.restore();
+            });
+          });
+        }
+      };
+
+      // Build dataset for chart
+      const categoryDatasets = categories.map(cat => {
+        const data = completePeriods.map(p => {
+          const periodData = aggregatedData[p];
+          return periodData?.categoryTotals?.[cat] ?? null;
+        });
+
+        return {
+          label: cat,
+          data,
+          // Keep border fully opaque
+          borderColor: categoryColors[cat].replace(/0\.\d+/, '1'), 
+          borderWidth: 2,
+          fill: false,
+          tension: 0.3,
+          pointBackgroundColor: pointBackgroundColors,
+          pointBorderWidth: 0,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          spanGaps: true
+        };
+      });
+
+      // Build chart 3
       categoryCanvas.chartInstance = new Chart(categoryCanvas.getContext('2d'), {
         type: 'line',
         data: { labels: labels, datasets: categoryDatasets },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          interaction: {
-            mode: 'index',
-            intersect: false
-          },
+          interaction: { mode: 'index', intersect: false },
           plugins: {
-            legend: { position: 'top' },
+            legend: {
+              position: 'top',
+              labels: {
+                generateLabels: chart => {
+                  return chart.data.datasets.map((dataset, i) => ({
+                    text: dataset.label,
+                    fillStyle: dataset.borderColor,   // use border color
+                    strokeStyle: dataset.borderColor, // optional, same as border
+                    lineWidth: dataset.borderWidth,
+                    hidden: !chart.isDatasetVisible(i),
+                    datasetIndex: i
+                  }));
+                }
+              }
+            },
             title: {
               display: true,
               text: `Waste by Category (${aggregation === 'monthly' ? 'Monthly' : 'Yearly'} Totals)`,
               font: { size: 14, weight: 'bold' },
               color: '#2d613f'
+            },
+            tooltip: {
+              callbacks: {
+                title: ctx => `Period: ${ctx[0].label}`,
+                label: ctx => {
+                  const dataset = ctx.dataset;
+                  const value = ctx.parsed.y ?? 0;
+                  return `${dataset.label}: ${value.toFixed(2)} kg`;
+                },
+                afterBody: ctx => {
+                  const period = completePeriods[ctx[0].dataIndex];
+                  const periodData = aggregatedData[period];
+                  if (!periodData) return '';
+
+                  const companies = Array.from(periodData.companyNames || []);
+                  if (companies.length === 1) {
+                    return [`Company: ${companies[0]}`];
+                  } else if (companies.length > 1) {
+                    return [`Companies (${companies.length}):`, ...companies.map(c => `- ${c}`)];
+                  }
+                  return '';
+                },
+                labelColor: ctx => {
+                  // Use the dataset's border color instead of backgroundColor
+                  return {
+                    borderColor: ctx.dataset.borderColor,
+                    backgroundColor: ctx.dataset.borderColor
+                  };
+                }
+              }
             }
           },
           scales: {
-            y: { stacked: true, title: { display: true, text: 'Total Weight (kg)' } },
-            x: { stacked: true, title: { display: true, text: `Period (${aggregation})` } }
+            y: { stacked: false, title: { display: true, text: 'Total Weight (kg)' } },
+            x: { stacked: false, title: { display: true, text: `Period (${aggregation})` } }
           }
-        }
+        },
+        plugins: [multiCompanyPlugin]
       });
+
       console.log('✅ Chart 3 created');
     }
     
