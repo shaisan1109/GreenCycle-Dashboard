@@ -2131,13 +2131,27 @@ export async function saveComplianceRecord({
 
 export async function getComplianceTable() {
   const [rows] = await sql.query(`
-    SELECT sc.*, u.firstname, u.lastname, u.company_name
+    SELECT
+      sc.*,
+      u.firstname,
+      u.lastname,
+      u.company_name,
+
+      -- NEW: required submissions per client
+      COALESCE(
+        (SELECT required_submissions 
+         FROM submission_requirements 
+         WHERE user_id = sc.user_id),
+      3) AS required_submissions
+
     FROM submission_compliance sc
     JOIN user u ON sc.user_id = u.user_id
-    ORDER BY u.lastname ASC
+    ORDER BY sc.month_year DESC
   `);
+
   return rows;
 }
+
 
 export async function getDeadlineForMonth(userId, monthYear) {
   // Simply use the last day of that month
@@ -2683,6 +2697,45 @@ export async function getMonthlySubmissions() {
         }]
     };
 }
+
+// Get required submissions
+export async function getRequiredSubmissionsForUser(userId) {
+    const [[row]] = await sql.query(`
+        SELECT required_submissions
+        FROM submission_requirements
+        WHERE user_id = ?
+    `, [userId]);
+
+    return row ? row.required_submissions : 3;
+}
+
+export async function updateRequiredSubmissions(user_id, required) {
+  await sql.query(`
+    INSERT INTO submission_requirements (user_id, required_submissions)
+    VALUES (?, ?)
+    ON DUPLICATE KEY UPDATE required_submissions = VALUES(required_submissions)
+  `, [user_id, required]);
+}
+
+
+export async function getAllClientRequirements() {
+  return sql.query(`
+    SELECT 
+      u.user_id,
+      u.firstname,
+      u.lastname,
+      u.company_name,
+      COALESCE(sr.required_submissions, 3) AS required_submissions
+    FROM user u
+    LEFT JOIN submission_requirements sr
+      ON sr.user_id = u.user_id
+    WHERE u.role_id NOT IN (1, 2, 3)   -- EXCLUDE STAFF
+    ORDER BY u.lastname
+  `).then(([rows]) => rows);
+}
+
+
+
 
 /* ---------------------------------------
     NOTIFICATIONS

@@ -104,6 +104,9 @@ runSimulation,
   getComplianceTable,
   getComplianceMonths,
   getDeadlineForMonth,
+   getRequiredSubmissionsForUser,
+  updateRequiredSubmissions,
+  getAllClientRequirements,
 } from './database.js'
 
 // File Upload
@@ -3492,6 +3495,96 @@ app.post('/control-panel/quotas/update-sector', async (req, res) => {
   res.redirect(`/control-panel/quotas?org=${encodeURIComponent(org)}`);
 });
 
+// ---------------------------------------------
+// Control Panel Page: submission requirements
+// Admin Page: Submission Requirements
+// ------------------------------
+// CONTROL PANEL PAGE (ADMIN VIEW)
+// ------------------------------
+app.get("/control-panel/submission-requirements", async (req, res) => {
+  try {
+    const clientList = await getAllClientRequirements();
+
+    res.render("control-panel/submission-requirements", {
+      layout: "control-panel",
+      title: "Submission Requirements",
+      clientList
+    });
+
+  } catch (err) {
+    console.error("REQ PAGE ERROR:", err);
+    res.status(500).send("Failed to load submission requirements");
+  }
+});
+
+
+
+// ------------------------------
+// API: Get requirement for a specific user
+// ------------------------------
+app.get("/api/submission-requirements/:userId", async (req, res) => {
+  try {
+    const required = await getRequiredSubmissionsForUser(req.params.userId);
+    res.json({ required });
+
+  } catch (err) {
+    console.error("Error loading user requirement:", err);
+    res.status(500).json({ error: "Failed to load requirement" });
+  }
+});
+
+
+// ------------------------------
+// API: Update requirement for a specific user
+// ------------------------------
+app.post("/api/submission-requirements/update", async (req, res) => {
+  try {
+    const { user_id, required } = req.body;
+
+    if (!user_id || !required) {
+      return res.json({
+        success: false,
+        message: "Missing user_id or required value"
+      });
+    }
+
+    await updateRequiredSubmissions(user_id, required);
+
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error("Error updating submission requirement:", err);
+    res.json({ success: false, message: "Update failed" });
+  }
+});
+
+
+// ------------------------------
+// API: Get all clients + their submission requirements
+// ------------------------------
+app.get("/api/submission-requirements", async (req, res) => {
+  try {
+    const clients = await getAllClientRequirements();
+    res.json(clients);
+
+  } catch (err) {
+    console.error("Error loading all requirements:", err);
+    res.status(500).json({ error: "Failed to load requirements" });
+  }
+});
+
+
+app.post("/control-panel/submission-requirements/update", async (req, res) => {
+  const { user_id, required } = req.body;
+
+  if (!user_id || !required) {
+    return res.json({ success: false, message: "Missing fields" });
+  }
+
+  await updateRequiredSubmissions(user_id, required);
+
+  res.redirect("/control-panel/submission-requirements");
+});
 
 
 
@@ -3898,7 +3991,7 @@ app.get('*', function(req, res){
 /* ---------------------------------------
     NODE-CRON TIMER
 --------------------------------------- */
-cron.schedule("*/30 * * * * *", async () => {
+cron.schedule("*/10 * * * * *", async () => {
   try {
     const users = await getUsers();
     const now = new Date();
@@ -3907,6 +4000,9 @@ cron.schedule("*/30 * * * * *", async () => {
 
       const timer = await getDeadlineTimer(user.user_id);
       if (!timer || timer.exempt) continue;
+
+      // Get the user's submission requirement
+      const required = await getRequiredSubmissionsForUser(user.user_id);
 
       const submittedMonths = await getUserSubmissionMonths(user.user_id);
 
@@ -3926,9 +4022,12 @@ cron.schedule("*/30 * * * * *", async () => {
         let submitted_before_deadline = 0;
         let fine = 0;
 
-        if (submission_count > 0 && earliestSubmission <= deadline) {
+        // ✅ NEW: REQUIREMENT CHECK IS PER USER
+        if (submission_count >= required && earliestSubmission <= deadline) {
           submitted_before_deadline = 1;
-        } else if (now > deadline) {
+        } 
+        
+        else if (now > deadline) {
           const overdueWeeks = Math.floor((now - deadline) / (1000 * 60 * 60 * 24 * 7));
           fine = 500 * (overdueWeeks + 1);
         }
@@ -3938,7 +4037,7 @@ cron.schedule("*/30 * * * * *", async () => {
           : "Non-Compliant";
 
         await saveComplianceRecord({
-          user_id: user.user_id,   // FIXED
+          user_id: user.user_id,
           month_year: monthYear,
           submission_count,
           deadline,
@@ -3955,6 +4054,7 @@ cron.schedule("*/30 * * * * *", async () => {
     console.error("Compliance Cron Error:", err);
   }
 });
+
 
 cron.schedule("* * * * *", async () => {
   try {
