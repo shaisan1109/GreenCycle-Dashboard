@@ -69,9 +69,7 @@ async function loadDeadline(userId) {
 
     document.getElementById("submission-count").textContent =
       data.submission_count;
-      
-    document.getElementById("fine-row").textContent =
-      data.total_fine;
+
     // SHOW STATUS
     document.getElementById("status").textContent =
       data.compliant ? "Compliant" : "Non-Compliant";
