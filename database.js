@@ -2023,7 +2023,6 @@ export async function getTopDashboardData() {
 }
 
 export async function getDeadlineTimer(userId) {
-  // Supertype check
   const [userRows] = await sql.query(`
     SELECT ur.supertype
     FROM user u
@@ -2031,35 +2030,30 @@ export async function getDeadlineTimer(userId) {
     WHERE u.user_id = ?
   `, [userId]);
 
-  if (!userRows.length) {
-    return { error: "User not found" };
-  }
+  if (!userRows.length) return { error: "User not found" };
 
-  if (userRows[0].supertype !== 2) {
-    return { submitted: true, deadline: null, exempt: true };
+  const isClient = userRows[0].supertype === 2;
+
+  if (!isClient) {
+    return {
+      submitted: true,
+      deadline: null,
+      exempt: true
+    };
   }
 
   const now = new Date();
   const monthYear = now.toISOString().slice(0, 7);
 
-  // Use the universal function
   const deadline = await getDeadlineForMonth(userId, monthYear);
 
-  // Check submission for this month
-  const [rows] = await sql.query(`
-    SELECT COUNT(*) AS count
-    FROM data_entry
-    WHERE user_id = ?
-      AND status = 'Approved'
-      AND DATE_FORMAT(date_submitted, '%Y-%m') = ?
-  `, [userId, monthYear]);
-
   return {
-    submitted: rows[0].count > 0,
+    submitted: false,
     deadline: deadline.toISOString(),
     exempt: false
   };
 }
+
 
 
 
@@ -2096,6 +2090,23 @@ export async function getComplianceMonths() {
 
   return rows.map(r => r.month_year);
 }
+
+// Get submission count for current month for a specific user
+export async function getMonthlySubmissionCount(userId) {
+  const month = new Date().toISOString().slice(0, 7);
+
+  const [[row]] = await sql.query(`
+    SELECT COUNT(*) AS count
+    FROM data_entry
+    WHERE user_id = ?
+      AND status = 'Approved'
+      AND DATE_FORMAT(date_submitted,'%Y-%m') = ?
+  `, [userId, month]);
+
+  return row.count;
+}
+
+
 
 
 export async function saveComplianceRecord({

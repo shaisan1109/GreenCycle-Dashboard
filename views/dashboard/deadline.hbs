@@ -1,151 +1,220 @@
 <h2 class="deadline-title">⏰ Submission Deadline</h2>
 
 <div class="deadline-container">
-  <p><strong>Deadline:</strong> <span id="deadline-date"></span></p>
 
-  <div id="countdown" class="countdown">
-    <div><span id="months">0</span><small>Months</small></div>
-    <div><span id="days">0</span><small>Days</small></div>
-    <div><span id="hours">0</span><small>Hours</small></div>
-    <div><span id="minutes">0</span><small>Minutes</small></div>
-    <div><span id="seconds">0</span><small>Seconds</small></div>
+  <!-- INFO ROWS -->
+  <div class="info-row">
+    <span class="info-label">Deadline:</span>
+    <span class="info-value" id="deadline-date">Loading...</span>
   </div>
 
+  <div class="info-row">
+    <span class="info-label">Required Submissions:</span>
+    <span class="info-value" id="required-sub">Loading...</span>
+  </div>
+
+  <div class="info-row">
+    <span class="info-label">Your Submissions This Month:</span>
+    <span class="info-value" id="submission-count">Loading...</span>
+  </div>
+
+  <div class="info-row">
+    <span class="info-label">Status:</span>
+    <span class="info-value" id="status">Loading...</span>
+  </div>
+
+  <div class="info-row" id="fine-row" style="display:none;">
+  <span class="info-label">Outstanding Fine:</span>
+  <span class="info-value" id="fine-amount-display">₱0</span>
+</div>
+
+
+  <!-- COUNTDOWN -->
+  <div id="countdown" class="countdown">
+    <div class="countdown-card"><span id="months">0</span><small>Months</small></div>
+    <div class="countdown-card"><span id="days">0</span><small>Days</small></div>
+    <div class="countdown-card"><span id="hours">0</span><small>Hours</small></div>
+    <div class="countdown-card"><span id="minutes">0</span><small>Minutes</small></div>
+    <div class="countdown-card"><span id="seconds">0</span><small>Seconds</small></div>
+  </div>
+
+  <!-- SANCTION BOX -->
   <div id="sanction" class="sanction-box" style="display:none;">
     <h3>⚠️ Deadline Passed</h3>
     <p>You are now subject to a fine.</p>
-    <p><strong>Current Fine:</strong> <span class="fine">₱<span id="fine-amount">500</span></span></p>
-    <p class="fine-detail">The fine starts at ₱500 and increases by ₱500 every week you are overdue.</p>
+    <p>
+      <strong>Current Fine:</strong>
+      <span class="fine">₱<span id="fine-amount">500</span></span>
+    </p>
+    <p class="fine-detail">
+      The fine starts at ₱500 and increases by ₱500 every week you are overdue.
+    </p>
   </div>
+
 </div>
 
 <script>
 async function loadDeadline(userId) {
   try {
-    const res = await fetch(`/api/deadline/${userId}`);
-    if (!res.ok) throw new Error("Failed to fetch deadline");
-
+    const res = await fetch(`/api/deadline/full/${userId}`);
     const data = await res.json();
-    console.log("Deadline API (page):", data);
 
-    if (data.exempt) {
-      document.querySelector(".deadline-container").innerHTML = "<p>✅ You are exempt from deadlines.</p>";
+    console.log("Deadline API:", data);
+
+    document.getElementById("deadline-date").textContent =
+      data.deadline ? new Date(data.deadline).toLocaleString() : "No Deadline";
+
+    document.getElementById("required-sub").textContent =
+      data.required_submissions;
+
+    document.getElementById("submission-count").textContent =
+      data.submission_count;
+
+    // SHOW STATUS
+    document.getElementById("status").textContent =
+      data.compliant ? "Compliant" : "Non-Compliant";
+
+    // If there is a fine, show the row
+    if (data.total_fine > 0) {
+      document.getElementById("fine-row").style.display = "flex";
+      document.getElementById("fine-amount-display").textContent = `₱${data.total_fine}`;
+    }
+
+    // STOP TIMER if compliant
+    if (data.compliant) {
+      document.getElementById("countdown").innerHTML =
+        "<strong>✔ You are compliant</strong>";
       return;
     }
 
-    if (data.submitted) {
-      document.querySelector(".deadline-container").innerHTML = "<p>✅ You’ve already submitted this month!</p>";
-      return;
-    }
-
+    // TIMER LOGIC
     const deadline = new Date(data.deadline);
-    document.getElementById("deadline-date").textContent = deadline.toLocaleString();
-
     function updateCountdown() {
       const now = new Date();
-      const distance = deadline - now;
+      const diff = deadline - now;
 
-      if (distance <= 0) {
-        document.getElementById("countdown").innerHTML = "<strong>⏰ Deadline reached!</strong>";
-
-        // Fine calculation
-        const overdueTime = now - deadline;
-        const weeksOverdue = Math.floor(overdueTime / (1000 * 60 * 60 * 24 * 7));
-        const fine = 500 * (weeksOverdue + 1);
-
-        document.getElementById("sanction").style.display = "block";
-        document.getElementById("fine-amount").innerText = fine;
+      if (diff <= 0) {
+        document.getElementById("countdown").innerHTML = "⛔ Deadline Passed";
         return;
       }
 
-      const months = Math.floor(distance / (1000 * 60 * 60 * 24 * 30));
-      const days = Math.floor((distance % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+      const months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30));
+      const days = Math.floor((diff % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-      document.getElementById("months").innerText = months;
-      document.getElementById("days").innerText = days;
-      document.getElementById("hours").innerText = hours;
-      document.getElementById("minutes").innerText = minutes;
-      document.getElementById("seconds").innerText = seconds;
+      document.getElementById("months").textContent = months;
+      document.getElementById("days").textContent = days;
+      document.getElementById("hours").textContent = hours;
+      document.getElementById("minutes").textContent = minutes;
+      document.getElementById("seconds").textContent = seconds;
     }
 
     updateCountdown();
     setInterval(updateCountdown, 1000);
+
   } catch (err) {
-    console.error("Deadline page error:", err);
-    document.querySelector(".deadline-container").innerHTML = "<p>⚠️ Error loading deadline.</p>";
+    console.error(err);
+    document.querySelector(".deadline-container").innerHTML =
+      "<p>⚠️ Error loading deadline.</p>";
   }
 }
 
-// Inject logged-in user ID from server
-loadDeadline({{#if user}}{{user.id}}{{else}}0{{/if}});
+
+loadDeadline({{user.id}});
 </script>
 
 <style>
+
 .deadline-title {
   font-size: 1.8rem;
-  margin-bottom: 20px;
-  text-align: left; /* Title aligned left */
-}
-
-.deadline-container {
-  max-width: 600px;
-  margin: auto;
-  padding: 20px;
-  background: #f9f9f9;
-  border-radius: 12px;
-  box-shadow: 0px 3px 8px rgba(0,0,0,0.1);
-  text-align: left; /* Everything else aligned left */
-}
-
-.countdown {
-  display: flex;
-  justify-content: space-around;
-  margin: 20px 0;
-  font-size: 1.5rem;
-}
-
-.countdown div {
-  text-align: center;
-}
-
-.countdown span {
   font-weight: bold;
-  font-size: 2rem;
-  color: #333;
+  margin-bottom: 1.5rem;
+  color: #145a32;
 }
 
-.countdown small {
-  display: block;
-  font-size: 0.8rem;
-  color: #666;
+/* General Card Container */
+.deadline-container {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 15px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  max-width: 700px;
+  margin: auto;
 }
 
-.sanction-box {
-  background: #ffe5e5;
-  border: 2px solid red;
+/* --- INFO ROWS WITH SOLID BORDER --- */
+.info-row {
+  background: white;
+  padding: 1rem 1.2rem;
+  border-radius: 12px;
+  border: 2px solid #cfe6d1; /* solid green border */
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.info-label {
+  font-weight: bold;
+  color: #145a32;
+  font-size: 1rem;
+}
+
+.info-value {
+  font-weight: bold;
+  color: #1a1a1a;
+}
+
+/* Countdown Cards */
+.countdown {
+  margin: 1.5rem 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 1rem;
+}
+
+.countdown-card {
+  background: #e8f5e9;
+  padding: 1rem;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.countdown-card span {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #145a32;
+}
+
+.countdown-card small {
+  color: #555;
+}
+
+/* Compliant banner */
+.compliant-banner {
+  background: #c8f7c5;
+  border-left: 5px solid #2e7d32;
+  padding: 1rem;
   border-radius: 10px;
-  padding: 15px;
-  margin-top: 20px;
-  text-align: center; /* Only the sanction centered */
-  color: #a30000;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #1b5e20;
 }
 
-.sanction-box h3 {
-  margin: 0 0 10px;
+/* Sanction box */
+.sanction-box {
+  background: #ffebee;
+  border-left: 5px solid #d32f2f;
+  border-radius: 12px;
+  padding: 1.2rem;
 }
 
 .fine {
   font-size: 1.6rem;
-  color: #d00000;
+  font-weight: bold;
+  color: #c62828;
 }
-
-.fine-detail {
-  font-size: 0.9rem;
-  margin-top: 10px;
-  color: #444;
-}
-
 </style>
