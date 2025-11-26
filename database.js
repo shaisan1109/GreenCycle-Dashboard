@@ -2283,9 +2283,21 @@ function makePlaceholders(arr) {
 /* ========================================================================
    GET APPROVED DATA ENTRY IDs BASED ON FILTERS
 ========================================================================= */
+/* ========================================================================
+   GET APPROVED DATA ENTRY IDs — FIXED LOCATION FILTERING
+========================================================================= */
 export async function getApprovedDataEntryIds(filters) {
-  const { title, barangay, municipality, province, region, author, company, startDate, endDate } = filters;
-  const locationCode = barangay || municipality || province || region || null;
+  const {
+    title,
+    barangay,
+    municipality,
+    province,
+    region,
+    author,
+    company,
+    startDate,
+    endDate
+  } = filters || {};
 
   let query = `
     SELECT dat.data_entry_id, dat.user_id, dat.collection_end
@@ -2298,40 +2310,75 @@ export async function getApprovedDataEntryIds(filters) {
   const conditions = [];
   const params = [];
 
+  // ----------------------------------------------------
+  // TITLE
+  // ----------------------------------------------------
   if (title) {
     conditions.push(`dat.title LIKE ?`);
     params.push(`%${title}%`);
   }
 
-  if (locationCode) {
-    conditions.push(`(dat.region_id = ? OR dat.province_id = ? OR dat.municipality_id = ? OR dat.barangay_id = ?)`);
-    params.push(locationCode, locationCode, locationCode, locationCode);
+  // ----------------------------------------------------
+  // LOCATION HIERARCHY
+  // ----------------------------------------------------
+  if (barangay) {
+    conditions.push(`dat.barangay_id = ?`);
+    params.push(barangay);
+
+  } else if (municipality) {
+    conditions.push(`dat.municipality_id = ?`);
+    params.push(municipality);
+
+  } else if (province) {
+    conditions.push(`dat.province_id = ?`);
+    params.push(province);
+
+  } else if (region) {
+    conditions.push(`dat.region_id = ?`);
+    params.push(region);
   }
 
+  // ----------------------------------------------------
+  // AUTHOR (first name or last name)
+  // ----------------------------------------------------
   if (author) {
-    conditions.push(`(u.lastname LIKE ? OR u.firstname LIKE ?)`);
+    conditions.push(`(u.firstname LIKE ? OR u.lastname LIKE ?)`);
     params.push(`%${author}%`, `%${author}%`);
   }
 
+  // ----------------------------------------------------
+  // COMPANY NAME
+  // ----------------------------------------------------
   if (company) {
     conditions.push(`(c.company_name LIKE ? OR u.company_name LIKE ?)`);
     params.push(`%${company}%`, `%${company}%`);
   }
 
+  // ----------------------------------------------------
+  // DATE RANGE
+  // ----------------------------------------------------
   if (startDate && endDate) {
     conditions.push(`(dat.collection_start >= ? AND dat.collection_end <= ?)`);
     params.push(startDate, endDate);
+
   } else if (startDate) {
     conditions.push(`dat.collection_start >= ?`);
     params.push(startDate);
+
   } else if (endDate) {
     conditions.push(`dat.collection_end <= ?`);
     params.push(endDate);
   }
 
-  if (conditions.length) query += " AND " + conditions.join(" AND ");
+  // ----------------------------------------------------
+  // FINAL QUERY
+  // ----------------------------------------------------
+  if (conditions.length) {
+    query += " AND " + conditions.join(" AND ");
+  }
 
   const [rows] = await sql.query(query, params);
+
   return rows.map(r => ({
     data_entry_id: Number(r.data_entry_id),
     user_id: Number(r.user_id),
