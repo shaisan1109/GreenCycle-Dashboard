@@ -1704,15 +1704,15 @@ function generateCategoryComplianceNarrative(categoryRows) {
   let narrative = `<div class='insight-compliance'>Among the four major waste categories, the overall average diversion rate is <b>${avgDiversion.toFixed(2)}%</b>, compared to the average target rate of <b>${avgTarget.toFixed(2)}%</b>.<br><br> `;
 
   if (compliant.length === categoryRows.length) {
-    narrative += "All waste categories met or exceeded their diversion targets, indicating strong compliance across the board.";
+    narrative += "All waste categories met or exceeded their diversion targets.";
   } else if (nonCompliant.length === categoryRows.length) {
     narrative += "<b style='color:red'>None of the waste categories achieved their diversion targets</b>, showing a need for improved waste recovery efforts.";
   } else {
     const compliantNames = compliant.map(c => c.supertype_name).join(", ");
     const nonCompliantNames = nonCompliant.map(c => c.supertype_name).join(", ");
 
-    narrative += `The following categories are compliant: <b>${compliantNames || 'None'}</b>. `;
-    narrative += `Meanwhile, the following are non-compliant: <b style='color:red'>${nonCompliantNames || 'None'}</b>. `;
+    narrative += `The following categories met their diversion targets: <b>${compliantNames || 'None'}</b>. `;
+    narrative += `Meanwhile, the following did not: <b style='color:red'>${nonCompliantNames || 'None'}</b>. `;
     narrative += "This mixed performance suggests that certain waste streams are being managed more effectively than others.";
   }
 
@@ -1737,16 +1737,16 @@ function generateSectorComplianceNarrative(sectorRows) {
   let narrative = `<div class='insight-compliance'>Across all economic sectors, the average diversion rate is <b>${avgDiversion.toFixed(2)}%</b>, compared to the target rate of <b>${avgTarget.toFixed(2)}%</b>.<br><br>`;
 
   if (compliant.length === sectorRows.length) {
-    narrative += "All sectors are compliant, reflecting broad adherence to waste management targets.";
+    narrative += "All sectors met their diversion targets, reflecting broad adherence to waste management targets.";
   } else if (nonCompliant.length === sectorRows.length) {
-    narrative += "<b style='color:red'>All sectors are non-compliant</b>, indicating significant challenges in meeting diversion goals.";
+    narrative += "<b style='color:red'>All sectors did not meet their diversion targets</b>, indicating significant challenges in meeting diversion goals.";
   } else {
     const compliantNames = compliant.map(s => s.sector_name || s.name).join(", ");
     const nonCompliantNames = nonCompliant.map(s => s.sector_name || s.name).join(", ");
 
-    narrative += `Compliant sectors include: <b>${compliantNames || 'None'}</b>. `;
-    narrative += `Non-compliant sectors include: <b style='color:red'>${nonCompliantNames || 'None'}</b>. `;
-    narrative += "This suggests that compliance levels vary depending on the sector's waste generation and collection efficiency.";
+    narrative += `The following sectors met their diversion targets: <b>${compliantNames || 'None'}</b>. `;
+    narrative += `The following sectors failed to meet diversion targets: <b style='color:red'>${nonCompliantNames || 'None'}</b>. `;
+    narrative += "This suggests that diversion rates vary depending on the sector's waste generation and collection efficiency.";
   }
 
   narrative += "</div>";
