@@ -2237,9 +2237,9 @@ app.post("/api/data/summary/pdf", async (req, res) => {
 
     // Order map: array of arrays (each inner array = one page)
     const sectionGroups = [
-      ["filters", "data-title", "data-info", "participants"],
+      ["filters", "data-title", "data-info"], ["participants"],
       ["compliance-category", "compliance-sector"],
-      ["trends-wastegen"], ["trends-percapita"], ["trends-category"],
+      ["trends-wastegen"], ["trends-category"], ["trends-percapita"],
       ["insights", "top-categories"],
       ["top-cats", "types-biodegradable"],
       ["types-recyclable"],
