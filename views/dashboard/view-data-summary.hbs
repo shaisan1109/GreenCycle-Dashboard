@@ -1059,10 +1059,17 @@ function aggregateDataWithAveraging(dataEntries, aggregationType) {
         };
       }
 
+      // Add company names
       if (!aggregated[periodKey].companyNames) {
         aggregated[periodKey].companyNames = new Set();
       }
       aggregated[periodKey].companyNames.add(entry.company_name);
+
+      // Add location names
+      if (!aggregated[periodKey].locationNames) {
+        aggregated[periodKey].locationNames = new Set();
+      }
+      aggregated[periodKey].locationNames.add(entry.location_name);
       
       const proportion = daysInThisPeriod / entryTotalDays;
       
@@ -1297,8 +1304,9 @@ function renderCompanyLegends(companyColorMap) {
   // Final legend markup with header
   const legendHTML = `
     <br>
-    <div style="text-align:center; margin-bottom:8px; font-weight:bold; font-size:13px;">
-      COMPANY LEGEND
+    <div style="text-align:center; margin-bottom:8px; font-size:13px;">
+      <b>COMPANY LEGEND</b><br>
+      Our data summaries come from data entries provided by different companies and organizations.
     </div>
 
     <div style="
@@ -1843,6 +1851,24 @@ function initChartsWithAggregation(aggregation) {
                       lines.push(`Companies (${companyList.length}):`);
                       companyList.forEach(name => lines.push(`- ${name}`));
                     }
+
+                    // Add a blank line (space) after the company list
+                    lines.push('');
+                  }
+
+                  // Add location list (same ordering as company list)
+                  if (context.dataset.label === 'Actual Data (kg)' && periodData && periodData.locationNames) {
+                    const locationList = Array.from(periodData.locationNames);
+
+                    if (locationList.length === 1) {
+                      lines.push(`Location: ${locationList[0]}`);
+                    } else if (locationList.length > 1) {
+                      lines.push(`Locations (${locationList.length}):`);
+                      locationList.forEach(loc => lines.push(`- ${loc}`));
+                    }
+
+                    // Add a blank line (space) after the company list
+                    lines.push('');
                   }
 
                   return lines;
@@ -1954,7 +1980,7 @@ function initChartsWithAggregation(aggregation) {
                     //periodData ? `From ${periodData.entryCount.toFixed(2)} entries` : ''
                   ];
 
-                  // Add company or list of companies in Chart 1 style
+                  // Add company or list of companies
                   if (periodData && periodData.companyNames) {
                     const companyList = Array.from(periodData.companyNames);
 
@@ -1964,6 +1990,22 @@ function initChartsWithAggregation(aggregation) {
                       lines.push(`Companies (${companyList.length}):`);
                       companyList.forEach(name => lines.push(`- ${name}`));
                     }
+
+                    lines.push('')
+                  }
+
+                  // Add company or list of companies
+                  if (periodData && periodData.locationNames) {
+                    const locationList = Array.from(periodData.locationNames);
+
+                    if (locationList.length === 1) {
+                      lines.push(`Location: ${locationList[0]}`);
+                    } else if (locationList.length > 1) {
+                      lines.push(`Locations (${locationList.length}):`);
+                      locationList.forEach(name => lines.push(`- ${name}`));
+                    }
+
+                    lines.push('')
                   }
 
                   return lines;
@@ -2116,12 +2158,30 @@ function initChartsWithAggregation(aggregation) {
                   if (!periodData) return '';
 
                   const companies = Array.from(periodData.companyNames || []);
+                  const locations = Array.from(periodData.locationNames || []);
+
+                  const lines = [];
+
+                  lines.push('')
+
+                  // Companies block
                   if (companies.length === 1) {
-                    return [`Company: ${companies[0]}`];
+                    lines.push(`Company: ${companies[0]}`);
                   } else if (companies.length > 1) {
-                    return [`Companies (${companies.length}):`, ...companies.map(c => `- ${c}`)];
+                    lines.push(`Companies (${companies.length}):`);
+                    companies.forEach(c => lines.push(`- ${c}`));
                   }
-                  return '';
+                  lines.push('')
+
+                  // Locations block (added)
+                  if (locations.length === 1) {
+                    lines.push(`Location: ${locations[0]}`);
+                  } else if (locations.length > 1) {
+                    lines.push(`Locations (${locations.length}):`);
+                    locations.forEach(l => lines.push(`- ${l}`));
+                  }
+
+                  return lines;
                 },
                 labelColor: ctx => {
                   // Use the dataset's border color instead of backgroundColor

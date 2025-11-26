@@ -2190,6 +2190,7 @@ export async function getTimeSeriesData(title, locationCode, author, company, st
       dat.annual,
       dat.per_capita AS avg_per_capita,
       dat.population,
+      dat.location_name,
       ANY_VALUE(u.company_name) AS company_name,
       COALESCE(SUM(CASE WHEN ws.name = 'Biodegradable' THEN dwc.waste_amount ELSE 0 END), 0) AS biodegradable_weight,
       COALESCE(SUM(CASE WHEN ws.name = 'Recyclable' THEN dwc.waste_amount ELSE 0 END), 0) AS recyclable_weight,
@@ -2220,11 +2221,6 @@ export async function getTimeSeriesData(title, locationCode, author, company, st
     params.push(`%${author}%`, `%${author}%`);
   }
 
-  // if (company) {
-  //   conditions.push(`u.company_name LIKE ?`);
-  //   params.push(`%${company}%`);
-  // }
-
   if (company) {
     conditions.push(`BINARY u.company_name LIKE ?`);
     params.push(`%${company}%`);
@@ -2248,7 +2244,7 @@ export async function getTimeSeriesData(title, locationCode, author, company, st
   // Group by data_entry_id to get one row per entry with all category weights
   query += `
     GROUP BY dat.data_entry_id, dat.collection_start, dat.collection_end, 
-             dat.annual, dat.per_capita, dat.population
+             dat.annual, dat.per_capita, dat.population, dat.location_name
     ORDER BY dat.collection_start ASC
   `;
 
