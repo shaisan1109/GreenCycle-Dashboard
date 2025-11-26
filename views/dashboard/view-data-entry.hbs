@@ -79,12 +79,12 @@
 
 <!-- Compliance Overview -->
 <div class="form-section" style="background-color: rgb(240, 255, 240); padding: 10px 15px; border-left: 4px solid #4caf50; margin-bottom: 15px;">
-  <h2>About Diversion Rates and Compliance</h2>
+  <h2>About Diversion Rates</h2>
   <p>
     <b>Diversion</b> refers to the portion of waste that is prevented from going to landfills or open dumps, whether before or after collection. This includes waste sent to <b>processing or recovery facilities</b> such as Materials Recovery Facilities (MRFs) where it can be reused, recycled, or converted for other uses.
   </p>
   <p>
-    Tracking and meeting <b>diversion targets</b> is essential for reducing landfill dependence, minimizing environmental pollution, and supporting sustainable waste management systems. Regular compliance tracking helps local governments and sectors assess their performance and optimize recovery operations.
+    Tracking and meeting <b>diversion targets</b> is essential for reducing landfill dependence, minimizing environmental pollution, and supporting sustainable waste management systems. Regular diversion rate tracking helps local governments and sectors assess their performance and optimize recovery operations.
   </p>
 </div>
 
@@ -93,7 +93,7 @@
 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
   <!-- Waste Category Compliance -->
   <div data-section="compliance-category" class="form-section" style="background-color: rgb(227, 255, 227); flex: 1 1 calc(50% - 5px);">
-    <h2>Waste Category Compliance Status</h2>
+    <h2>Waste Category Diversion Rates</h2>
 
     <!-- Insights -->
     {{{wasteComplianceNarrative}}}
@@ -105,7 +105,7 @@
         <th>Total Generated</th>
         <th>Diversion %</th>
         <th>Target %</th>
-        <th>Status</th>
+        {{!-- <th>Status</th> --}}
       </tr>
       {{#each wasteCompliance}}
         <tr>
@@ -114,7 +114,7 @@
           <td>{{formatNumber total_generation}} kg</td>
           <td>{{diversion_pct}}%</td>
           <td>{{target_rate}}%</td>
-          <td class="{{#if (eq compliance_status 'Non-Compliant')}}non-compliant{{/if}}">{{compliance_status}}</td>
+          {{!-- <td class="{{#if (eq compliance_status 'Non-Compliant')}}non-compliant{{/if}}">{{compliance_status}}</td> --}}
         </tr>
       {{/each}}
     </table>
@@ -122,7 +122,7 @@
 
   <!-- Sector Compliance -->
   <div data-section="compliance-sector" class="form-section" style="background-color: rgb(227, 255, 227); flex: 1 1 calc(50% - 5px);">
-    <h2>Waste Sector Compliance Status</h2>
+    <h2>Waste Sector Diversion Rates</h2>
 
     <!-- Insights -->
     {{{sectorComplianceNarrative}}}
@@ -134,7 +134,7 @@
         <th>Total Generated</th>
         <th>Diversion %</th>
         <th>Target %</th>
-        <th>Status</th>
+        {{!-- <th>Status</th> --}}
       </tr>
       {{#each sectorCompliance}}
         <tr>
@@ -143,7 +143,7 @@
           <td>{{formatNumber total_generation}} kg</td>
           <td>{{diversion_pct}}%</td>
           <td>{{target_rate}}%</td>
-          <td class="{{#if (eq compliance_status 'Non-Compliant')}}non-compliant{{/if}}">{{compliance_status}}</td>
+          {{!-- <td class="{{#if (eq compliance_status 'Non-Compliant')}}non-compliant{{/if}}">{{compliance_status}}</td> --}}
         </tr>
       {{/each}}
     </table>
@@ -1562,14 +1562,6 @@ function exportTableToExcel() {
 .compliance-table tr:hover {
   background-color: #eef9ee;
   transition: background-color 0.15s ease-in-out;
-}
-
-/* Numeric alignment for percentage/weight columns */
-.compliance-table td:nth-child(2),
-.compliance-table td:nth-child(3),
-.compliance-table td:nth-child(4),
-.compliance-table td:nth-child(5) {
-  text-align: right;
 }
 
 /* Status column styling */
