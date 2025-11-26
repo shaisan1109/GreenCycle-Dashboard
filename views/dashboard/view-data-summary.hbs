@@ -234,6 +234,8 @@
         <i class="fa-solid fa-circle-info"></i> <b>NOTE:</b> To keep the chart readable, some x-axis labels are hidden when space is limited. Increase the zoom to view more labels.
       </div>
 
+      <center><i>Hover over the data points to view the involved companies and locations.</i></center>
+
       <!-- Actual chart -->
       <div class="chart-viewport">
         <div id="trendTotalWasteContainer" class="chart-content" style="height: 500px">
@@ -245,51 +247,6 @@
       <div style="margin-top: 1rem; padding: 1rem; background: #e8f5e9; border-radius: 6px; font-size: 0.9rem;">
         <strong style="color: #2d613f;">📊 Trend Analysis:</strong>
         <span id="regressionStats" style="color: #555;"></span>
-      </div>
-    </div>
-
-    <!-- Per Capita Trend -->
-    <div class="trend-chart-box" data-section="trends-percapita">
-      <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
-        <i class="fa-solid fa-user"></i> Per Capita Waste Trend
-      </h3>
-
-      <p>This chart shows estimates on <b>how much waste each person is generating</b> over time.</p>
-      <ul><li><b style="color:#FF9800">Orange line with dots</b> - Each point represents the average waste per person for a specific period (month or year).</li></ul>
-
-      <div class="companyLegend"></div>
-
-      <!-- Zoom -->
-      <div class="chart-zoom-slider">
-        Zoom Width&emsp;
-        <input 
-          type="range" 
-          class="zoom-range" 
-          data-target="trendPerCapitaContainer"
-          min="40" 
-          max="200" 
-          value="50" 
-          step="5"
-          style="width: 220px; cursor: pointer;"
-        >
-      </div>
-      <small style="color: gray;">Drag this slider to widen/shorten this chart.</small><br>
-
-      <div class="chart-omission-note">
-        <i class="fa-solid fa-circle-info"></i> <b>NOTE:</b> To keep the chart readable, some x-axis labels are hidden when space is limited. Increase the zoom to view more labels.
-      </div>
-
-      <!-- Actual chart -->
-      <div class="chart-viewport">
-        <div id="trendPerCapitaContainer" class="chart-content" style="height: 500px">
-          <canvas id="trendPerCapita"></canvas>
-        </div>
-      </div>
-
-      <!-- Per capita blurb -->
-      <div style="margin-top: 1rem; padding: 1rem; background: #e8f5e9; border-radius: 6px; font-size: 0.9rem;">
-        <strong style="color: #2d613f;">📊 Trend Analysis:</strong>
-        <span id="perCapitaStats" style="color: #555;"></span>
       </div>
     </div>
 
@@ -323,6 +280,8 @@
         <i class="fa-solid fa-circle-info"></i> <b>NOTE:</b> To keep the chart readable, some x-axis labels are hidden when space is limited. Increase the zoom to view more labels.
       </div>
 
+      <center><i>Hover over the data points to view the involved companies and locations.</i></center>
+
       <div class="chart-viewport">
         <div id="trendByCategoryContainer" class="chart-content" style="height: 500px">
           <canvas id="trendByCategory"></canvas>
@@ -334,6 +293,53 @@
         <span id="categoryStats" style="color: #555;"></span>
       </div>
 
+    </div>
+
+    <!-- Per Capita Trend -->
+    <div class="trend-chart-box" data-section="trends-percapita">
+      <h3 style="color: #2d613f; font-size: 1.1rem; margin-bottom: 0.75rem;">
+        <i class="fa-solid fa-user"></i> Per Capita Waste Trend
+      </h3>
+
+      <p>This chart shows estimates on <b>how much waste each person is generating</b> over time.</p>
+      <ul><li><b style="color:#FF9800">Orange line with dots</b> - Each point represents the average waste per person for a specific period (month or year).</li></ul>
+
+      <div class="companyLegend"></div>
+
+      <!-- Zoom -->
+      <div class="chart-zoom-slider">
+        Zoom Width&emsp;
+        <input 
+          type="range" 
+          class="zoom-range" 
+          data-target="trendPerCapitaContainer"
+          min="40" 
+          max="200" 
+          value="50" 
+          step="5"
+          style="width: 220px; cursor: pointer;"
+        >
+      </div>
+      <small style="color: gray;">Drag this slider to widen/shorten this chart.</small><br>
+
+      <div class="chart-omission-note">
+        <i class="fa-solid fa-circle-info"></i> <b>NOTE:</b> To keep the chart readable, some x-axis labels are hidden when space is limited. Increase the zoom to view more labels.
+      </div>
+
+      <center><i>Hover over the data points to view the involved companies and locations.</i></center>
+
+      <!-- Actual chart -->
+      <div class="chart-viewport">
+        <div id="trendPerCapitaContainer" class="chart-content" style="height: 500px">
+          <canvas id="trendPerCapita"></canvas>
+        </div>
+      </div>
+
+      <!-- Per capita blurb -->
+      <div style="margin-top: 1rem; padding: 1rem; background: #e8f5e9; border-radius: 6px; font-size: 0.9rem;">
+        <strong style="color: #2d613f;">📊 Trend Analysis:</strong>
+        <span id="perCapitaStats" style="color: #555;"></span>
+      </div>
     </div>
 
 <!-- ==========================================================
