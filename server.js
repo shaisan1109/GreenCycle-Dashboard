@@ -3013,6 +3013,110 @@ app.post("/api/data/edit-report", async (req, res) => {
   }
 });
 
+// API: Edit report via spreadsheet upload
+app.post("/api/data/edit-report/upload", xlsxUpload.single('spreadsheet'), async (req, res) => {
+  try {
+    const { dataEntryId, title, region, province, municipality, barangay, date_start, date_end, comment } = req.body;
+    const currentUser = req.session.user.id;
+
+    if (!req.file) {
+      return res.status(400).json({ error: "No spreadsheet file uploaded" });
+    }
+
+    /* ------- LOCATION NAME ------- */
+    const psgcRegions = await PSGCResource.getRegions();
+    const psgcProvinces = await PSGCResource.getProvinces();
+    const psgcMunicipalities = await PSGCResource.getMunicipalities();
+    const psgcCities = await PSGCResource.getCities();
+    const psgcBarangays = await PSGCResource.getBarangays();
+    const psgcMunicDistricts = await PSGCResource.getMunicipalDistricts();
+
+    const regionName = getPsgcName(psgcRegions, region);
+    const provinceName = getPsgcName(psgcProvinces, province) || null;
+    const municipalityName = getPsgcName(psgcMunicipalities, municipality) || getPsgcName(psgcCities, municipality) || null;
+    const barangayName = getPsgcName(psgcBarangays, barangay) || getPsgcName(psgcMunicDistricts, barangay) || null;
+
+    const parts = [barangayName, municipalityName, provinceName, regionName].filter(Boolean);
+    const fullLocation = parts.join(', ');
+
+    /* ------- XLSX DATA EXTRACTION ------- */
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+    // Manual data
+    const population = json[0]?.[1] || '';
+    const per_capita = json[1]?.[1] || '';
+    const annual = json[2]?.[1] || '';
+
+    // Sector names
+    const sectorHeaderRow = 6;
+    const sectors = json[sectorHeaderRow]?.slice(2) || [];
+
+    // Waste data matrix
+    const matrixStartRow = 7;
+    const wasteMatrix = [];
+    let currentSupertype = '';
+
+    for (let i = matrixStartRow; i < json.length; i++) {
+      const row = json[i];
+      if (!row || !row[1]) continue;
+
+      if (row[0]) currentSupertype = row[0];
+
+      const type = row[1];
+      const values = row.slice(2);
+
+      wasteMatrix.push({ supertype: currentSupertype, type, values });
+    }
+
+    // Delete uploaded file after parsing
+    fs.unlinkSync(req.file.path);
+
+    /* ------- WASTE MATRIX CONVERSION ------- */
+    const types = await getWasteTypes();
+    const sectorsDb = await getSectors();
+
+    const typeMap = Object.fromEntries(types.map(t => [t.name.trim(), t.id]));
+    const sectorMap = Object.fromEntries(sectorsDb.map(s => [s.name.trim(), s.id]));
+
+    const wasteComposition = buildWasteCompositionFromMatrix(wasteMatrix, sectors, typeMap, sectorMap);
+
+    /* ------- UPDATE ENTRY ------- */
+    await updateForm(
+      dataEntryId, title, region, province, municipality, barangay, fullLocation, 
+      population, per_capita, annual, date_start, date_end, wasteComposition
+    );
+
+    // Update entry status to Revised
+    await updateDataStatus(dataEntryId, 'Revised');
+
+    // Create revision entry
+    const revisionId = await createRevisionEntry(dataEntryId, currentUser, 'Resubmitted via Spreadsheet', comment || '');
+    await updateCurrentLog(dataEntryId, revisionId);
+
+    // Create task
+    await createTask(dataEntryId);
+
+    res.status(200).json({
+      message: "Report revised successfully via spreadsheet upload",
+      redirectUrl: `/dashboard/data/wip/${dataEntryId}`
+    });
+
+  } catch (error) {
+    console.error("Error processing spreadsheet revision:", error);
+    
+    // Clean up uploaded file on error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    
+    res.status(500).json({ error: "Failed to process spreadsheet revision" });
+  }
+});
+
 // Conversion function for spreadsheet upload API
 function buildWasteCompositionFromMatrix(wasteMatrix, sectorNames, typeMap, sectorMap) {
   const wasteComposition = [];

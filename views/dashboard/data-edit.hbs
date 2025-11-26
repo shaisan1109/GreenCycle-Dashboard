@@ -1,42 +1,37 @@
-<h2><center>Edit Data Entry</center></h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Data Entry</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
 
-<!-- Step Labels -->
-<div class="form-section-label step-labels-section">
-  <div class="step-labels">
-    <span class="label current">
-      Personal Info +<br>Waste Generation
-    </span>
+<h2>Edit Data Entry: {{wasteGen.title}}</h2>
 
-    {{#each supertypes}}
-      <span class="label">
-        Waste Composition<br>{{name}}
-      </span>
-    {{/each}}
-
-    <span class="label current">
-      User Comments
-    </span>
-  </div>
+<!-- Submission Method Toggle -->
+<div class="method-toggle">
+    <button type="button" class="toggle-btn active" data-method="manual">
+        <i class="fas fa-keyboard"></i> Manual Entry
+    </button>
+    <button type="button" class="toggle-btn" data-method="upload">
+        <i class="fas fa-upload"></i> Upload Spreadsheet
+    </button>
 </div>
 
-<form id="waste-form" data-prefill-region="{{prefill.region}}" data-prefill-province="{{prefill.province}}" data-prefill-municipality="{{prefill.municipality}}" data-prefill-barangay="{{prefill.barangay}}" novalidate>
+<!-- MANUAL FORM (existing form - UNCHANGED LAYOUT) -->
+<div id="manual-form" style="display: block;">
+    <form id="manual-entry-form">
+        <input type="hidden" name="dataEntryId" id="dataEntryId" value="{{dataEntryId}}">
 
-    <!-- Pass data entry ID to submission JS -->
-    <input type="hidden" name="dataEntryId" value="{{dataEntryId}}">
-
-    <!-- Step 1 -->
-    <div class="step active" data-step="0">
-        <!-- Title Section -->
         <div class="form-section">
             <h3><i class="fas fa-heading"></i> Submission Title</h3>
-
             <label for="title">Title<span class="required">*</span></label>
-            <input type="text" name="title" id="title"
-                    placeholder="Provide a meaningful title (up to 100 characters only)" maxlength="100" value="{{wasteGen.title}}">
+            <input type="text" name="title" id="title" value="{{wasteGen.title}}" required>
             <div class="error-msg" id="error-title"></div>
         </div>
 
-        <!-- Personal Information -->
         <div class="form-section">
             <h3><i class="fas fa-user"></i> Personal Information</h3>
             <p><strong>Name:</strong> {{uppercase user.lastname}}, {{user.firstname}}</p>
@@ -44,718 +39,983 @@
             <input type="hidden" id="company" name="company" value="{{user.company}}">
         </div>
 
-        <!-- Location Selection -->
         <div class="form-section">
             <h3><i class="fas fa-map-marker-alt"></i> Select Location</h3>
 
-            <label for="regions">Region<span class="required">*</span></label>
-            <select name="region" id="regions">
-            <option value="">Select a region</option>
-                <!-- Populated by locations.js -->
+            <label for="region">Region<span class="required">*</span></label>
+            <select name="region" id="regions" required 
+                data-prefill-region="{{prefill.region}}" 
+                data-prefill-province="{{prefill.province}}" 
+                data-prefill-municipality="{{prefill.municipality}}" 
+                data-prefill-barangay="{{prefill.barangay}}">
+                <option value="">Select a region</option>
             </select>
             <div class="error-msg" id="error-regions"></div>
 
-            <label for="provinces">Province</label>
+            <label for="province">Province</label>
             <select name="province" id="provinces" disabled>
                 <option value="">Select a province</option>
-                <!-- Populated by locations.js -->
             </select>
 
-            <label for="municipalities">City/Municipality</label>
+            <label for="municipality">City/Municipality</label>
             <select name="municipality" id="municipalities" disabled>
                 <option value="">Select a city/municipality</option>
-                <!-- Populated by locations.js -->
             </select>
 
             <label for="barangay">Barangay (if applicable)</label>
             <select name="barangay" id="barangay" disabled>
                 <option value="">Select a barangay</option>
-                <!-- Populated by locations.js -->
             </select>
         </div>
 
-        <!-- Location & Waste Information -->
         <div class="form-section">
-            <h3><i class="fas fa-database"></i> Waste Generation & Collection Info</h3>
-
-            <label for="population">Population (based on Census)<span class="required">*</span></label>
-            <input type="number" id="population" name="population" min="0" value="{{wasteGen.population}}">
-            <div class="error-msg" id="error-population"></div>
-
-            <label for="per_capita">Waste Generation per Capita (Kg/cap-day)<span class="required">*</span></label>
-            <input type="number" id="per_capita" name="per_capita" min="0" step="0.001" value="{{wasteGen.per_capita}}">
-            <div class="error-msg" id="error-per_capita"></div>
-
-            <label for="annual">Annual Waste Generation (kg/year)<span class="required">*</span></label>
-            <input type="number" id="annual" name="annual" min="0" step="0.001" value="{{wasteGen.annual}}">
-            <div class="error-msg" id="error-annual"></div>
+            <h3><i class="fas fa-calendar-alt"></i> Collection Period</h3>
 
             <label for="date_start">Data Collection Start Date<span class="required">*</span></label>
-            <input type="date" id="date_start" name="date_start" value="{{wasteGen.collection_start}}">
+            <input type="date" id="date_start" name="date_start" value="{{wasteGen.collection_start}}" required>
             <div class="error-msg" id="error-date_start"></div>
 
             <label for="date_end">Data Collection End Date<span class="required">*</span></label>
-            <input type="date" id="date_end" name="date_end" value="{{wasteGen.collection_end}}">
+            <input type="date" id="date_end" name="date_end" value="{{wasteGen.collection_end}}" required>
             <div class="error-msg" id="error-date_end"></div>
         </div>
-    </div>
 
-    <!-- Waste Composition -->
-    {{#each supertypes}}
-        <div class="form-section form-table waste-supertype step" data-step="{{id}}">
-            <h3><i class="fas fa-recycle"></i> Waste Composition: {{uppercase name}}</h3>
-            <h3 style="font-weight: normal;">NOTE: Values must be the weight in&nbsp; <b>kilograms (kg)</b>.</h3>
+        <div class="form-section">
+            <h3><i class="fas fa-dumpster"></i> Waste Generation Information</h3>
 
-            <div class="waste-table-wrapper">
-              <table class="waste-table">
-                  <thead>
-                  <tr>
-                      <th>Type of Waste</th>
-                      {{#each ../sectors}}
-                      <th>{{name}}</th>
-                      {{/each}}
-                  </tr>
-                  </thead>
-                  <tbody>
-                    {{#each types}}
+            <label for="population">Population (based on Census)<span class="required">*</span></label>
+            <input type="number" id="population" name="population" value="{{wasteGen.population}}" required>
+            <div class="error-msg" id="error-population"></div>
+
+            <label for="per_capita">Waste Generation per Capita (kg/cap-day)<span class="required">*</span></label>
+            <input type="number" id="per_capita" name="per_capita" step="0.001" value="{{wasteGen.per_capita}}" required>
+            <div class="error-msg" id="error-per_capita"></div>
+
+            <label for="annual">Annual Waste Generation (kg/year)<span class="required">*</span></label>
+            <input type="number" id="annual" name="annual" step="0.001" value="{{wasteGen.annual}}" required>
+            <div class="error-msg" id="error-annual"></div>
+        </div>
+
+        <!-- Waste Composition Table -->
+        <div class="form-section">
+            <h3><i class="fas fa-table"></i> Waste Composition Data</h3>
+            <p style="font-size: 0.95rem; color: #666; margin-bottom: 1rem;">
+                Enter waste amounts (in kg) for each waste type and sector. Leave cells as 0 if no waste was collected.
+            </p>
+
+            <div style="overflow-x: auto;">
+                <table class="waste-input-table">
+                    <thead>
                         <tr>
-                        <td>{{name}}</td>
-                        {{#each ../../sectors}}
-                            <td>
-                            <input
-                                type="number"
-                                sectorId="{{id}}"
-                                typeId="{{../id}}"
-                                class="waste-entry"
-                                min="0"
-                                step="0.01"
-                                value="{{lookup @root.wasteMap (concat id ../id)}}"
-                            >
-                            </td>
-                        {{/each}}
+                            <th rowspan="2">Waste Category</th>
+                            <th rowspan="2">Waste Type</th>
+                            <th colspan="{{sectors.length}}">Economic Sector (kg)</th>
                         </tr>
-                    {{/each}}
+                        <tr>
+                            {{#each sectors}}
+                            <th>{{name}}</th>
+                            {{/each}}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each supertypes}}
+                        {{#each types}}
+                        <tr>
+                            {{#if @first}}
+                            <td rowspan="{{../types.length}}" class="supertype-cell">{{../name}}</td>
+                            {{/if}}
+                            <td>{{name}}</td>
+                            {{#each ../../sectors}}
+                            <td>
+                                <input 
+                                    type="number" 
+                                    step="0.001" 
+                                    min="0"
+                                    name="waste_{{this.id}}_{{../id}}"
+                                    value="{{#with (lookup ../../../wasteMap (concat this.id '-' ../id))}}{{this}}{{else}}0{{/with}}"
+                                    class="waste-input"
+                                    data-type-id="{{../id}}"
+                                    data-sector-id="{{this.id}}"
+                                    data-waste-key="{{this.id}}-{{../id}}"
+                                />
+                            </td>
+                            {{/each}}
+                        </tr>
+                        {{/each}}
+                        {{/each}}
                     </tbody>
-              </table>
+                </table>
             </div>
         </div>
-    {{/each}}
 
-    <!-- User comments (mandatory) -->
-    <div class="form-section form-table waste-supertype step" data-step="5">
-      <h3><i class="fas fa-recycle"></i> User Comments</h3>
-      <h3 style="font-weight: normal;">Describe the changes made to your entry.&nbsp;<span style="color: red;">(required)</span> </h3>
+        <div class="form-section">
+            <h3><i class="fas fa-comment"></i> Revision Comment (Optional)</h3>
+            <label for="comment">Add a comment about your changes</label>
+            <textarea id="comment" name="comment" rows="4" placeholder="Describe what you changed or updated..."></textarea>
+        </div>
 
-      <textarea id="comment" name="comment" rows="10"></textarea>
-    </div>
-
-    <div>
-        <center>
-            <button type="button" id="prevBtn" class="disabled upload-btn">Previous</button>
-            <button type="button" id="nextBtn" class="disabled upload-btn">Next</button>
-            <button type="button" id="modalBtn" class="disabled upload-btn" onclick="showConfirm()">Submit Changes</button>
-        </center>
-    </div>
-
-<!-- Confirm modal -->
-<div id="confirm-modal" class="modal">
-    <div class="modal-content">
-        <span id="confirm-close" class="close">&times;</span>
-        <h3>Confirm Changes</h3>
-        <h3 style="font-weight: normal;">Submit changes?</h3>
-
-        <button type="button" id="confirm-no" class="review-cancel">
-          No
-        </button>&emsp;
-
-        <button type="submit" id="confirm-yes" class="review-approve">
-          Yes
-        </button>
-    </div>
-</div>
-</form>
-
-<!-- Success modal -->
-<div id="success-approve" class="modal">
-    <div class="modal-content">
-        <h3>Success</h3>
-        Data entry has been re-submitted for review.<br><br>
-
-        <a href="/dashboard">
-            <button type="button" class="review-approve">
-                Return to Home
-            </button>
-        </a>
-    </div>
+        <div class="form-section">
+            <center>
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-save"></i> Submit Revised Entry
+                </button>
+                <a href="/dashboard/data/wip/{{dataEntryId}}">
+                    <button type="button" class="btn-cancel">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </a>
+            </center>
+        </div>
+    </form>
 </div>
 
-<!-- Error modal -->
-<div id="error-approve" class="modal">
-    <div class="modal-content">
-        <h3>ERROR</h3>
-        An error has occurred.<br><br>
+<!-- UPLOAD FORM (new spreadsheet upload) -->
+<div id="upload-form" style="display: none;">
+    <form id="upload-entry-form" enctype="multipart/form-data">
+        <input type="hidden" name="dataEntryId" value="{{dataEntryId}}">
 
-        <a href="/dashboard">
-            <button type="button" class="review-approve">
-                Return to Home
-            </button>
-        </a>
-    </div>
+        <div class="step active" data-step="0">
+            <div class="instructions-tab">
+                <h2><i class="fas fa-upload"></i> Spreadsheet Upload Instructions</h2>
+
+                <p>Please follow these steps to prepare and upload your revised spreadsheet:</p>
+
+                <ul>
+                    <li><i class="fas fa-download"></i> Download the spreadsheet format using the button below.</li>
+                    <li><i class="fas fa-pen"></i> <strong>Only fill in the yellow cells</strong>. These are the editable fields.</li>
+                    <li><i class="fas fa-ban"></i> <strong>Do not leave yellow cells blank</strong>. If the value is zero, enter 0.</li>
+                    <li><i class="fas fa-exclamation-circle"></i> Do not modify headers or any non-yellow cell.</li>
+                    <li><i class="fas fa-upload"></i> Once completed, return to the form tab and upload your file.</li>
+                </ul>
+
+                <a href="/static/waste-upload-template.xlsx" class="download-btn" download>
+                    <i class="fas fa-file-excel"></i> Download Spreadsheet Format
+                </a>
+            </div>
+        </div>
+
+        <div class="step active" data-step="1">
+            <div class="form-section">
+                <h3><i class="fas fa-heading"></i> Submission Title</h3>
+                <label for="title-upload">Title<span class="required">*</span></label>
+                <input type="text" name="title" id="title-upload" value="{{wasteGen.title}}" required>
+                <div class="error-msg" id="error-title-upload"></div>
+            </div>
+
+            <div class="form-section">
+                <h3><i class="fas fa-user"></i> Personal Information</h3>
+                <p><strong>Name:</strong> {{uppercase user.lastname}}, {{user.firstname}}</p>
+                <p><strong>Company:</strong> {{user.company}}</p>
+                <input type="hidden" name="company" value="{{user.company}}">
+            </div>
+
+            <div class="form-section">
+                <h3><i class="fas fa-map-marker-alt"></i> Select Location</h3>
+
+                <label for="region-upload">Region<span class="required">*</span></label>
+                <select name="region" id="region-upload" required>
+                    <option value="">Select a region</option>
+                </select>
+                <div class="error-msg" id="error-region-upload"></div>
+
+                <label for="province-upload">Province</label>
+                <select name="province" id="province-upload" disabled>
+                    <option value="">Select a province</option>
+                </select>
+
+                <label for="municipality-upload">City/Municipality</label>
+                <select name="municipality" id="municipality-upload" disabled>
+                    <option value="">Select a city/municipality</option>
+                </select>
+
+                <label for="barangay-upload">Barangay (if applicable)</label>
+                <select name="barangay" id="barangay-upload" disabled>
+                    <option value="">Select a barangay</option>
+                </select>
+            </div>
+
+            <div class="form-section">
+                <h3><i class="fas fa-calendar-alt"></i> Collection Period</h3>
+
+                <label for="date_start_upload">Data Collection Start Date<span class="required">*</span></label>
+                <input type="date" id="date_start_upload" name="date_start" value="{{wasteGen.collection_start}}" required>
+                <div class="error-msg" id="error-date_start_upload"></div>
+
+                <label for="date_end_upload">Data Collection End Date<span class="required">*</span></label>
+                <input type="date" id="date_end_upload" name="date_end" value="{{wasteGen.collection_end}}" required>
+                <div class="error-msg" id="error-date_end_upload"></div>
+            </div>
+
+            <div class="form-section">
+                <h3><i class="fas fa-file-upload"></i> Upload Revised Waste Data Spreadsheet</h3>
+
+                <div id="drop-area-upload" class="drop-area">
+                    <p><i class="fas fa-cloud-upload-alt fa-2x"></i></p>
+                    <p>Drag and drop your spreadsheet here<br>or click to browse</p>
+                    <input type="file" id="fileElemUpload" name="spreadsheet" accept=".xlsx,.xls,.csv" required>
+                </div>
+
+                <p id="file-name-display-upload" class="file-name"></p>
+
+                <div id="xlsx-errors-upload" class="form-errors"></div>
+            </div>
+
+            <div class="form-section">
+                <h3><i class="fas fa-comment"></i> Revision Comment (Optional)</h3>
+                <label for="comment-upload">Add a comment about your changes</label>
+                <textarea id="comment-upload" name="comment" rows="4" placeholder="Describe what you changed or updated..."></textarea>
+            </div>
+
+            <div class="form-section">
+                <center>
+                    <button type="submit" class="upload-btn">
+                        <i class="fas fa-upload"></i> Upload and Submit Revision
+                    </button>
+                    <a href="/dashboard/data/wip/{{dataEntryId}}">
+                        <button type="button" class="btn-cancel">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </a>
+                </center>
+            </div>
+        </div>
+    </form>
 </div>
 
-<script src="/../js/form-step-edit.js" type="text/javascript"></script>
 <script src="/../js/locations.js" type="text/javascript"></script>
-<script src="/../js/waste-composition-edit.js" type="text/javascript"></script>
+<script src="/../js/file-drop.js" type="text/javascript"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-<!-- Date picker control -->
 <script>
-  const startDateInput = document.getElementById('date_start');
-  const endDateInput = document.getElementById('date_end');
+// Populate waste composition values from wasteMap
+document.addEventListener('DOMContentLoaded', function() {
+    // Parse wasteMap from server
+    const wasteMap = {{{json wasteMap}}};
+    
+    // Populate each input field
+    document.querySelectorAll('.waste-input').forEach(input => {
+        const key = input.dataset.wasteKey;
+        if (wasteMap[key] !== undefined && wasteMap[key] !== null) {
+            input.value = wasteMap[key];
+        }
+    });
+});
 
-  startDateInput.addEventListener('input', function () {
-    if (startDateInput.value) {
-      endDateInput.disabled = false;
-      endDateInput.min = startDateInput.value; // Optional: prevent selecting end date before start date
-    } else {
-      endDateInput.disabled = true;
-      endDateInput.value = '';
+// Method toggle functionality
+document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const method = this.dataset.method;
+        
+        // Update button states
+        document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Toggle forms
+        if (method === 'manual') {
+            document.getElementById('manual-form').style.display = 'block';
+            document.getElementById('upload-form').style.display = 'none';
+        } else {
+            document.getElementById('manual-form').style.display = 'none';
+            document.getElementById('upload-form').style.display = 'block';
+        }
+    });
+});
+
+// Initialize location dropdowns for upload form
+document.addEventListener('DOMContentLoaded', function() {
+    // Set prefill values for upload form
+    const prefillRegion = '{{prefill.region}}';
+    const prefillProvince = '{{prefill.province}}';
+    const prefillMunicipality = '{{prefill.municipality}}';
+    const prefillBarangay = '{{prefill.barangay}}';
+    
+    if (prefillRegion) {
+        setTimeout(() => {
+            document.getElementById('region-upload').value = prefillRegion;
+            document.getElementById('region-upload').dispatchEvent(new Event('change'));
+            
+            if (prefillProvince) {
+                setTimeout(() => {
+                    document.getElementById('province-upload').value = prefillProvince;
+                    document.getElementById('province-upload').dispatchEvent(new Event('change'));
+                    
+                    if (prefillMunicipality) {
+                        setTimeout(() => {
+                            document.getElementById('municipality-upload').value = prefillMunicipality;
+                            document.getElementById('municipality-upload').dispatchEvent(new Event('change'));
+                            
+                            if (prefillBarangay) {
+                                setTimeout(() => {
+                                    document.getElementById('barangay-upload').value = prefillBarangay;
+                                }, 300);
+                            }
+                        }, 300);
+                    }
+                }, 300);
+            }
+        }, 500);
     }
-  });
-</script>
+});
 
-<!-- Step 1 validation script -->
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  // Null guard for waste comp table
-  const wasteInputs = document.querySelectorAll("input.waste-entry");
+// File upload validation for upload form
+document.getElementById("fileElemUpload").addEventListener("change", async function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  wasteInputs.forEach(input => {
-      // Allow user to type freely (even erase)
-      input.addEventListener("input", () => {
-          const value = parseFloat(input.value);
-          if (!isNaN(value) && value < 0) {
-              input.value = 0; // Clamp negatives
-          }
-      });
+    const errorDiv = document.getElementById("xlsx-errors-upload");
+    errorDiv.innerHTML = "";
+    errorDiv.classList.remove("show");
 
-      // NEW: On focus, if value is exactly 0, clear it temporarily
-      input.addEventListener("focus", () => {
-          if (parseFloat(input.value) === 0) {
-              input.dataset.wasZero = "true"; // track that we cleared a zero
-              input.value = "";
-          } else {
-              input.dataset.wasZero = "false";
-          }
-      });
+    document.getElementById("file-name-display-upload").textContent = `Selected: ${file.name}`;
 
-      // On blur, restore 0 if left blank or invalid
-      input.addEventListener("blur", () => {
-          if (input.value.trim() === "" || isNaN(parseFloat(input.value))) {
-              input.value = 0;
-          }
-          delete input.dataset.wasZero;
-      });
-  });
+    const reader = new FileReader();
 
-  // Prevent accidental submission by pressing Enter
-  const form = document.getElementById("waste-form"); // Or use a specific ID if needed
+    reader.onload = function (e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: "array" });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-  form.addEventListener("keydown", function (e) {
-    if (e.key === "Enter" && e.target.tagName !== "TEXTAREA") {
-        e.preventDefault();
+            const errors = [];
+
+            // Validate Manual Data
+            const population = json[0]?.[1];
+            const perCapita = json[1]?.[1];
+            const annual = json[2]?.[1];
+
+            if (population === undefined || population === null || population.toString().trim() === '') {
+                errors.push("Population is required.");
+            } else if (!/^\d+$/.test(population.toString())) {
+                errors.push("Population must be a whole number.");
+            }
+
+            if (perCapita === undefined || perCapita === null || perCapita.toString().trim() === '') {
+                errors.push("Per Capita is required.");
+            } else if (isNaN(perCapita)) {
+                errors.push("Per Capita must be a number.");
+            }
+
+            if (annual === undefined || annual === null || annual.toString().trim() === '') {
+                errors.push("Annual Total is required.");
+            } else if (isNaN(annual)) {
+                errors.push("Annual Total must be a number.");
+            }
+
+            // Matrix Validations
+            const sectorHeaderRow = 6;
+            const matrixStartRow = 7;
+            const sectors = json[sectorHeaderRow]?.slice(2) || [];
+            const columnCount = 2 + sectors.length;
+
+            for (let i = matrixStartRow; i < json.length; i++) {
+                const row = json[i];
+                if (!row || !row[1]) continue;
+
+                const rowLabel = row[1] || `row ${i + 1}`;
+
+                for (let j = 2; j < columnCount; j++) {
+                    const cell = row[j];
+                    const colIndex = j - 2;
+                    const sectorName = sectors[colIndex] || `Sector ${colIndex + 1}`;
+
+                    if (cell === undefined || cell === null || cell.toString().trim() === '') {
+                        errors.push(`Blank cell in "${rowLabel}" under "${sectorName}".`);
+                    } else if (isNaN(cell)) {
+                        errors.push(`Invalid number in "${rowLabel}" under "${sectorName}": "${cell}"`);
+                    }
+                }
+            }
+
+            if (errors.length > 0) {
+                displayEnhancedErrors(errors, 'xlsx-errors-upload');
+                document.querySelector(".upload-btn").disabled = true;
+            } else {
+                displayEnhancedErrors([], 'xlsx-errors-upload');
+                document.querySelector(".upload-btn").disabled = false;
+            }
+
+        } catch (error) {
+            console.error('Error processing file:', error);
+            displayEnhancedErrors(['Error processing file: ' + error.message], 'xlsx-errors-upload');
+            document.querySelector(".upload-btn").disabled = true;
+        }
+    };
+
+    reader.onerror = function(error) {
+        console.error('FileReader error:', error);
+        displayEnhancedErrors(['Error reading file: ' + error.message], 'xlsx-errors-upload');
+    };
+
+    reader.readAsArrayBuffer(file);
+});
+
+// Enhanced error display function
+function displayEnhancedErrors(errors, targetId) {
+    const errorDiv = document.getElementById(targetId);
+    
+    if (!errors || errors.length === 0) {
+        errorDiv.innerHTML = "";
+        errorDiv.classList.remove("show");
+        return;
     }
-  });
 
-  // Check for any null values on first step
-  // Also check if the syntax is correct
-  const requiredFields = ['#title', '#regions', '#population', '#per_capita', '#annual', '#date_start', '#date_end'];
+    const categories = {
+        manual: {
+            title: "Required Information",
+            icon: "fas fa-user-edit",
+            errors: []
+        },
+        matrix: {
+            title: "Spreadsheet Data", 
+            icon: "fas fa-table",
+            errors: []
+        }
+    };
 
-  function validateStep1Fields() {
-    let allValid = true;
-
-    requiredFields.forEach(selector => {
-      const el = document.querySelector(selector);
-      const val = el.value.trim();
-      const errorEl = document.getElementById('error-' + el.id);
-      const touched = el.dataset.touched === 'true';
-      let error = '';
-
-      switch (selector) {
-        case '#title':
-          if (!val) error = 'Title is required.';
-          break;
-
-        case '#regions':
-          if (!val) error = 'Please select a region.';
-          break;
-
-        case '#population':
-          if (!val) error = 'Population is required.';
-          else if (!/^\d+$/.test(val)) error = 'Population must be a positive whole number.';
-          else if (parseInt(val) <= 0) error = 'Population must be greater than zero.';
-          break;
-
-        case '#per_capita':
-        case '#annual':
-          if (!val) error = 'This field is required.';
-          else if (isNaN(val)) error = 'Please enter a valid number.';
-          else if (parseFloat(val) <= 0) error = 'Value must be a positive number.';
-          break;
-
-        case '#date_start':
-          if (!val) error = 'Start Date is required.';
-          break;
-
-        case '#date_end':
-          const startVal = document.querySelector('#date_start').value;
-          if (!val) error = 'End Date is required.';
-          else if (startVal && val < startVal) error = 'End date cannot be before start date.';
-          break;
-      }
-
-      // Show or hide error message based on touch status
-      if (errorEl) {
-        errorEl.textContent = touched ? error : '';
-      }
-
-      if (error !== '') allValid = false;
+    errors.forEach(error => {
+        if (error.includes("Population") || error.includes("Per Capita") || error.includes("Annual Total")) {
+            categories.manual.errors.push(error);
+        } else {
+            categories.matrix.errors.push(error);
+        }
     });
 
-    nextBtn.disabled = !allValid;
-    nextBtn.classList.toggle('disabled', !allValid);
-  }
+    let html = `
+        <div class="error-header">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h4>Please Fix These Issues Before Submitting</h4>
+        </div>
+        <div class="error-summary">
+            <span class="error-count">${errors.length} error${errors.length !== 1 ? 's' : ''} found</span>
+        </div>
+        <div class="error-categories">
+    `;
 
-  // Add event listeners
-  requiredFields.forEach(selector => {
-    const el = document.querySelector(selector);
-    el.addEventListener('input', validateStep1Fields);
-    el.addEventListener('change', validateStep1Fields);
-    el.addEventListener('blur', () => {
-      el.dataset.touched = 'true';
-      validateStep1Fields();
+    Object.entries(categories).forEach(([key, category]) => {
+        if (category.errors.length > 0) {
+            html += `
+                <div class="error-category">
+                    <h5><i class="${category.icon}"></i> ${category.title}</h5>
+                    <ul class="error-list">
+            `;
+            
+            category.errors.forEach(error => {
+                html += `
+                    <li class="error-item">
+                        <i class="fas fa-times-circle"></i>
+                        <span class="error-item-text">${error}</span>
+                    </li>
+                `;
+            });
+            
+            html += `</ul></div>`;
+        }
     });
-  });
 
-  // Initial state
-  validateStep1Fields();
+    html += `</div>`;
+    errorDiv.innerHTML = html;
+    errorDiv.classList.add("show");
+    
+    setTimeout(() => {
+        errorDiv.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+}
 
-  // Button #modalBtn is disabled while textarea #comment isn’t filled up yet
-  const commentInput = document.getElementById("comment");
-  const modalBtn = document.getElementById("modalBtn");
+// Manual form submission handling
+document.getElementById('manual-entry-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const wasteComposition = [];
+    
+    // Collect waste composition data from inputs
+    document.querySelectorAll('.waste-input').forEach(input => {
+        const typeId = input.dataset.typeId;
+        const sectorId = input.dataset.sectorId;
+        const amount = parseFloat(input.value) || 0;
+        
+        wasteComposition.push({
+            type_id: typeId,
+            sector_id: sectorId,
+            waste_amount: amount
+        });
+    });
+    
+    const submitData = {
+        dataEntryId: formData.get('dataEntryId'),
+        title: formData.get('title'),
+        region: formData.get('region'),
+        province: formData.get('province') || null,
+        municipality: formData.get('municipality') || null,
+        barangay: formData.get('barangay') || null,
+        population: formData.get('population'),
+        per_capita: formData.get('per_capita'),
+        annual: formData.get('annual'),
+        date_start: formData.get('date_start'),
+        date_end: formData.get('date_end'),
+        comment: formData.get('comment') || '',
+        wasteComposition: wasteComposition
+    };
+    
+    try {
+        const response = await fetch('/api/data/edit-report', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(submitData)
+        });
+        
+        if (response.ok) {
+            alert('Entry revised successfully!');
+            window.location.href = '/dashboard/data/wip/{{dataEntryId}}';
+        } else {
+            alert('Error submitting revision. Please try again.');
+        }
+    } catch (error) {
+        console.error('Submission error:', error);
+        alert('Error submitting revision. Please try again.');
+    }
+});
 
-  function toggleButton() {
-    const trimmedValue = commentInput.value.trim();
-    modalBtn.disabled = trimmedValue === "";
-  }
-
-  // Initial check
-  toggleButton();
-
-  // Listen for changes in the textarea
-  commentInput.addEventListener("input", toggleButton);
-
+// Upload form submission handling
+document.getElementById('upload-entry-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('/api/data/edit-report/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Entry revised successfully via spreadsheet!');
+            window.location.href = result.redirectUrl || '/dashboard/data/wip/{{dataEntryId}}';
+        } else {
+            alert('Error: ' + (result.error || 'Failed to submit revision'));
+        }
+    } catch (error) {
+        console.error('Upload submission error:', error);
+        alert('Error submitting revision. Please try again.');
+    }
 });
 </script>
 
-<!-- Confirmation modal script -->
-<script>
-
-// Wait for the DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Modal functionality
-    const confirmModal = document.getElementById('confirm-modal');
-    const confirmClose = document.getElementById('confirm-close');
-    const confirmNo = document.getElementById('confirm-no');
-
-    /* APPROVE MODAL */
-    // Hide modal if close btn is clicked
-    if (confirmClose) {
-        confirmClose.onclick = function() {
-            confirmModal.style.display = "none";
-        }
-    }
-
-    // Hide modal if Cancel button is clicked
-    if (confirmNo) {
-        confirmNo.onclick = function() {
-            confirmModal.style.display = "none";
-        }
-    }
-    
-    // Hide modal if user clicks outside content
-    window.onclick = function(event) {
-        if (event.target == confirmModal) {
-            confirmModal.style.display = "none";
-        }
-    }
-})
-
-function showConfirm() {
-    document.getElementById('confirm-modal').style.display = 'block';
-}
-
-</script>
-
 <style>
-
-#comment {
-  width: 100%;
-  resize: none;
-  font-family: 'Segoe UI', sans-serif;
-  font-size: large;
-  padding: 10px;
-  border-radius: 5px;
-  border: 2px solid lightgray;
-}
-
 .required {
-  color: red;
-  margin-left: 4px;
+    color: red;
+    margin-left: 4px;
 }
 
 .error-msg {
-  color: red;
-  font-size: 0.9em;
-  margin-top: 4px;
+    color: red;
+    font-size: 0.9em;
+    margin-top: 4px;
 }
 
-.upload-btn:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
+.method-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin: 2rem auto;
+    max-width: 600px;
 }
 
-.upload-btn:disabled:hover {
-  background-color: #ccc;
-  cursor: not-allowed;
+.toggle-btn {
+    flex: 1;
+    padding: 1rem 2rem;
+    background-color: #f1f1f1;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
-.instructions-tab {
-  background-color: #fdfdfd;
-  padding: 1.5rem;
-  border-radius: 12px;
-  border: 1px solid #ddd;
-  max-width: 700px;
-  margin: 1.5rem auto;
-  font-family: 'Segoe UI', sans-serif;
-  color: #333;
+.toggle-btn:hover {
+    background-color: #e8e8e8;
+    border-color: #127009;
 }
 
-.instructions-tab h2 {
-  font-size: 1.4rem;
-  margin-bottom: 1rem;
-  color: #2c3e50;
+.toggle-btn.active {
+    background-color: #127009;
+    color: white;
+    border-color: #127009;
 }
 
-.instructions-tab ul {
-  list-style: none;
-  padding: 0;
-}
-
-.instructions-tab li {
-  margin-bottom: 0.75rem;
-  display: flex;
-  align-items: center;
-  font-size: 1rem;
-}
-
-.instructions-tab li i {
-  margin-right: 0.75rem;
-  color: #127009;
-  width: 20px;
-  text-align: center;
-}
-
-.download-btn {
-  display: inline-block;
-  margin-top: 1rem;
-  background-color: #28a745;
-  color: white;
-  padding: 0.6rem 1.2rem;
-  text-decoration: none;
-  font-weight: 600;
-  border-radius: 8px;
-  transition: background-color 0.2s ease;
-  border: none;
-}
-
-.download-btn:hover {
-  background-color: #218838;
-}
-
-.download-btn i {
-  margin-right: 0.5rem;
+.toggle-btn i {
+    font-size: 1.2rem;
 }
 
 .form-section {
-  background-color: #fdfdfd;
-  padding: 1.5rem;
-  border-radius: 12px;
-  border: 1px solid #ddd;
-  max-width: 1255px;
-  margin: 1.5rem auto;
-  font-family: 'Segoe UI', sans-serif;
-  color: #333;
+    background-color: #fdfdfd;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #ddd;
+    max-width: 900px;
+    margin: 1.5rem auto;
+    font-family: 'Segoe UI', sans-serif;
+    color: #333;
 }
 
 .form-section h3 {
-  font-size: 1.25rem;
-  margin-bottom: 1rem;
-  color: #2c3e50;
-  display: flex;
-  align-items: center;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
 }
 
 .form-section h3 i {
-  margin-right: 0.6rem;
-  color: #127009;;
+    margin-right: 0.6rem;
+    color: #127009;
 }
 
 .form-section label {
-  display: block;
-  margin-top: 1rem;
-  font-weight: 600;
-  font-size: 0.95rem;
+    display: block;
+    margin-top: 1rem;
+    font-weight: 600;
+    font-size: 0.95rem;
 }
 
 .form-section input[type="text"],
 .form-section input[type="date"],
 .form-section input[type="number"],
-.form-section select {
-  width: 100%;
-  padding: 0.5rem;
-  margin-top: 0.3rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 1rem;
+.form-section select,
+.form-section textarea {
+    width: 100%;
+    padding: 0.5rem;
+    margin-top: 0.3rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+.waste-input-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.waste-input-table th,
+.waste-input-table td {
+    border: 1px solid #ddd;
+    padding: 0.5rem;
+    text-align: center;
+}
+
+.waste-input-table th {
+    background-color: #127009;
+    color: white;
+    font-weight: 600;
+}
+
+.supertype-cell {
+    background-color: #f0f0f0;
+    font-weight: 600;
+    vertical-align: middle;
+}
+
+.waste-input {
+    width: 100%;
+    padding: 0.4rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.waste-input:focus {
+    border-color: #127009;
+    outline: none;
+}
+
+.btn-submit {
+    background-color: #28a745;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+}
+
+.btn-submit:hover {
+    background-color: #218838;
+}
+
+.btn-cancel {
+    background-color: #6c757d;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+    margin-left: 1rem;
+}
+
+.btn-cancel:hover {
+    background-color: #5a6268;
+}
+
+.instructions-tab {
+    background-color: #fdfdfd;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #ddd;
+    max-width: 700px;
+    margin: 1.5rem auto;
+    font-family: 'Segoe UI', sans-serif;
+    color: #333;
+}
+
+.instructions-tab h2 {
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+.instructions-tab ul {
+    list-style: none;
+    padding: 0;
+}
+
+.instructions-tab li {
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+}
+
+.instructions-tab li i {
+    margin-right: 0.75rem;
+    color: #127009;
+    width: 20px;
+    text-align: center;
+}
+
+.download-btn {
+    display: inline-block;
+    margin-top: 1rem;
+    background-color: #28a745;
+    color: white;
+    padding: 0.6rem 1.2rem;
+    text-decoration: none;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+    border: none;
+}
+
+.download-btn:hover {
+    background-color: #218838;
+}
+
+.download-btn i {
+    margin-right: 0.5rem;
 }
 
 .upload-btn {
-  display: inline-block;
-  margin-top: 1rem;
-  background-color: #28a745;
-  color: white;
-  padding: 0.6rem 1.2rem;
-  text-decoration: none;
-  border-radius: 8px;
-  transition: background-color 0.2s ease;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
+    display: inline-block;
+    margin-top: 1rem;
+    background-color: #28a745;
+    color: white;
+    padding: 0.6rem 1.2rem;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
 }
 
 .upload-btn:hover {
-  background-color: #218838;
+    background-color: #218838;
 }
 
 .upload-btn i {
-  margin-right: 0.5rem;
+    margin-right: 0.5rem;
+}
+
+.upload-btn:disabled {
+    background-color: #ccc;
+    color: #666;
+    cursor: not-allowed;
+    opacity: 0.7;
+    pointer-events: none;
+    border: 1px solid #aaa;
 }
 
 .drop-area {
-  border: 2px dashed #127009;
-  border-radius: 10px;
-  padding: 2rem;
-  text-align: center;
-  color: #2C3927;
-  background-color: #f3fff0;
-  cursor: pointer;
-  position: relative;
-  transition: background-color 0.3s ease;
+    border: 2px dashed #127009;
+    border-radius: 10px;
+    padding: 2rem;
+    text-align: center;
+    color: #2C3927;
+    background-color: #f3fff0;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.3s ease;
 }
 
 .drop-area:hover {
-  background-color: #eefff2;
+    background-color: #eefff2;
 }
 
 .drop-area input[type="file"] {
-  opacity: 0;
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-  cursor: pointer;
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    cursor: pointer;
 }
 
 .drop-area.highlight {
-  background-color: #e8f0ff;
-  border-color: #127009;
+    background-color: #e8f0ff;
+    border-color: #127009;
 }
 
 .file-name {
-  margin-top: 0.5rem;
-  font-style: italic;
-  font-size: 0.95rem;
-  color: #333;
+    margin-top: 0.5rem;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: #333;
 }
 
-input[type="date"] {
-  appearance: none;
-  -webkit-appearance: none;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  padding: 0.5rem;
-  font-size: 1rem;
-  width: 100%;
-  box-sizing: border-box;
+/* Enhanced Error Styling */
+.form-errors {
+    background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+    border: 2px solid #fc8181;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    box-shadow: 0 4px 6px rgba(252, 129, 129, 0.1);
+    display: none;
+    animation: slideIn 0.3s ease-out;
 }
 
-.date-input-wrapper {
-  position: relative;
-  margin-bottom: 1rem;
+.form-errors.show {
+    display: block;
 }
 
-.date-input-wrapper input[type="date"] {
-  width: 100%;
-  padding: 0.5rem 2.5rem 0.5rem 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 1rem;
-  appearance: none;
-  -webkit-appearance: none;
-  background-color: #fff;
-  box-sizing: border-box;
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.date-input-wrapper i {
-  position: absolute;
-  top: 50%;
-  right: 0.75rem;
-  transform: translateY(-50%);
-  color: #888;
-  pointer-events: none;
+.error-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #fc8181;
 }
 
-/* -------- Waste Composition Form -------- */
-.form-table {
-    max-width: 1255px !important;
+.error-header i {
+    font-size: 1.5rem;
+    color: #e53e3e;
+    margin-right: 0.75rem;
 }
 
-.waste-supertype h3 i {
-  color: #28a745;
+.error-header h4 {
+    color: #742a2a;
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
 }
 
-.waste-table-wrapper {
-  overflow-x: auto;
-  margin-top: 1rem;
+.error-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 
-.waste-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: center;
-  background-color: #fff !important;
+.error-category {
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    padding: 1rem;
+    border-left: 4px solid #e53e3e;
 }
 
-.waste-table th {
-  background-color: #2C3927;
-  color: #fff;
-  font-weight: bold;
-  padding: 0.75rem;
-  border: none;
+.error-category h5 {
+    color: #742a2a;
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
 }
 
-.waste-table td {
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  background-color: #fff !important;
+.error-category h5 i {
+    margin-right: 0.5rem;
+    color: #e53e3e;
 }
 
-.waste-table td:first-child {
-  text-align: left;
-  font-weight: 500;
-  background-color: #eee !important;
-  padding-right: 30px;
+.error-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
-.waste-entry {
-  width: 100%; 
-     box-sizing: border-box;
-     -webkit-box-sizing:border-box;
-     -moz-box-sizing: border-box;
-  padding: 0.4rem;
-  font-size: 0.95rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+.error-item {
+    background: #fff;
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+    border-radius: 6px;
+    border-left: 3px solid #fc8181;
+    display: flex;
+    align-items: flex-start;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* -------- Form Steps -------- */
-.form-section-label {
-  background-color: #fdfdfd;
-  padding: 1.5rem;
-  border-radius: 12px;
-  border: 1px solid #ddd;
-  max-width: 1255px;
-  margin: 1.5rem auto;
-  font-family: 'Segoe UI', sans-serif;
-  color: #333;
-  text-align: center;
+.error-item i {
+    color: #e53e3e;
+    margin-right: 0.75rem;
+    margin-top: 0.2rem;
+    flex-shrink: 0;
 }
 
-.step-labels {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.75rem;
+.error-item-text {
+    color: #2d3748;
+    font-size: 0.95rem;
+    line-height: 1.4;
 }
 
-.step-labels .label {
-  background-color: #f0f0f0;
-  color: #333;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  transition: background-color 0.3s ease, color 0.3s ease;
-  border: 1px solid #ccc;
+.error-summary {
+    background: rgba(229, 62, 62, 0.1);
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    text-align: center;
 }
 
-.step-labels .label.current {
-  background-color: #28a745;
-  color: white;
-  border-color: #28a745;
+.error-count {
+    font-weight: 600;
+    color: #742a2a;
 }
-
 </style>
 
-<!-- Modal style -->
-<style>
-    /* Modal styles */
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        overflow: auto;
-        background-color: rgba(0,0,0,0.4);
-    }
-
-    .modal-content {
-        background-color: #fefefe;
-        margin: 20% auto;
-        padding: 20px;
-        border: 1px solid #888;
-        width: 80%;
-        max-width: 900px;
-        border-radius: 5px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        text-align: center;
-    }
-
-    .close {
-        color: #aaa;
-        float: right;
-        font-size: 28px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-
-    .close:hover,
-    .close:focus {
-        color: black;
-        text-decoration: none;
-    }
-</style>
+</body>
+</html>
