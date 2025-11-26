@@ -95,9 +95,11 @@
                 {{/ifEquals}}
             </a>
 
-            <a href="/dashboard/deadline" class="{{#if current_deadline}}current{{/if}}">
-                <i class="fa-solid fa-hourglass-end nav-icon"></i> Submission Deadline
-            </a>
+            {{#ifEquals user.supertype 2}}
+              <a href="/dashboard/deadline" class="{{#if current_deadline}}current{{/if}}">
+                  <i class="fa-solid fa-hourglass-end nav-icon"></i> Submission Deadline
+              </a>
+            {{/ifEquals}}
 
 
                 <!-- Report Functions -->
