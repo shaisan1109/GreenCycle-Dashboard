@@ -86,11 +86,13 @@
                 <a href="/dashboard/guide" class="{{#if current_guide}}current{{/if}}">
                     <i class="fa-solid fa-book-open nav-icon"></i></i> Waste Type Guide
                 </a>
-                <a href="/dashboard/noncompliance" class="{{#if current_noncompliance}}current{{/if}}">
-                <i class="fa-solid fa-triangle-exclamation nav-icon"></i>&nbsp;Client Compliance Warning
-                {{#ifNotEquals cmpTotalCount 0}}
-                    <span class="notif-badge"> {{cmpTotalCount}}</span>
-                {{/ifNotEquals}}
+                {{#ifEquals user.supertype 2}}
+                  <a href="/dashboard/noncompliance" class="{{#if current_noncompliance}}current{{/if}}">
+                  <i class="fa-solid fa-triangle-exclamation nav-icon"></i>&nbsp;Client Compliance Warning
+                  {{#ifNotEquals cmpTotalCount 0}}
+                      <span class="notif-badge"> {{cmpTotalCount}}</span>
+                  {{/ifNotEquals}}
+                {{/ifEquals}}
             </a>
 
             <a href="/dashboard/deadline" class="{{#if current_deadline}}current{{/if}}">
