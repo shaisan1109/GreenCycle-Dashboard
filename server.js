@@ -2644,7 +2644,7 @@ app.get('/dashboard/edit-report/:id', async (req, res) => {
   res.render('dashboard/data-edit', {
     layout: 'dashboard',
     title: 'Edit Data Entry | GC Dashboard',
-    current_user_report: true,
+    current_in_progress: true,
     sectors,
     supertypes,
     types,
@@ -3089,16 +3089,20 @@ app.post("/api/data/edit-report/upload", xlsxUpload.single('spreadsheet'), async
       dataEntryId, title, region, province, municipality, barangay, fullLocation, 
       population, per_capita, annual, date_start, date_end, wasteComposition
     );
+    console.log("STEP 1: ENTRY UPDATED.")
 
     // Update entry status to Revised
     await updateDataStatus(dataEntryId, 'Revised');
+    console.log("STEP 2: STATUS UPDATED.")
 
     // Create revision entry
     const revisionId = await createRevisionEntry(dataEntryId, currentUser, 'Resubmitted via Spreadsheet', comment || '');
     await updateCurrentLog(dataEntryId, revisionId);
+    console.log("STEP 3: CREATED REVISION ENTRY")
 
     // Create task
     await createTask(dataEntryId);
+    console.log("STEP 4: TASK CREATED")
 
     res.status(200).json({
       message: "Report revised successfully via spreadsheet upload",

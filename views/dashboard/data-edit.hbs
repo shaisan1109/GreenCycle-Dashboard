@@ -22,7 +22,7 @@
 
 <!-- MANUAL FORM (existing form - UNCHANGED LAYOUT) -->
 <div id="manual-form" style="display: block;">
-    <form id="manual-entry-form">
+    <form id="manual-entry-form" data-prefill-region="{{prefill.region}}" data-prefill-province="{{prefill.province}}" data-prefill-municipality="{{prefill.municipality}}" data-prefill-barangay="{{prefill.barangay}}">
         <input type="hidden" name="dataEntryId" id="dataEntryId" value="{{dataEntryId}}">
 
         <div class="form-section">
@@ -43,11 +43,7 @@
             <h3><i class="fas fa-map-marker-alt"></i> Select Location</h3>
 
             <label for="region">Region<span class="required">*</span></label>
-            <select name="region" id="regions" required 
-                data-prefill-region="{{prefill.region}}" 
-                data-prefill-province="{{prefill.province}}" 
-                data-prefill-municipality="{{prefill.municipality}}" 
-                data-prefill-barangay="{{prefill.barangay}}">
+            <select name="region" id="regions" required>
                 <option value="">Select a region</option>
             </select>
             <div class="error-msg" id="error-regions"></div>
@@ -171,7 +167,7 @@
 
 <!-- UPLOAD FORM (new spreadsheet upload) -->
 <div id="upload-form" style="display: none;">
-    <form id="upload-entry-form" enctype="multipart/form-data">
+    <form id="upload-entry-form" enctype="multipart/form-data" data-prefill-region="{{prefill.region}}" data-prefill-province="{{prefill.province}}" data-prefill-municipality="{{prefill.municipality}}" data-prefill-barangay="{{prefill.barangay}}">
         <input type="hidden" name="dataEntryId" value="{{dataEntryId}}">
 
         <div class="step active" data-step="0">
@@ -283,7 +279,8 @@
 </div>
 
 <script src="/../js/locations.js" type="text/javascript"></script>
-<script src="/../js/file-drop.js" type="text/javascript"></script>
+<script src="/../js/locations-revision.js" type="text/javascript"></script>
+<script src="/../js/file-drop-revision.js" type="text/javascript"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>

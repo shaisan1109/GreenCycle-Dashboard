@@ -1,8 +1,10 @@
+document.addEventListener("DOMContentLoaded", () => {
+
 let form = document.forms[0]
-let regionsDropdown = form.regions
-let provincesDropdown = form.provinces
-let municipalitiesDropdown = form.municipalities
-let barangayDropdown = form.barangay
+let regionsDropdown = document.getElementById("regions")
+let provincesDropdown = document.getElementById("provinces")
+let municipalitiesDropdown = document.getElementById("municipalities")
+let barangayDropdown = document.getElementById("barangay")
 
 // Variables changing with selection
 let jsonData
@@ -191,3 +193,5 @@ function getBarangays() {
 
     barangayDropdown.innerHTML = output
 }
+
+});
