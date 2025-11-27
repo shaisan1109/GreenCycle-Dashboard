@@ -316,7 +316,7 @@
       </li>
       {{/if}}
 
-      <!-- Simulation -->
+      {{!-- <!-- Simulation -->
       {{#ifNotEquals data_entry true}}
       <li>
         <label>
@@ -324,7 +324,7 @@
           <span>Waste Simulation Forecast</span>
         </label>
       </li>
-      {{/ifNotEquals}}
+      {{/ifNotEquals}} --}}
     </ul>
 
     <!-- Simulation Settings (hidden by default) -->
@@ -729,6 +729,7 @@ if (pdfTrendsToggle && pdfMiniAgg) {
 const simCheckbox = document.querySelector('#pdfModal input.super-item[value="simulation"]');
 const pdfSimSettings = document.getElementById("pdfSimSettings");
 
+/*
 if (simCheckbox) {
   const toggleSimSettings = () => {
     pdfSimSettings.style.display = simCheckbox.checked ? "block" : "none";
@@ -736,6 +737,7 @@ if (simCheckbox) {
   simCheckbox.addEventListener("change", toggleSimSettings);
   toggleSimSettings(); // initial state
 }
+*/
 
 // Modal elements
 const pdfModal = document.getElementById("pdfModal");
